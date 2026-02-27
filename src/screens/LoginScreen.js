@@ -26,10 +26,7 @@ export default function LoginScreen() {
         <StatusBar barStyle="dark-content" />
 
         {/* Logo */}
-        <Image
-          source={require("../assets/logo.png")}
-          style={styles.logo}
-        />
+        <Image source={require("../assets/logo.png")} style={styles.logo} />
 
         {/* Title */}
         <Text style={styles.title}>Welcome Back</Text>

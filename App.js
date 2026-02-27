@@ -1,13 +1,11 @@
-
-
 // App.js
-import { StatusBar } from 'expo-status-bar';
-import { NavigationContainer } from '@react-navigation/native';
-import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { StatusBar } from "expo-status-bar";
+import { NavigationContainer } from "@react-navigation/native";
+import { createNativeStackNavigator } from "@react-navigation/native-stack";
 
-import WelcomeScreen from './screens/WelcomeScreen';
-import SignUpScreen from './screens/SignUpScreen';
-import LoginScreen from './screens/LoginScreen';
+import WelcomeScreen from "./src/screens/WelcomeScreen";
+import SignUpScreen from "./src/screens/SignUpScreen";
+import LoginScreen from "./src/screens/LoginScreen";
 
 const Stack = createNativeStackNavigator();
 
@@ -19,8 +17,8 @@ export default function App() {
       <Stack.Navigator
         initialRouteName="Welcome"
         screenOptions={{
-          headerShown: false,           // hide header on all screens
-          animation: 'fade_from_bottom', // smooth feel
+          headerShown: false, // hide header on all screens
+          animation: "fade_from_bottom", // smooth feel
         }}
       >
         <Stack.Screen name="Welcome" component={WelcomeScreen} />
