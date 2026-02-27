@@ -6,10 +6,12 @@ import {
   TextInput,
   TouchableOpacity,
   StyleSheet,
+  Image,
   KeyboardAvoidingView,
   Platform,
   Alert,
 } from 'react-native';
+
 
 export default function ForgotPasswordScreen() {
   const [email, setEmail] = useState('');
@@ -53,7 +55,10 @@ export default function ForgotPasswordScreen() {
     >
       <View style={styles.inner}>
         {/* Logo placeholder – later replace with <Image> or custom SVG component */}
-        <Text style={styles.logo}>NAWARNY</Text>
+        <Image
+          source={require("../src/assets/logo.png")}
+          style={styles.logo}
+        />
 
         <Text style={styles.title}>Forgot Password</Text>
         <Text style={styles.subtitle}>
@@ -101,11 +106,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 30,
   },
   logo: {
-    fontSize: 42,
-    fontWeight: 'bold',
-    color: '#1e40af',
-    textAlign: 'center',
-    marginBottom: 40,
+    width: 130,
+    height: 130,
+    marginBottom: 32,
+    marginLeft:100,
+    resizeMode: "contain",
   },
   title: {
     fontSize: 28,
@@ -161,6 +166,7 @@ const styles = StyleSheet.create({
     padding: 10,
     borderRadius: 8,
   },
+  
   successText: {
     color: '#15803d',
     fontSize: 14,
