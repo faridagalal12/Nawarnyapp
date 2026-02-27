@@ -16,13 +16,20 @@ import {
   Dimensions,
   Image
 } from 'react-native';
+import { Ionicons } from "@expo/vector-icons";
 
-const { width } = Dimensions.get('window');
 
 export default function SignUpScreen({ navigation }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const handleSignUp = () => {
+  // Close keyboard
+  Keyboard.dismiss();
+
+  // Navigate to Verify screen
+  navigation.navigate("Verify");
+};
 
   return (
     <SafeAreaView style={styles.container}>
@@ -34,6 +41,15 @@ export default function SignUpScreen({ navigation }) {
           <View style={styles.content}>
             {/* Logo – same as welcome */}
             <View style={styles.logoContainer}>
+
+            {/* Back Button */}
+                           <TouchableOpacity
+                             style={styles.backButton}
+                             onPress={() => navigation.navigate("Welcome")}
+                           >
+                            <Ionicons name="chevron-back" size={28} color="#000" />
+                           </TouchableOpacity>
+                           
              
               <Image
                         source={require("../assets/logo.png")} // replace with your actual logo path
@@ -89,9 +105,13 @@ export default function SignUpScreen({ navigation }) {
             </View>
 
             {/* Sign Up Button */}
-            <TouchableOpacity style={styles.signUpButton} activeOpacity={0.85}>
-              <Text style={styles.buttonText}>Sign up</Text>
-            </TouchableOpacity>
+            <TouchableOpacity
+  style={styles.signUpButton}
+  activeOpacity={0.85}
+  onPress={() => navigation.navigate("Verify")}
+>
+  <Text style={styles.buttonText}>Sign up</Text>
+</TouchableOpacity>
 
             {/* Already have account? */}
             <View style={styles.footer}>
@@ -120,6 +140,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 32,
     paddingTop: 60,
+  },
+
+  backButton: {
+    position: "absolute",
+    top: 60,
+    left:20,
+    zIndex: 5,
   },
   logoContainer: {
     marginBottom: 50,
