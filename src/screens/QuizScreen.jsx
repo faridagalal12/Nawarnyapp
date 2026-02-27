@@ -8,9 +8,27 @@ import {
   Animated,
   Dimensions,
   ScrollView,
+  StatusBar,
 } from "react-native";
 
 const { width } = Dimensions.get("window");
+
+// ─── Palette (from Q1 screenshot) ───────────────────────────────────────────
+const PURPLE      = "#4B4ACF";   // header background
+const PURPLE_DARK = "#3736A8";   // darker tint for depth
+const PURPLE_LIGHT= "#7B7AE8";   // accent dot / letter tint
+const WHITE       = "#FFFFFF";
+const BG          = "#F0EFF7";   // page background (very light lavender-grey)
+const CARD_BG     = "#FFFFFF";
+const BORDER_DEF  = "#E3E2F0";
+const BORDER_SEL  = "#4B4ACF";
+const TEXT_DARK   = "#1A1A2E";
+const TEXT_MID    = "#6B6A8E";
+const TEXT_LIGHT  = "#A9A8C8";
+const NEXT_BG     = "#4B4ACF";
+
+// ─── Data ────────────────────────────────────────────────────────────────────
+const OPTION_LABELS = ["A", "B", "C", "D", "E"];
 
 const QUESTIONS = [
   {
@@ -23,78 +41,68 @@ const QUESTIONS = [
     id: 2,
     question: "What best describes your work style?",
     options: ["Deep focus", "Quick bursts", "Collaborative", "Flexible flow"],
+    allowMultiple: true,
   },
   {
     id: 3,
     question: "How do you prefer to learn new things?",
     options: ["Reading", "Watching", "Doing it", "Discussing"],
+    allowMultiple: true,
   },
   {
     id: 4,
     question: "What motivates you most right now?",
     options: ["Growth", "Stability", "Recognition", "Impact"],
+    allowMultiple: true,
   },
   {
     id: 5,
     question: "How do you handle unexpected challenges?",
     options: ["Head-on", "Plan first", "Ask for help", "Step back"],
+    allowMultiple: true,
   },
   {
     id: 6,
     question: "What's your ideal way to end the day?",
-    options: [
-      "Reflect quietly",
-      "Social time",
-      "Creative outlet",
-      "Rest immediately",
-    ],
+    options: ["Reflect quietly", "Social time", "Creative outlet", "Rest immediately"],
+    allowMultiple: true,
   },
   {
     id: 7,
-    question: "your ideal way to end the day?",
-    options: [
-      "Reflect quietly",
-      "Social time",
-      "Creative outlet",
-      "Rest immediately",
-    ],
+    question: "Which topics outside of academic studies do you find interesting?",
+    options: ["Travel, Exploring New Cultures", "Technology", "Self Improvement", "Entertainment and Internet culture"],
+    allowMultiple: true,
   },
   {
     id: 8,
-    question: "No. 8 ideal way to end the day?",
-    options: [
-      "Reflect quietly",
-      "Social time",
-      "Creative outlet",
-      "Rest immediately",
-    ],
+    question: "How do you recharge after a long week?",
+    options: ["Reflect quietly", "Social time", "Creative outlet", "Rest immediately"],
     allowMultiple: true,
   },
 ];
 
+// ─── Component ───────────────────────────────────────────────────────────────
 export default function QuizScreen() {
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const [answers, setAnswers] = useState({});
+  const [currentIndex, setCurrentIndex]   = useState(0);
+  const [answers, setAnswers]             = useState({});
   const [selectedOptions, setSelectedOptions] = useState([]);
-  const [completed, setCompleted] = useState(false);
-  const [fadeAnim] = useState(new Animated.Value(1));
+  const [completed, setCompleted]         = useState(false);
+  const [fadeAnim]                        = useState(new Animated.Value(1));
 
   const currentQuestion = QUESTIONS[currentIndex];
-  const progress = (currentIndex / QUESTIONS.length) * 100;
+  const progress = ((currentIndex + 1) / QUESTIONS.length) * 100;
   const formatAnswer = answer =>
     Array.isArray(answer) ? answer.join(", ") : answer || "No answer";
 
+  // ── Handlers ────────────────────────────────────────────────────────────────
   const handleSelect = option => {
     if (currentQuestion.allowMultiple) {
       setSelectedOptions(prev =>
-        prev.includes(option)
-          ? prev.filter(item => item !== option)
-          : [...prev, option],
+        prev.includes(option) ? prev.filter(i => i !== option) : [...prev, option]
       );
-      return;
+    } else {
+      setSelectedOptions([option]);
     }
-
-    setSelectedOptions([option]);
   };
 
   const handleNext = () => {
@@ -111,19 +119,19 @@ export default function QuizScreen() {
       return;
     }
 
-    // Fade out → update → fade in
-    Animated.timing(fadeAnim, {
-      toValue: 0,
-      duration: 200,
-      useNativeDriver: true,
-    }).start(() => {
-      setCurrentIndex(currentIndex + 1);
+    Animated.timing(fadeAnim, { toValue: 0, duration: 180, useNativeDriver: true }).start(() => {
+      setCurrentIndex(i => i + 1);
       setSelectedOptions([]);
-      Animated.timing(fadeAnim, {
-        toValue: 1,
-        duration: 300,
-        useNativeDriver: true,
-      }).start();
+      Animated.timing(fadeAnim, { toValue: 1, duration: 280, useNativeDriver: true }).start();
+    });
+  };
+
+  const handleBack = () => {
+    if (currentIndex === 0) return;
+    Animated.timing(fadeAnim, { toValue: 0, duration: 180, useNativeDriver: true }).start(() => {
+      setCurrentIndex(i => i - 1);
+      setSelectedOptions([]);
+      Animated.timing(fadeAnim, { toValue: 1, duration: 280, useNativeDriver: true }).start();
     });
   };
 
@@ -134,105 +142,128 @@ export default function QuizScreen() {
     setCompleted(false);
   };
 
+  // ── Completed Screen ─────────────────────────────────────────────────────────
   if (completed) {
     return (
       <SafeAreaView style={styles.container}>
-        <View style={styles.completedContainer}>
-          <View style={styles.completedHeader}>
-            <Text style={styles.completedTitle}>All done!</Text>
-            <Text style={styles.completedSubtitle}>
-              Here's what you shared:
-            </Text>
-          </View>
+        <StatusBar barStyle="light-content" backgroundColor={PURPLE} />
 
-          <ScrollView
-            style={styles.summaryCard}
-            contentContainerStyle={styles.summaryContent}
-            showsVerticalScrollIndicator={false}
-          >
-            {QUESTIONS.map(q => (
-              <View key={q.id} style={styles.summaryRow}>
-                <Text style={styles.summaryQ} numberOfLines={1}>
-                  {q.question}
-                </Text>
-                <Text style={styles.summaryA}>
-                  {formatAnswer(answers[q.id])}
-                </Text>
+        {/* Purple header */}
+        <View style={styles.completedHeader}>
+          <Text style={styles.completedHeaderLabel}>QUIZ COMPLETE</Text>
+          <Text style={styles.completedTitle}>All done!</Text>
+          <Text style={styles.completedSubtitle}>Here's what you shared:</Text>
+        </View>
+
+        {/* Summary */}
+        <ScrollView
+          style={styles.summaryScroll}
+          contentContainerStyle={styles.summaryContent}
+          showsVerticalScrollIndicator={false}
+        >
+          {QUESTIONS.map((q, idx) => (
+            <View key={q.id} style={styles.summaryRow}>
+              <View style={styles.summaryIndexBadge}>
+                <Text style={styles.summaryIndexText}>{idx + 1}</Text>
               </View>
-            ))}
-          </ScrollView>
+              <View style={styles.summaryTextBlock}>
+                <Text style={styles.summaryQ} numberOfLines={2}>{q.question}</Text>
+                <Text style={styles.summaryA}>{formatAnswer(answers[q.id])}</Text>
+              </View>
+            </View>
+          ))}
+        </ScrollView>
 
-          <TouchableOpacity style={styles.restartBtn} onPress={handleRestart}>
-            <Text style={styles.restartBtnText}>Start Over</Text>
+        <View style={styles.completedFooter}>
+          <TouchableOpacity style={styles.restartBtn} onPress={handleRestart} activeOpacity={0.85}>
+            <Text style={styles.restartBtnText}>Done</Text>
           </TouchableOpacity>
         </View>
       </SafeAreaView>
     );
   }
 
+  // ── Quiz Screen ──────────────────────────────────────────────────────────────
   return (
     <SafeAreaView style={styles.container}>
-      {/* Header */}
+      <StatusBar barStyle="light-content" backgroundColor={PURPLE} />
+
+      {/* ── Purple Header Block ── */}
       <View style={styles.header}>
-        <Text style={styles.stepLabel}>
-          {currentIndex + 1} / {QUESTIONS.length}
-        </Text>
-        <View style={styles.progressTrack}>
-          <View style={[styles.progressFill, { width: `${progress}%` }]} />
+        {/* Progress bar inside header */}
+        <View style={styles.progressRow}>
+          <View style={styles.progressTrack}>
+            <View style={[styles.progressFill, { width: `${progress}%` }]} />
+          </View>
+          <Text style={styles.stepLabel}>{currentIndex + 1}/{QUESTIONS.length}</Text>
         </View>
+
+        {/* Question card floating on header */}
+        <Animated.View style={[styles.questionCard, { opacity: fadeAnim }]}>
+          <Text style={styles.questionCategoryLabel}>Question</Text>
+          <Text style={styles.questionText}>{currentQuestion.question}</Text>
+          {currentQuestion.allowMultiple && (
+            <Text style={styles.multipleHint}>Select all that apply</Text>
+          )}
+        </Animated.View>
       </View>
 
-      {/* Question + Options */}
-      <Animated.View style={[styles.body, { opacity: fadeAnim }]}>
-        <Text style={styles.questionNumber}>Q{currentIndex + 1}</Text>
-        <Text style={styles.questionText}>{currentQuestion.question}</Text>
-
-        <View style={styles.optionsContainer}>
-          {currentQuestion.options.map((option, i) => {
-            const isSelected = selectedOptions.includes(option);
-            return (
-              <TouchableOpacity
-                key={i}
-                style={[
-                  styles.optionCard,
-                  isSelected && styles.optionCardSelected,
-                ]}
-                onPress={() => handleSelect(option)}
-                activeOpacity={0.8}
-              >
-                <View
-                  style={[
-                    styles.optionDot,
-                    isSelected && styles.optionDotSelected,
-                  ]}
-                />
-                <Text
-                  style={[
-                    styles.optionText,
-                    isSelected && styles.optionTextSelected,
-                  ]}
-                >
-                  {option}
+      {/* ── Options ── */}
+      <Animated.ScrollView
+        style={[styles.optionsScroll, { opacity: fadeAnim }]}
+        contentContainerStyle={styles.optionsContent}
+        showsVerticalScrollIndicator={false}
+      >
+        {currentQuestion.options.map((option, i) => {
+          const isSelected = selectedOptions.includes(option);
+          return (
+            <TouchableOpacity
+              key={i}
+              style={[styles.optionRow, isSelected && styles.optionRowSelected]}
+              onPress={() => handleSelect(option)}
+              activeOpacity={0.75}
+            >
+              {/* Letter badge */}
+              <View style={[styles.letterBadge, isSelected && styles.letterBadgeSelected]}>
+                <Text style={[styles.letterText, isSelected && styles.letterTextSelected]}>
+                  {OPTION_LABELS[i]}
                 </Text>
-              </TouchableOpacity>
-            );
-          })}
-        </View>
-      </Animated.View>
+              </View>
 
-      {/* Footer */}
+              <Text style={[styles.optionText, isSelected && styles.optionTextSelected]}>
+                {option}
+              </Text>
+
+              {/* Selection indicator on right */}
+              {isSelected && (
+                <View style={styles.checkDot}>
+                  <Text style={styles.checkMark}>✓</Text>
+                </View>
+              )}
+            </TouchableOpacity>
+          );
+        })}
+      </Animated.ScrollView>
+
+      {/* ── Footer ── */}
       <View style={styles.footer}>
         <TouchableOpacity
-          style={[
-            styles.nextBtn,
-            !selectedOptions.length && styles.nextBtnDisabled,
-          ]}
+          style={[styles.backBtn, currentIndex === 0 && styles.backBtnDisabled]}
+          onPress={handleBack}
+          disabled={currentIndex === 0}
+          activeOpacity={0.7}
+        >
+          <Text style={[styles.backBtnText, currentIndex === 0 && styles.backBtnTextDisabled]}>←</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[styles.nextBtn, !selectedOptions.length && styles.nextBtnDisabled]}
           onPress={handleNext}
           disabled={!selectedOptions.length}
           activeOpacity={0.85}
         >
           <Text style={styles.nextBtnText}>
-            {currentIndex === QUESTIONS.length - 1 ? "Finish" : "Next →"}
+            {currentIndex === QUESTIONS.length - 1 ? "Finish" : "Next"}
           </Text>
         </TouchableOpacity>
       </View>
@@ -240,205 +271,339 @@ export default function QuizScreen() {
   );
 }
 
-const CREAM = "#F9F5EF";
-const INK = "#1A1612";
-const ACCENT = "#D4522A";
-const MUTED = "#9A8F85";
-const CARD = "#FFFFFF";
-const BORDER = "#E8E0D8";
-
+// ─── Styles ──────────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: CREAM,
+    backgroundColor: BG,
   },
 
-  // Header
+  // ── Header ──────────────────────────────────────────────────────────────────
   header: {
-    paddingHorizontal: 28,
-    paddingTop: 20,
-    paddingBottom: 10,
-    gap: 10,
+    backgroundColor: PURPLE,
+    paddingTop: 18,
+    paddingHorizontal: 22,
+    paddingBottom: 36,       // extra bottom so card overlaps
+    // Rounded bottom corners like the screenshot
+    borderBottomLeftRadius: 0,
+    borderBottomRightRadius: 0,
   },
-  stepLabel: {
-    fontFamily: "Georgia",
-    fontSize: 13,
-    color: MUTED,
-    letterSpacing: 1.5,
-    textTransform: "uppercase",
+  progressRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    marginBottom: 24,
   },
   progressTrack: {
-    height: 3,
-    backgroundColor: BORDER,
+    flex: 1,
+    height: 4,
+    backgroundColor: "rgba(255,255,255,0.25)",
     borderRadius: 2,
     overflow: "hidden",
   },
   progressFill: {
     height: "100%",
-    backgroundColor: ACCENT,
+    backgroundColor: WHITE,
     borderRadius: 2,
   },
-
-  // Body
-  body: {
-    flex: 1,
-    paddingHorizontal: 28,
-    paddingTop: 36,
+  stepLabel: {
+    fontFamily: "System",
+    fontSize: 12,
+    fontWeight: "600",
+    color: "rgba(255,255,255,0.7)",
+    letterSpacing: 1,
   },
-  questionNumber: {
-    fontFamily: "Georgia",
+
+  // Question card
+  questionCard: {
+    backgroundColor: WHITE,
+    borderRadius: 18,
+    paddingVertical: 22,
+    paddingHorizontal: 20,
+    // Subtle shadow so it floats
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.12,
+    shadowRadius: 12,
+    elevation: 6,
+  },
+  questionCategoryLabel: {
+    fontFamily: "System",
     fontSize: 13,
-    color: ACCENT,
-    letterSpacing: 2,
+    fontWeight: "700",
+    color: PURPLE,
+    letterSpacing: 0.5,
+    textTransform: "uppercase",
     marginBottom: 10,
+    textAlign: "center",
   },
   questionText: {
-    fontFamily: "Georgia",
-    fontSize: 26,
-    color: INK,
-    lineHeight: 36,
-    marginBottom: 36,
+    fontFamily: "System",
+    fontSize: 18,
+    fontWeight: "600",
+    color: TEXT_DARK,
+    lineHeight: 26,
+    textAlign: "center",
   },
-  optionsContainer: {
+  multipleHint: {
+    fontFamily: "System",
+    fontSize: 11,
+    color: TEXT_LIGHT,
+    textAlign: "center",
+    marginTop: 8,
+    fontStyle: "italic",
+  },
+
+  // ── Options ─────────────────────────────────────────────────────────────────
+  optionsScroll: {
+    flex: 1,
+  },
+  optionsContent: {
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    paddingBottom: 12,
     gap: 12,
   },
-  optionCard: {
+  optionRow: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: CARD,
-    borderWidth: 1.5,
-    borderColor: BORDER,
+    backgroundColor: CARD_BG,
     borderRadius: 14,
-    paddingVertical: 18,
-    paddingHorizontal: 20,
+    paddingVertical: 16,
+    paddingHorizontal: 16,
+    borderWidth: 1.5,
+    borderColor: BORDER_DEF,
     gap: 14,
-    shadowColor: INK,
+    // subtle shadow
+    shadowColor: "#4B4ACF",
     shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
+    shadowOpacity: 0.04,
     shadowRadius: 4,
     elevation: 1,
   },
-  optionCardSelected: {
-    borderColor: ACCENT,
-    backgroundColor: "#FDF1EC",
+  optionRowSelected: {
+    borderColor: BORDER_SEL,
+    backgroundColor: "#EEEEFF",
+    shadowOpacity: 0.12,
+    shadowRadius: 8,
+    elevation: 3,
   },
-  optionDot: {
-    width: 18,
-    height: 18,
-    borderRadius: 9,
-    borderWidth: 2,
-    borderColor: BORDER,
+
+  // Letter badge (A / B / C / D)
+  letterBadge: {
+    width: 32,
+    height: 32,
+    borderRadius: 10,
+    backgroundColor: BG,
+    borderWidth: 1,
+    borderColor: BORDER_DEF,
+    alignItems: "center",
+    justifyContent: "center",
   },
-  optionDotSelected: {
-    borderColor: ACCENT,
-    backgroundColor: ACCENT,
+  letterBadgeSelected: {
+    backgroundColor: PURPLE,
+    borderColor: PURPLE,
   },
+  letterText: {
+    fontFamily: "System",
+    fontSize: 13,
+    fontWeight: "700",
+    color: PURPLE_LIGHT,
+  },
+  letterTextSelected: {
+    color: WHITE,
+  },
+
   optionText: {
-    fontFamily: "Georgia",
-    fontSize: 16,
-    color: INK,
+    fontFamily: "System",
+    fontSize: 15,
+    fontWeight: "500",
+    color: TEXT_DARK,
     flex: 1,
   },
   optionTextSelected: {
-    color: ACCENT,
+    color: PURPLE,
+    fontWeight: "600",
   },
 
-  // Footer
+  checkDot: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: PURPLE,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  checkMark: {
+    color: WHITE,
+    fontSize: 12,
+    fontWeight: "700",
+  },
+
+  // ── Footer ───────────────────────────────────────────────────────────────────
   footer: {
-    paddingHorizontal: 28,
-    paddingBottom: 36,
-    paddingTop: 16,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 20,
+    paddingBottom: 32,
+    paddingTop: 12,
+    gap: 16,
+  },
+  backBtn: {
+    width: 50,
+    height: 50,
+    borderRadius: 14,
+    backgroundColor: WHITE,
+    borderWidth: 1.5,
+    borderColor: BORDER_DEF,
+    alignItems: "center",
+    justifyContent: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.06,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  backBtnDisabled: {
+    opacity: 0.35,
+  },
+  backBtnText: {
+    fontSize: 20,
+    color: TEXT_DARK,
+    fontWeight: "600",
+  },
+  backBtnTextDisabled: {
+    color: TEXT_LIGHT,
   },
   nextBtn: {
-    backgroundColor: INK,
-    borderRadius: 14,
-    paddingVertical: 18,
-    alignItems: "center",
-  },
-  nextBtnDisabled: {
-    backgroundColor: BORDER,
-  },
-  nextBtnText: {
-    fontFamily: "Georgia",
-    fontSize: 16,
-    color: CREAM,
-    letterSpacing: 0.5,
-  },
-
-  // Completed
-  completedContainer: {
     flex: 1,
-    paddingHorizontal: 28,
-    paddingTop: 28,
-    paddingBottom: 20,
-  },
-  completedHeader: {
-    marginBottom: 18,
-  },
-  completedEmoji: {
-    fontSize: 32,
-    color: ACCENT,
-    marginBottom: 8,
-  },
-  completedTitle: {
-    fontFamily: "Georgia",
-    fontSize: 34,
-    color: INK,
-    marginBottom: 6,
-  },
-  completedSubtitle: {
-    fontFamily: "Georgia",
-    fontSize: 16,
-    color: MUTED,
-    marginBottom: 28,
-  },
-  summaryCard: {
-    backgroundColor: CARD,
-    borderRadius: 16,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderWidth: 1.5,
-    borderColor: BORDER,
-    flex: 1,
-    marginBottom: 16,
-  },
-  summaryContent: {
-    paddingVertical: 8,
-    gap: 12,
-  },
-  summaryRow: {
-    backgroundColor: "#FFFBF7",
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: BORDER,
-    paddingVertical: 12,
-    paddingHorizontal: 12,
-    gap: 6,
-  },
-  summaryQ: {
-    fontFamily: "Georgia",
-    fontSize: 12,
-    color: MUTED,
-    letterSpacing: 0.5,
-  },
-  summaryA: {
-    fontFamily: "Georgia",
-    fontSize: 15,
-    color: INK,
-    lineHeight: 22,
-  },
-  restartBtn: {
-    borderWidth: 1.5,
-    borderColor: INK,
+    backgroundColor: NEXT_BG,
     borderRadius: 14,
     paddingVertical: 16,
     alignItems: "center",
-    marginBottom: 20,
+    shadowColor: PURPLE,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.35,
+    shadowRadius: 10,
+    elevation: 5,
+  },
+  nextBtnDisabled: {
+    backgroundColor: BORDER_DEF,
+    shadowOpacity: 0,
+    elevation: 0,
+  },
+  nextBtnText: {
+    fontFamily: "System",
+    fontSize: 16,
+    fontWeight: "700",
+    color: WHITE,
+    letterSpacing: 0.5,
+  },
+
+  // ── Completed Screen ─────────────────────────────────────────────────────────
+  completedHeader: {
+    backgroundColor: PURPLE,
+    paddingTop: 28,
+    paddingBottom: 32,
+    paddingHorizontal: 24,
+  },
+  completedHeaderLabel: {
+    fontFamily: "System",
+    fontSize: 11,
+    fontWeight: "700",
+    color: "rgba(255,255,255,0.6)",
+    letterSpacing: 2,
+    textTransform: "uppercase",
+    marginBottom: 10,
+  },
+  completedTitle: {
+    fontFamily: "System",
+    fontSize: 34,
+    fontWeight: "800",
+    color: WHITE,
+    marginBottom: 6,
+  },
+  completedSubtitle: {
+    fontFamily: "System",
+    fontSize: 15,
+    color: "rgba(255,255,255,0.75)",
+  },
+
+  summaryScroll: {
+    flex: 1,
+  },
+  summaryContent: {
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    paddingBottom: 12,
+    gap: 12,
+  },
+  summaryRow: {
+    flexDirection: "row",
+    backgroundColor: CARD_BG,
+    borderRadius: 14,
+    borderWidth: 1.5,
+    borderColor: BORDER_DEF,
+    padding: 14,
+    gap: 12,
+    alignItems: "flex-start",
+  },
+  summaryIndexBadge: {
+    width: 30,
+    height: 30,
+    borderRadius: 9,
+    backgroundColor: PURPLE,
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 2,
+  },
+  summaryIndexText: {
+    fontFamily: "System",
+    fontSize: 13,
+    fontWeight: "700",
+    color: WHITE,
+  },
+  summaryTextBlock: {
+    flex: 1,
+    gap: 4,
+  },
+  summaryQ: {
+    fontFamily: "System",
+    fontSize: 12,
+    fontWeight: "500",
+    color: TEXT_MID,
+    lineHeight: 17,
+  },
+  summaryA: {
+    fontFamily: "System",
+    fontSize: 15,
+    fontWeight: "600",
+    color: TEXT_DARK,
+    lineHeight: 21,
+  },
+
+  completedFooter: {
+    paddingHorizontal: 20,
+    paddingBottom: 32,
+    paddingTop: 12,
+  },
+  restartBtn: {
+    backgroundColor: PURPLE,
+    borderRadius: 14,
+    paddingVertical: 16,
+    alignItems: "center",
+    shadowColor: PURPLE,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.35,
+    shadowRadius: 10,
+    elevation: 5,
   },
   restartBtnText: {
-    fontFamily: "Georgia",
-    fontSize: 15,
-    color: INK,
+    fontFamily: "System",
+    fontSize: 16,
+    fontWeight: "700",
+    color: WHITE,
     letterSpacing: 0.5,
   },
 });
