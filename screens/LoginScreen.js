@@ -8,78 +8,105 @@ import {
   Image,
   SafeAreaView,
   StatusBar,
+  Keyboard,
+  TouchableWithoutFeedback,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 
-export default function LoginScreen() {
+export default function LoginScreen({ navigation }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
   const handleLogin = () => {
+    Keyboard.dismiss(); // dismiss keyboard on login
     console.log("Email:", email);
     console.log("Password:", password);
+    navigation.navigate("Verify");
   };
 
   return (
-    <View style={styles.container}>
-      <SafeAreaView style={styles.safeArea}>
-        <StatusBar barStyle="dark-content" />
+    <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+      <View style={styles.container}>
+        <SafeAreaView style={styles.safeArea}>
+          <StatusBar barStyle="dark-content" />
 
-        {/* Logo */}
-        <Image
-          source={require("../assets/logo.png")}
-          style={styles.logo}
-        />
+          {/* Back Button */}
+               <TouchableOpacity
+                 style={styles.backButton}
+                 onPress={() => navigation.navigate("Welcome")}
+               >
 
-        {/* Title */}
-        <Text style={styles.title}>Welcome Back</Text>
-        <Text style={styles.subtitle}>Login to Nawarny</Text>
+            <Ionicons name="chevron-back" size={28} color="#000" />
+          </TouchableOpacity>
 
-        {/* Email Input */}
-        <View style={styles.inputContainer}>
-          <Ionicons name="mail-outline" size={20} color="#555" />
-          <TextInput
-            placeholder="Email"
-            placeholderTextColor="#888"
-            style={styles.input}
-            value={email}
-            onChangeText={setEmail}
+          {/* Logo */}
+          <Image
+            source={require("../assets/logo.png")}
+            style={styles.logo}
           />
-        </View>
 
-        {/* Password Input */}
-        <View style={styles.inputContainer}>
-          <Ionicons name="lock-closed-outline" size={20} color="#555" />
-          <TextInput
-            placeholder="Password"
-            placeholderTextColor="#888"
-            secureTextEntry
-            style={styles.input}
-            value={password}
-            onChangeText={setPassword}
-          />
-        </View>
+          {/* Title */}
+          <Text style={styles.title}>Welcome Back</Text>
+          <Text style={styles.subtitle}>Login to Nawarny</Text>
 
-        {/* Login Button */}
-        <TouchableOpacity style={styles.loginButton} onPress={handleLogin}>
-          <Text style={styles.loginText}>Login</Text>
-        </TouchableOpacity>
-      </SafeAreaView>
-    </View>
+          {/* Email Input */}
+          <View style={styles.inputContainer}>
+            <Ionicons name="mail-outline" size={20} color="#555" />
+            <TextInput
+              placeholder="Email"
+              placeholderTextColor="#888"
+              style={styles.input}
+              value={email}
+              onChangeText={setEmail}
+              returnKeyType="done"
+              onSubmitEditing={Keyboard.dismiss} // dismiss keyboard on done
+              blurOnSubmit={true}
+            />
+          </View>
+
+          {/* Password Input */}
+          <View style={styles.inputContainer}>
+            <Ionicons name="lock-closed-outline" size={20} color="#555" />
+            <TextInput
+              placeholder="Password"
+              placeholderTextColor="#888"
+              secureTextEntry
+              style={styles.input}
+              value={password}
+              onChangeText={setPassword}
+              returnKeyType="done"
+              onSubmitEditing={Keyboard.dismiss} // dismiss keyboard on done
+              blurOnSubmit={true}
+            />
+          </View>
+
+          {/* Login Button */}
+          <TouchableOpacity style={styles.loginButton} onPress={handleLogin}>
+            <Text style={styles.loginText}>Login</Text>
+          </TouchableOpacity>
+        </SafeAreaView>
+      </View>
+    </TouchableWithoutFeedback>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#FFFFFF", // White background
-    justifyContent: "center",
-    alignItems: "center",
+    backgroundColor: "#FFFFFF",
   },
   safeArea: {
+    flex: 1,
     width: "100%",
     alignItems: "center",
+    justifyContent: "center", // keeps layout centered
     padding: 20,
+  },
+  backButton: {
+    position: "absolute",
+    top: 60,
+    left: 25,
+    zIndex: 10,
   },
   logo: {
     width: 130,
@@ -90,12 +117,12 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 28,
     fontWeight: "bold",
-    color: "#000000", // Black text
+    color: "#000000",
     textAlign: "center",
   },
   subtitle: {
     fontSize: 16,
-    color: "#000000", // Black text
+    color: "#000000",
     marginBottom: 30,
     textAlign: "center",
   },
