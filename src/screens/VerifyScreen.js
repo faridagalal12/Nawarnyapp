@@ -86,39 +86,18 @@ export default function VerifyScreen() {
           ))}
         </View>
 
-        <TouchableOpacity style={styles.verifyButton}>
+        <TouchableOpacity
+          style={styles.verifyButton}
+          onPress={() => navigation.navigate("Quiz")}
+        >
           <Text style={styles.verifyText}>Verify</Text>
         </TouchableOpacity>
 
         <TouchableOpacity onPress={() => Keyboard.dismiss()}>
           <Text style={styles.resend}>Resend Code</Text>
         </TouchableOpacity>
-
-
-
-  {/* ── The requested Next button at the bottom ── */}
-<View style={styles.bottomButtonContainer}>
-  <TouchableOpacity
-    style={styles.nextButton}
-    activeOpacity={0.85}
-    onPress={() => {
-      // You can decide what happens here
-      // Option A: go next even without verification (for testing)
-      // Option B: only if code is complete → navigation.navigate("QuestionIntro");
-      navigation.navigate("QuizScreen");
-    }}
-  >
-    <Text style={styles.nextButtonText}>Next</Text>
-  </TouchableOpacity>
-</View>
       </View>
     </KeyboardAvoidingView>
-
-
-
-
-
-
   );
 }
 
@@ -184,33 +163,33 @@ const styles = StyleSheet.create({
   },
 
   // ── Next button at bottom ──
-bottomButtonContainer: {
-  position: "absolute",
-  bottom: 40,
-  left: 0,
-  right: 0,
-  alignItems: "center",
-  paddingHorizontal: 30,
-},
-nextButton: {
-  width: "100%",
-  maxWidth: 340,
-  height: 56,
-  backgroundColor: "#3B82F6",
-  borderRadius: 30,
-  justifyContent: "center",
-  alignItems: "center",
-  shadowColor: "#000",
-  shadowOffset: { width: 0, height: 4 },
-  shadowOpacity: 0.25,
-  shadowRadius: 8,
-  elevation: 6,
-},
-nextButtonText: {
-  color: "white",
-  fontSize: 18,
-  fontWeight: "700",
-},
+  bottomButtonContainer: {
+    position: "absolute",
+    bottom: 40,
+    left: 0,
+    right: 0,
+    alignItems: "center",
+    paddingHorizontal: 30,
+  },
+  nextButton: {
+    width: "100%",
+    maxWidth: 340,
+    height: 56,
+    backgroundColor: "#3B82F6",
+    borderRadius: 30,
+    justifyContent: "center",
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  nextButtonText: {
+    color: "white",
+    fontSize: 18,
+    fontWeight: "700",
+  },
   verifyText: {
     fontSize: 18,
     fontWeight: "600",

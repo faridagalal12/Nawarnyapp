@@ -7,6 +7,7 @@ import {
   SafeAreaView,
   Animated,
   Dimensions,
+  ScrollView,
 } from "react-native";
 
 const { width } = Dimensions.get("window");
@@ -16,6 +17,7 @@ const QUESTIONS = [
     id: 1,
     question: "How would you describe your current energy level?",
     options: ["Fully charged", "Running okay", "Low battery", "Almost empty"],
+    allowMultiple: true,
   },
   {
     id: 2,
@@ -40,28 +42,68 @@ const QUESTIONS = [
   {
     id: 6,
     question: "What's your ideal way to end the day?",
-    options: ["Reflect quietly", "Social time", "Creative outlet", "Rest immediately"],
+    options: [
+      "Reflect quietly",
+      "Social time",
+      "Creative outlet",
+      "Rest immediately",
+    ],
+  },
+  {
+    id: 7,
+    question: "your ideal way to end the day?",
+    options: [
+      "Reflect quietly",
+      "Social time",
+      "Creative outlet",
+      "Rest immediately",
+    ],
+  },
+  {
+    id: 8,
+    question: "No. 8 ideal way to end the day?",
+    options: [
+      "Reflect quietly",
+      "Social time",
+      "Creative outlet",
+      "Rest immediately",
+    ],
+    allowMultiple: true,
   },
 ];
 
 export default function QuizScreen() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [answers, setAnswers] = useState({});
-  const [selectedOption, setSelectedOption] = useState(null);
+  const [selectedOptions, setSelectedOptions] = useState([]);
   const [completed, setCompleted] = useState(false);
   const [fadeAnim] = useState(new Animated.Value(1));
 
   const currentQuestion = QUESTIONS[currentIndex];
   const progress = (currentIndex / QUESTIONS.length) * 100;
+  const formatAnswer = answer =>
+    Array.isArray(answer) ? answer.join(", ") : answer || "No answer";
 
-  const handleSelect = (option) => {
-    setSelectedOption(option);
+  const handleSelect = option => {
+    if (currentQuestion.allowMultiple) {
+      setSelectedOptions(prev =>
+        prev.includes(option)
+          ? prev.filter(item => item !== option)
+          : [...prev, option],
+      );
+      return;
+    }
+
+    setSelectedOptions([option]);
   };
 
   const handleNext = () => {
-    if (!selectedOption) return;
+    if (!selectedOptions.length) return;
 
-    const newAnswers = { ...answers, [currentQuestion.id]: selectedOption };
+    const answerValue = currentQuestion.allowMultiple
+      ? selectedOptions
+      : selectedOptions[0];
+    const newAnswers = { ...answers, [currentQuestion.id]: answerValue };
     setAnswers(newAnswers);
 
     if (currentIndex === QUESTIONS.length - 1) {
@@ -76,7 +118,7 @@ export default function QuizScreen() {
       useNativeDriver: true,
     }).start(() => {
       setCurrentIndex(currentIndex + 1);
-      setSelectedOption(null);
+      setSelectedOptions([]);
       Animated.timing(fadeAnim, {
         toValue: 1,
         duration: 300,
@@ -88,7 +130,7 @@ export default function QuizScreen() {
   const handleRestart = () => {
     setCurrentIndex(0);
     setAnswers({});
-    setSelectedOption(null);
+    setSelectedOptions([]);
     setCompleted(false);
   };
 
@@ -96,20 +138,30 @@ export default function QuizScreen() {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.completedContainer}>
-          <Text style={styles.completedEmoji}>✦</Text>
-          <Text style={styles.completedTitle}>All done!</Text>
-          <Text style={styles.completedSubtitle}>Here's what you shared:</Text>
+          <View style={styles.completedHeader}>
+            <Text style={styles.completedEmoji}>✦</Text>
+            <Text style={styles.completedTitle}>All done!</Text>
+            <Text style={styles.completedSubtitle}>
+              Here's what you shared:
+            </Text>
+          </View>
 
-          <View style={styles.summaryCard}>
-            {QUESTIONS.map((q) => (
+          <ScrollView
+            style={styles.summaryCard}
+            contentContainerStyle={styles.summaryContent}
+            showsVerticalScrollIndicator={false}
+          >
+            {QUESTIONS.map(q => (
               <View key={q.id} style={styles.summaryRow}>
                 <Text style={styles.summaryQ} numberOfLines={1}>
                   {q.question}
                 </Text>
-                <Text style={styles.summaryA}>{answers[q.id]}</Text>
+                <Text style={styles.summaryA}>
+                  {formatAnswer(answers[q.id])}
+                </Text>
               </View>
             ))}
-          </View>
+          </ScrollView>
 
           <TouchableOpacity style={styles.restartBtn} onPress={handleRestart}>
             <Text style={styles.restartBtnText}>Start Over</Text>
@@ -138,16 +190,29 @@ export default function QuizScreen() {
 
         <View style={styles.optionsContainer}>
           {currentQuestion.options.map((option, i) => {
-            const isSelected = selectedOption === option;
+            const isSelected = selectedOptions.includes(option);
             return (
               <TouchableOpacity
                 key={i}
-                style={[styles.optionCard, isSelected && styles.optionCardSelected]}
+                style={[
+                  styles.optionCard,
+                  isSelected && styles.optionCardSelected,
+                ]}
                 onPress={() => handleSelect(option)}
                 activeOpacity={0.8}
               >
-                <View style={[styles.optionDot, isSelected && styles.optionDotSelected]} />
-                <Text style={[styles.optionText, isSelected && styles.optionTextSelected]}>
+                <View
+                  style={[
+                    styles.optionDot,
+                    isSelected && styles.optionDotSelected,
+                  ]}
+                />
+                <Text
+                  style={[
+                    styles.optionText,
+                    isSelected && styles.optionTextSelected,
+                  ]}
+                >
                   {option}
                 </Text>
               </TouchableOpacity>
@@ -159,9 +224,12 @@ export default function QuizScreen() {
       {/* Footer */}
       <View style={styles.footer}>
         <TouchableOpacity
-          style={[styles.nextBtn, !selectedOption && styles.nextBtnDisabled]}
+          style={[
+            styles.nextBtn,
+            !selectedOptions.length && styles.nextBtnDisabled,
+          ]}
           onPress={handleNext}
-          disabled={!selectedOption}
+          disabled={!selectedOptions.length}
           activeOpacity={0.85}
         >
           <Text style={styles.nextBtnText}>
@@ -302,16 +370,20 @@ const styles = StyleSheet.create({
   completedContainer: {
     flex: 1,
     paddingHorizontal: 28,
-    paddingTop: 40,
+    paddingTop: 28,
+    paddingBottom: 20,
+  },
+  completedHeader: {
+    marginBottom: 18,
   },
   completedEmoji: {
     fontSize: 32,
     color: ACCENT,
-    marginBottom: 12,
+    marginBottom: 8,
   },
   completedTitle: {
     fontFamily: "Georgia",
-    fontSize: 36,
+    fontSize: 34,
     color: INK,
     marginBottom: 6,
   },
@@ -324,18 +396,25 @@ const styles = StyleSheet.create({
   summaryCard: {
     backgroundColor: CARD,
     borderRadius: 16,
-    padding: 20,
-    gap: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
     borderWidth: 1.5,
     borderColor: BORDER,
     flex: 1,
-    maxHeight: 380,
+    marginBottom: 16,
+  },
+  summaryContent: {
+    paddingVertical: 8,
+    gap: 12,
   },
   summaryRow: {
-    borderBottomWidth: 1,
-    borderBottomColor: BORDER,
-    paddingBottom: 12,
-    gap: 4,
+    backgroundColor: "#FFFBF7",
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: BORDER,
+    paddingVertical: 12,
+    paddingHorizontal: 12,
+    gap: 6,
   },
   summaryQ: {
     fontFamily: "Georgia",
@@ -345,11 +424,11 @@ const styles = StyleSheet.create({
   },
   summaryA: {
     fontFamily: "Georgia",
-    fontSize: 16,
+    fontSize: 15,
     color: INK,
+    lineHeight: 22,
   },
   restartBtn: {
-    marginTop: 24,
     borderWidth: 1.5,
     borderColor: INK,
     borderRadius: 14,
