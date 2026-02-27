@@ -1,5 +1,5 @@
 // screens/ForgotPasswordScreen.js
-import { useState } from 'react';
+import { useState } from "react";
 import {
   View,
   Text,
@@ -10,22 +10,21 @@ import {
   KeyboardAvoidingView,
   Platform,
   Alert,
-} from 'react-native';
-
+} from "react-native";
 
 export default function ForgotPasswordScreen() {
-  const [email, setEmail] = useState('');
-  const [message, setMessage] = useState('');
-  const [error, setError] = useState('');
+  const [email, setEmail] = useState("");
+  const [message, setMessage] = useState("");
+  const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async () => {
-    setMessage('');
-    setError('');
+    setMessage("");
+    setError("");
     setLoading(true);
 
     if (!email.trim()) {
-      setError('Please enter your email');
+      setError("Please enter your email");
       setLoading(false);
       return;
     }
@@ -36,13 +35,13 @@ export default function ForgotPasswordScreen() {
       await new Promise(resolve => setTimeout(resolve, 1200));
 
       setMessage(
-        'If an account with this email exists, you will receive a password reset link.'
+        "If an account with this email exists, you will receive a password reset link.",
       );
-      setEmail(''); // clear input
-      Alert.alert('Success', 'Reset link sent! Check your email.');
+      setEmail(""); // clear input
+      Alert.alert("Success", "Reset link sent! Check your email.");
     } catch (err) {
-      setError('Something went wrong. Please try again later.');
-      Alert.alert('Error', error || 'Failed to send reset link');
+      setError("Something went wrong. Please try again later.");
+      Alert.alert("Error", error || "Failed to send reset link");
     } finally {
       setLoading(false);
     }
@@ -50,15 +49,12 @@ export default function ForgotPasswordScreen() {
 
   return (
     <KeyboardAvoidingView
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
       style={styles.container}
     >
       <View style={styles.inner}>
         {/* Logo placeholder – later replace with <Image> or custom SVG component */}
-        <Image
-          source={require("../src/assets/logo.png")}
-          style={styles.logo}
-        />
+        <Image source={require("../assets/logo.png")} style={styles.logo} />
 
         <Text style={styles.title}>Forgot Password</Text>
         <Text style={styles.subtitle}>
@@ -87,7 +83,7 @@ export default function ForgotPasswordScreen() {
           disabled={loading}
         >
           <Text style={styles.buttonText}>
-            {loading ? 'Sending...' : 'Send Reset Link'}
+            {loading ? "Sending..." : "Send Reset Link"}
           </Text>
         </TouchableOpacity>
       </View>
@@ -98,31 +94,31 @@ export default function ForgotPasswordScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8fafc',
+    backgroundColor: "#f8fafc",
   },
   inner: {
     flex: 1,
-    justifyContent: 'center',
+    justifyContent: "center",
     paddingHorizontal: 30,
   },
   logo: {
     width: 130,
     height: 130,
     marginBottom: 32,
-    marginLeft:100,
+    marginLeft: 100,
     resizeMode: "contain",
   },
   title: {
     fontSize: 28,
-    fontWeight: 'bold',
-    color: '#1e293b',
-    textAlign: 'center',
+    fontWeight: "bold",
+    color: "#1e293b",
+    textAlign: "center",
     marginBottom: 8,
   },
   subtitle: {
     fontSize: 16,
-    color: '#64748b',
-    textAlign: 'center',
+    color: "#64748b",
+    textAlign: "center",
     marginBottom: 40,
   },
   inputGroup: {
@@ -130,49 +126,49 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: 14,
-    fontWeight: '500',
-    color: '#334155',
+    fontWeight: "500",
+    color: "#334155",
     marginBottom: 8,
   },
   input: {
     borderWidth: 1,
-    borderColor: '#cbd5e1',
+    borderColor: "#cbd5e1",
     borderRadius: 10,
     padding: 14,
     fontSize: 16,
-    backgroundColor: 'white',
+    backgroundColor: "white",
   },
   button: {
-    backgroundColor: '#3b82f6',
+    backgroundColor: "#3b82f6",
     padding: 16,
     borderRadius: 10,
-    alignItems: 'center',
+    alignItems: "center",
     marginTop: 12,
   },
   buttonDisabled: {
-    backgroundColor: '#93c5fd',
+    backgroundColor: "#93c5fd",
   },
   buttonText: {
-    color: 'white',
+    color: "white",
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   errorText: {
-    color: '#ef4444',
+    color: "#ef4444",
     fontSize: 14,
-    textAlign: 'center',
+    textAlign: "center",
     marginBottom: 16,
-    backgroundColor: '#fee2e2',
+    backgroundColor: "#fee2e2",
     padding: 10,
     borderRadius: 8,
   },
-  
+
   successText: {
-    color: '#15803d',
+    color: "#15803d",
     fontSize: 14,
-    textAlign: 'center',
+    textAlign: "center",
     marginBottom: 16,
-    backgroundColor: '#dcfce7',
+    backgroundColor: "#dcfce7",
     padding: 10,
     borderRadius: 8,
   },
