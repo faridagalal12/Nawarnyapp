@@ -86,7 +86,10 @@ export default function VerifyScreen() {
           ))}
         </View>
 
-        <TouchableOpacity style={styles.verifyButton}>
+        <TouchableOpacity
+          style={styles.verifyButton}
+          onPress={() => navigation.navigate("Quiz")}
+        >
           <Text style={styles.verifyText}>Verify</Text>
         </TouchableOpacity>
 
@@ -157,6 +160,35 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     marginBottom: 20,
+  },
+
+  // ── Next button at bottom ──
+  bottomButtonContainer: {
+    position: "absolute",
+    bottom: 40,
+    left: 0,
+    right: 0,
+    alignItems: "center",
+    paddingHorizontal: 30,
+  },
+  nextButton: {
+    width: "100%",
+    maxWidth: 340,
+    height: 56,
+    backgroundColor: "#3B82F6",
+    borderRadius: 30,
+    justifyContent: "center",
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  nextButtonText: {
+    color: "white",
+    fontSize: 18,
+    fontWeight: "700",
   },
   verifyText: {
     fontSize: 18,
