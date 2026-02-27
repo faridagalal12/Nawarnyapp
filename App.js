@@ -1,33 +1,21 @@
-
-
-// App.js
-import { StatusBar } from 'expo-status-bar';
+import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 
-import WelcomeScreen from './screens/WelcomeScreen';
-import SignUpScreen from './screens/SignUpScreen';
 import LoginScreen from './screens/LoginScreen';
+import ForgotPasswordScreen from './screens/ForgotPasswordScreen';
 
 const Stack = createNativeStackNavigator();
 
 export default function App() {
   return (
     <NavigationContainer>
-      <StatusBar style="dark" />
-
       <Stack.Navigator
-        initialRouteName="Welcome"
-        screenOptions={{
-          headerShown: false,           // hide header on all screens
-          animation: 'fade_from_bottom', // smooth feel
-        }}
+        initialRouteName="Login"
+        screenOptions={{ headerShown: false }}
       >
-        <Stack.Screen name="Welcome" component={WelcomeScreen} />
-        <Stack.Screen name="SignUp" component={SignUpScreen} />
         <Stack.Screen name="Login" component={LoginScreen} />
-        {/* Later: add <Stack.Screen name="Login" ... /> */}
-        {/* Later: add <Stack.Screen name="Login" ... /> */}
+        <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );
