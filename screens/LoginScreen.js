@@ -10,32 +10,24 @@ import {
   StatusBar,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { useNavigation } from "@react-navigation/native";
 
 export default function LoginScreen() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
-  const navigation = useNavigation(); // ← navigation hook
-
   const handleLogin = () => {
     console.log("Email:", email);
     console.log("Password:", password);
-    // Later: real login logic here (API call, auth, etc.)
-  };
-
-  const goToForgotPassword = () => {
-    navigation.navigate("ForgotPassword");
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="dark-content" />
+    <View style={styles.container}>
+      <SafeAreaView style={styles.safeArea}>
+        <StatusBar barStyle="dark-content" />
 
-      <View style={styles.content}>
         {/* Logo */}
         <Image
-          source={require("../src/assets/logo.png")}
+          source={require("../assets/logo.png")}
           style={styles.logo}
         />
 
@@ -52,9 +44,6 @@ export default function LoginScreen() {
             style={styles.input}
             value={email}
             onChangeText={setEmail}
-            keyboardType="email-address"
-            autoCapitalize="none"
-            autoCorrect={false}
           />
         </View>
 
@@ -71,82 +60,68 @@ export default function LoginScreen() {
           />
         </View>
 
-        {/* Forgot Password Link */}
-        <TouchableOpacity
-          onPress={goToForgotPassword}
-          style={styles.forgotContainer}
-        >
-          <Text style={styles.forgotText}>Forgot password?</Text>
-        </TouchableOpacity>
-
         {/* Login Button */}
         <TouchableOpacity style={styles.loginButton} onPress={handleLogin}>
           <Text style={styles.loginText}>Login</Text>
         </TouchableOpacity>
-      </View>
-    </SafeAreaView>
+      </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#FFFFFF",
-  },
-  content: {
-    flex: 1,
+    backgroundColor: "#FFFFFF", // White background
     justifyContent: "center",
     alignItems: "center",
-    paddingHorizontal: 24,
+  },
+  safeArea: {
+    width: "100%",
+    alignItems: "center",
+    padding: 20,
   },
   logo: {
     width: 130,
     height: 130,
-    marginBottom: 32,
+    marginBottom: 20,
     resizeMode: "contain",
   },
   title: {
     fontSize: 28,
     fontWeight: "bold",
-    color: "#000000",
-    marginBottom: 8,
+    color: "#000000", // Black text
+    textAlign: "center",
   },
   subtitle: {
     fontSize: 16,
-    color: "#666666",
-    marginBottom: 40,
+    color: "#000000", // Black text
+    marginBottom: 30,
+    textAlign: "center",
   },
   inputContainer: {
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: "#F2F2F2",
-    width: "100%",
+    width: "90%",
     borderRadius: 12,
-    paddingHorizontal: 16,
-    marginBottom: 16,
-    height: 52,
+    paddingHorizontal: 15,
+    marginBottom: 15,
+    height: 50,
   },
   input: {
     flex: 1,
-    marginLeft: 12,
+    marginLeft: 10,
     fontSize: 16,
     color: "#000000",
   },
-  forgotContainer: {
-    alignSelf: "flex-end",
-    marginBottom: 32,
-  },
-  forgotText: {
-    color: "#3B82F6",
-    fontSize: 15,
-    fontWeight: "500",
-  },
   loginButton: {
     backgroundColor: "#3B82F6",
-    width: "100%",
-    paddingVertical: 16,
+    width: "90%",
+    padding: 15,
     borderRadius: 12,
     alignItems: "center",
+    marginTop: 10,
   },
   loginText: {
     fontSize: 18,
