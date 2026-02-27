@@ -70,18 +70,15 @@ export default function VerifyScreen() {
           {code.map((digit, index) => (
             <TextInput
               key={index}
-              ref={(ref) => (inputs.current[index] = ref)}
-              style={[
-                styles.otpBox,
-                digit !== "" && styles.otpBoxFilled,
-              ]}
+              ref={ref => (inputs.current[index] = ref)}
+              style={[styles.otpBox, digit !== "" && styles.otpBoxFilled]}
               keyboardType="number-pad"
               maxLength={1}
               value={digit}
               returnKeyType="done"
               onSubmitEditing={handleSubmitEditing} // dismiss keyboard on Done
               blurOnSubmit={true}
-              onChangeText={(text) => handleChange(text, index)}
+              onChangeText={text => handleChange(text, index)}
               onKeyPress={({ nativeEvent }) =>
                 handleBackspace(nativeEvent.key, index)
               }

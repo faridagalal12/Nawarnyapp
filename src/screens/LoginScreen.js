@@ -24,6 +24,10 @@ export default function LoginScreen({ navigation }) {
     navigation.navigate("Verify");
   };
 
+  const goToForgotPassword = () => {
+    navigation.navigate("ForgotPassword");
+  };
+
   return (
     <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
       <View style={styles.container}>
@@ -31,19 +35,15 @@ export default function LoginScreen({ navigation }) {
           <StatusBar barStyle="dark-content" />
 
           {/* Back Button */}
-               <TouchableOpacity
-                 style={styles.backButton}
-                 onPress={() => navigation.navigate("Welcome")}
-               >
-
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={() => navigation.navigate("Welcome")}
+          >
             <Ionicons name="chevron-back" size={28} color="#000" />
           </TouchableOpacity>
 
           {/* Logo */}
-          <Image
-            source={require("../assets/logo.png")}
-            style={styles.logo}
-          />
+          <Image source={require("../assets/logo.png")} style={styles.logo} />
 
           {/* Title */}
           <Text style={styles.title}>Welcome Back</Text>
@@ -79,6 +79,13 @@ export default function LoginScreen({ navigation }) {
               blurOnSubmit={true}
             />
           </View>
+          {/* Forgot Password Link */}
+          <TouchableOpacity
+            onPress={goToForgotPassword}
+            style={styles.forgotContainer}
+          >
+            <Text style={styles.forgotText}>Forgot password?</Text>
+          </TouchableOpacity>
 
           {/* Login Button */}
           <TouchableOpacity style={styles.loginButton} onPress={handleLogin}>
@@ -119,6 +126,16 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     color: "#000000",
     textAlign: "center",
+  },
+  forgotContainer: {
+    alignSelf: "flex-end",
+    marginBottom: 32,
+    marginRight: 20,
+  },
+  forgotText: {
+    color: "#3B82F6",
+    fontSize: 15,
+    fontWeight: "500",
   },
   subtitle: {
     fontSize: 16,
