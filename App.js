@@ -1,17 +1,14 @@
-
-
 // App.js
-import { StatusBar } from 'expo-status-bar';
-import { NavigationContainer } from '@react-navigation/native';
-import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { StatusBar } from "expo-status-bar";
+import { NavigationContainer } from "@react-navigation/native";
+import { createNativeStackNavigator } from "@react-navigation/native-stack";
 
-import WelcomeScreen from './screens/WelcomeScreen';
-import SignUpScreen from './screens/SignUpScreen';
-import LoginScreen from './screens/LoginScreen';
+import WelcomeScreen from "./screens/WelcomeScreen";
+import SignUpScreen from "./screens/SignUpScreen";
+import LoginScreen from "./screens/LoginScreen";
 import VerifyScreen from "./screens/VerifyScreen";
 
-
-
+import ForgetPassword from "./src/screens/ForgotPasswordScreen";
 
 const Stack = createNativeStackNavigator();
 
@@ -23,14 +20,15 @@ export default function App() {
       <Stack.Navigator
         initialRouteName="Welcome"
         screenOptions={{
-          headerShown: false,           // hide header on all screens
-          animation: 'fade_from_bottom', // smooth feel
+          headerShown: false, // hide header on all screens
+          animation: "fade_from_bottom", // smooth feel
         }}
       >
         <Stack.Screen name="Welcome" component={WelcomeScreen} />
         <Stack.Screen name="SignUp" component={SignUpScreen} />
         <Stack.Screen name="Login" component={LoginScreen} />
         <Stack.Screen name="Verify" component={VerifyScreen} />
+        <Stack.Screen name="ForgotPassword" component={ForgetPassword} />
         {/* Later: add <Stack.Screen name="Login" ... /> */}
         {/* Later: add <Stack.Screen name="Login" ... /> */}
       </Stack.Navigator>
