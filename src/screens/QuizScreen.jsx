@@ -139,7 +139,6 @@ export default function QuizScreen() {
       <SafeAreaView style={styles.container}>
         <View style={styles.completedContainer}>
           <View style={styles.completedHeader}>
-            <Text style={styles.completedEmoji}>✦</Text>
             <Text style={styles.completedTitle}>All done!</Text>
             <Text style={styles.completedSubtitle}>
               Here's what you shared:
