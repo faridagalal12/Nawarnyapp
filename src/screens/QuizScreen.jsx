@@ -14,9 +14,9 @@ import {
 const { width } = Dimensions.get("window");
 
 // ─── Palette (from Q1 screenshot) ───────────────────────────────────────────
-const PURPLE      = "#4B4ACF";   // header background
-const PURPLE_DARK = "#3736A8";   // darker tint for depth
-const PURPLE_LIGHT= "#7B7AE8";   // accent dot / letter tint
+const PURPLE      = "#3B82F6";   // header background
+const PURPLE_DARK = "#3550DC";   // darker tint for depth
+const PURPLE_LIGHT= "#3550DC";   // accent dot / letter tint
 const WHITE       = "#FFFFFF";
 const BG          = "#F0EFF7";   // page background (very light lavender-grey)
 const CARD_BG     = "#FFFFFF";
@@ -33,50 +33,98 @@ const OPTION_LABELS = ["A", "B", "C", "D", "E"];
 const QUESTIONS = [
   {
     id: 1,
-    question: "How would you describe your current energy level?",
-    options: ["Fully charged", "Running okay", "Low battery", "Almost empty"],
-    allowMultiple: true,
+    question: "How old are you? 🌱",
+    options: [
+      "Under 18 👶",
+      "18–21 🎓",
+      "22–25 🚀",
+      "26–30 💼",
+      "31+ 🌟"
+    ],
+    
   },
   {
     id: 2,
-    question: "What best describes your work style?",
-    options: ["Deep focus", "Quick bursts", "Collaborative", "Flexible flow"],
+    question: "What’s your main goal right now? 🎯",
+    options: [
+      "Build better habits 💪",
+      "Improve mindset & confidence 🌈",
+      "Advance career/studies 📈",
+      "Strengthen relationships ❤️",
+      "Feel happier & fulfilled 😊"
+    ],
     allowMultiple: true,
   },
   {
     id: 3,
-    question: "How do you prefer to learn new things?",
-    options: ["Reading", "Watching", "Doing it", "Discussing"],
+    question: "Which topics excite you most? 🔥",
+    options: [
+      "Personal development 🌱",
+      "Psychology & behavior 🧠",
+      "Productivity & focus ⏱️",
+      "Relationships & communication 💬",
+      "Money & success 💰"
+    ],
     allowMultiple: true,
   },
   {
     id: 4,
-    question: "What motivates you most right now?",
-    options: ["Growth", "Stability", "Recognition", "Impact"],
+    question: "What motivates you the most? ⚡",
+    options: [
+      "Growth & learning 📚",
+      "Recognition & praise 🏆",
+      "Making an impact 🌍",
+      "Stability & peace 🕊️",
+      "Freedom & adventure ✈️"
+    ],
     allowMultiple: true,
   },
   {
     id: 5,
-    question: "How do you handle unexpected challenges?",
-    options: ["Head-on", "Plan first", "Ask for help", "Step back"],
+    question: "How do you prefer to learn? 📖",
+    options: [
+      "Reading summaries 📝",
+      "Listening to audio 🎧",
+      "Watching short videos 🎥",
+      "Practical challenges 🛠️",
+      "Reflecting & journaling ✍️"
+    ],
     allowMultiple: true,
   },
   {
     id: 6,
-    question: "What's your ideal way to end the day?",
-    options: ["Reflect quietly", "Social time", "Creative outlet", "Rest immediately"],
+    question: "What’s your biggest current challenge? 😓",
+    options: [
+      "Procrastination ⏳",
+      "Stress & overthinking 😰",
+      "Low confidence 🙇",
+      "Building habits 🔄",
+      "Distractions & focus 📱"
+    ],
     allowMultiple: true,
   },
   {
     id: 7,
-    question: "Which topics outside of academic studies do you find interesting?",
-    options: ["Travel, Exploring New Cultures", "Technology", "Self Improvement", "Entertainment and Internet culture"],
+    question: "Which hobbies do you enjoy or want to start? 🎨",
+    options: [
+      "Reading & podcasts 📚",
+      "Exercise & movement 🏃",
+      "Creative hobbies (art/music) 🎨",
+      "Meditation & mindfulness 🧘",
+      "Learning new skills online 💻"
+    ],
     allowMultiple: true,
   },
   {
     id: 8,
-    question: "How do you recharge after a long week?",
-    options: ["Reflect quietly", "Social time", "Creative outlet", "Rest immediately"],
+    question: "What kind of daily content would you love? ✨",
+    options: [
+      "Quick mindset shifts 🧠",
+      "Habit & productivity tips ⏰",
+      "Inspiring stories 🌟",
+      "Psychology insights 🤔",
+      "Motivational nudges 🔥"
+    ],
     allowMultiple: true,
   },
 ];
@@ -280,7 +328,7 @@ const styles = StyleSheet.create({
 
   // ── Header ──────────────────────────────────────────────────────────────────
   header: {
-    backgroundColor: PURPLE,
+    backgroundColor: "#3B82F6",
     paddingTop: 18,
     paddingHorizontal: 22,
     paddingBottom: 36,       // extra bottom so card overlaps
