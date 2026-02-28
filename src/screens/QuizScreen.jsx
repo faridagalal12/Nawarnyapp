@@ -14,18 +14,18 @@ import {
 const { width } = Dimensions.get("window");
 
 // ─── Palette (from Q1 screenshot) ───────────────────────────────────────────
-const PURPLE      = "#3B82F6";   // header background
-const PURPLE_DARK = "#3550DC";   // darker tint for depth
-const PURPLE_LIGHT= "#3550DC";   // accent dot / letter tint
-const WHITE       = "#FFFFFF";
-const BG          = "#F0EFF7";   // page background (very light lavender-grey)
-const CARD_BG     = "#FFFFFF";
-const BORDER_DEF  = "#E3E2F0";
-const BORDER_SEL  = "#4B4ACF";
-const TEXT_DARK   = "#1A1A2E";
-const TEXT_MID    = "#6B6A8E";
-const TEXT_LIGHT  = "#A9A8C8";
-const NEXT_BG     = "#4B4ACF";
+const PURPLE = "#3B82F6"; // header background
+const PURPLE_DARK = "#3550DC"; // darker tint for depth
+const PURPLE_LIGHT = "#3550DC"; // accent dot / letter tint
+const WHITE = "#FFFFFF";
+const BG = "#F0EFF7"; // page background (very light lavender-grey)
+const CARD_BG = "#FFFFFF";
+const BORDER_DEF = "#E3E2F0";
+const BORDER_SEL = "#4B4ACF";
+const TEXT_DARK = "#1A1A2E";
+const TEXT_MID = "#6B6A8E";
+const TEXT_LIGHT = "#A9A8C8";
+const NEXT_BG = "#4B4ACF";
 
 // ─── Data ────────────────────────────────────────────────────────────────────
 const OPTION_LABELS = ["A", "B", "C", "D", "E"];
@@ -34,14 +34,7 @@ const QUESTIONS = [
   {
     id: 1,
     question: "How old are you? 🌱",
-    options: [
-      "Under 18 👶",
-      "18–21 🎓",
-      "22–25 🚀",
-      "26–30 💼",
-      "31+ 🌟"
-    ],
-    
+    options: ["Under 18 👶", "18–21 🎓", "22–25 🚀", "26–30 💼", "31+ 🌟"],
   },
   {
     id: 2,
@@ -51,7 +44,7 @@ const QUESTIONS = [
       "Improve mindset & confidence 🌈",
       "Advance career/studies 📈",
       "Strengthen relationships ❤️",
-      "Feel happier & fulfilled 😊"
+      "Feel happier & fulfilled 😊",
     ],
     allowMultiple: true,
   },
@@ -63,7 +56,7 @@ const QUESTIONS = [
       "Psychology & behavior 🧠",
       "Productivity & focus ⏱️",
       "Relationships & communication 💬",
-      "Money & success 💰"
+      "Money & success 💰",
     ],
     allowMultiple: true,
   },
@@ -75,7 +68,7 @@ const QUESTIONS = [
       "Recognition & praise 🏆",
       "Making an impact 🌍",
       "Stability & peace 🕊️",
-      "Freedom & adventure ✈️"
+      "Freedom & adventure ✈️",
     ],
     allowMultiple: true,
   },
@@ -87,7 +80,7 @@ const QUESTIONS = [
       "Listening to audio 🎧",
       "Watching short videos 🎥",
       "Practical challenges 🛠️",
-      "Reflecting & journaling ✍️"
+      "Reflecting & journaling ✍️",
     ],
     allowMultiple: true,
   },
@@ -99,7 +92,7 @@ const QUESTIONS = [
       "Stress & overthinking 😰",
       "Low confidence 🙇",
       "Building habits 🔄",
-      "Distractions & focus 📱"
+      "Distractions & focus 📱",
     ],
     allowMultiple: true,
   },
@@ -111,7 +104,7 @@ const QUESTIONS = [
       "Exercise & movement 🏃",
       "Creative hobbies (art/music) 🎨",
       "Meditation & mindfulness 🧘",
-      "Learning new skills online 💻"
+      "Learning new skills online 💻",
     ],
     allowMultiple: true,
   },
@@ -123,7 +116,7 @@ const QUESTIONS = [
       "Habit & productivity tips ⏰",
       "Inspiring stories 🌟",
       "Psychology insights 🤔",
-      "Motivational nudges 🔥"
+      "Motivational nudges 🔥",
     ],
     allowMultiple: true,
   },
@@ -131,11 +124,11 @@ const QUESTIONS = [
 
 // ─── Component ───────────────────────────────────────────────────────────────
 export default function QuizScreen() {
-  const [currentIndex, setCurrentIndex]   = useState(0);
-  const [answers, setAnswers]             = useState({});
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [answers, setAnswers] = useState({});
   const [selectedOptions, setSelectedOptions] = useState([]);
-  const [completed, setCompleted]         = useState(false);
-  const [fadeAnim]                        = useState(new Animated.Value(1));
+  const [completed, setCompleted] = useState(false);
+  const [fadeAnim] = useState(new Animated.Value(1));
 
   const currentQuestion = QUESTIONS[currentIndex];
   const progress = ((currentIndex + 1) / QUESTIONS.length) * 100;
@@ -146,7 +139,9 @@ export default function QuizScreen() {
   const handleSelect = option => {
     if (currentQuestion.allowMultiple) {
       setSelectedOptions(prev =>
-        prev.includes(option) ? prev.filter(i => i !== option) : [...prev, option]
+        prev.includes(option)
+          ? prev.filter(i => i !== option)
+          : [...prev, option],
       );
     } else {
       setSelectedOptions([option]);
@@ -167,19 +162,35 @@ export default function QuizScreen() {
       return;
     }
 
-    Animated.timing(fadeAnim, { toValue: 0, duration: 180, useNativeDriver: true }).start(() => {
+    Animated.timing(fadeAnim, {
+      toValue: 0,
+      duration: 180,
+      useNativeDriver: true,
+    }).start(() => {
       setCurrentIndex(i => i + 1);
       setSelectedOptions([]);
-      Animated.timing(fadeAnim, { toValue: 1, duration: 280, useNativeDriver: true }).start();
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 280,
+        useNativeDriver: true,
+      }).start();
     });
   };
 
   const handleBack = () => {
     if (currentIndex === 0) return;
-    Animated.timing(fadeAnim, { toValue: 0, duration: 180, useNativeDriver: true }).start(() => {
+    Animated.timing(fadeAnim, {
+      toValue: 0,
+      duration: 180,
+      useNativeDriver: true,
+    }).start(() => {
       setCurrentIndex(i => i - 1);
       setSelectedOptions([]);
-      Animated.timing(fadeAnim, { toValue: 1, duration: 280, useNativeDriver: true }).start();
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 280,
+        useNativeDriver: true,
+      }).start();
     });
   };
 
@@ -215,15 +226,23 @@ export default function QuizScreen() {
                 <Text style={styles.summaryIndexText}>{idx + 1}</Text>
               </View>
               <View style={styles.summaryTextBlock}>
-                <Text style={styles.summaryQ} numberOfLines={2}>{q.question}</Text>
-                <Text style={styles.summaryA}>{formatAnswer(answers[q.id])}</Text>
+                <Text style={styles.summaryQ} numberOfLines={2}>
+                  {q.question}
+                </Text>
+                <Text style={styles.summaryA}>
+                  {formatAnswer(answers[q.id])}
+                </Text>
               </View>
             </View>
           ))}
         </ScrollView>
 
         <View style={styles.completedFooter}>
-          <TouchableOpacity style={styles.restartBtn} onPress={handleRestart} activeOpacity={0.85}>
+          <TouchableOpacity
+            style={styles.restartBtn}
+            onPress={handleRestart}
+            activeOpacity={0.85}
+          >
             <Text style={styles.restartBtnText}>Done</Text>
           </TouchableOpacity>
         </View>
@@ -234,7 +253,7 @@ export default function QuizScreen() {
   // ── Quiz Screen ──────────────────────────────────────────────────────────────
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor={PURPLE} />
+      <StatusBar barStyle="default" />
 
       {/* ── Purple Header Block ── */}
       <View style={styles.header}>
@@ -243,7 +262,9 @@ export default function QuizScreen() {
           <View style={styles.progressTrack}>
             <View style={[styles.progressFill, { width: `${progress}%` }]} />
           </View>
-          <Text style={styles.stepLabel}>{currentIndex + 1}/{QUESTIONS.length}</Text>
+          <Text style={styles.stepLabel}>
+            {currentIndex + 1}/{QUESTIONS.length}
+          </Text>
         </View>
 
         {/* Question card floating on header */}
@@ -272,13 +293,28 @@ export default function QuizScreen() {
               activeOpacity={0.75}
             >
               {/* Letter badge */}
-              <View style={[styles.letterBadge, isSelected && styles.letterBadgeSelected]}>
-                <Text style={[styles.letterText, isSelected && styles.letterTextSelected]}>
+              <View
+                style={[
+                  styles.letterBadge,
+                  isSelected && styles.letterBadgeSelected,
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.letterText,
+                    isSelected && styles.letterTextSelected,
+                  ]}
+                >
                   {OPTION_LABELS[i]}
                 </Text>
               </View>
 
-              <Text style={[styles.optionText, isSelected && styles.optionTextSelected]}>
+              <Text
+                style={[
+                  styles.optionText,
+                  isSelected && styles.optionTextSelected,
+                ]}
+              >
                 {option}
               </Text>
 
@@ -301,11 +337,21 @@ export default function QuizScreen() {
           disabled={currentIndex === 0}
           activeOpacity={0.7}
         >
-          <Text style={[styles.backBtnText, currentIndex === 0 && styles.backBtnTextDisabled]}>←</Text>
+          <Text
+            style={[
+              styles.backBtnText,
+              currentIndex === 0 && styles.backBtnTextDisabled,
+            ]}
+          >
+            ←
+          </Text>
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={[styles.nextBtn, !selectedOptions.length && styles.nextBtnDisabled]}
+          style={[
+            styles.nextBtn,
+            !selectedOptions.length && styles.nextBtnDisabled,
+          ]}
           onPress={handleNext}
           disabled={!selectedOptions.length}
           activeOpacity={0.85}
@@ -331,7 +377,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#3B82F6",
     paddingTop: 18,
     paddingHorizontal: 22,
-    paddingBottom: 36,       // extra bottom so card overlaps
+    paddingBottom: 36, // extra bottom so card overlaps
     // Rounded bottom corners like the screenshot
     borderBottomLeftRadius: 0,
     borderBottomRightRadius: 0,
@@ -430,7 +476,7 @@ const styles = StyleSheet.create({
     elevation: 1,
   },
   optionRowSelected: {
-    borderColor: BORDER_SEL,
+    borderColor: PURPLE_DARK,
     backgroundColor: "#EEEEFF",
     shadowOpacity: 0.12,
     shadowRadius: 8,
@@ -456,7 +502,7 @@ const styles = StyleSheet.create({
     fontFamily: "System",
     fontSize: 13,
     fontWeight: "700",
-    color: PURPLE_LIGHT,
+    color: PURPLE_DARK,
   },
   letterTextSelected: {
     color: WHITE,
@@ -526,7 +572,7 @@ const styles = StyleSheet.create({
   },
   nextBtn: {
     flex: 1,
-    backgroundColor: NEXT_BG,
+    backgroundColor: PURPLE_DARK,
     borderRadius: 14,
     paddingVertical: 16,
     alignItems: "center",
