@@ -16,7 +16,7 @@ import {
   Dimensions,
   Image
 } from 'react-native';
-import { Ionicons } from "@expo/vector-icons";
+
 
 
 export default function SignUpScreen({ navigation }) {
@@ -42,13 +42,7 @@ export default function SignUpScreen({ navigation }) {
             {/* Logo – same as welcome */}
             <View style={styles.logoContainer}>
 
-            {/* Back Button */}
-                           <TouchableOpacity
-                             style={styles.backButton}
-                             onPress={() => navigation.navigate("Welcome")}
-                           >
-                            <Ionicons name="chevron-back" size={28} color="#000" />
-                           </TouchableOpacity>
+                           
                            
              
               <Image
@@ -142,12 +136,7 @@ const styles = StyleSheet.create({
     paddingTop: 60,
   },
 
-  backButton: {
-    position: "absolute",
-    top: 60,
-    left:20,
-    zIndex: 5,
-  },
+ 
   logoContainer: {
     marginBottom: 50,
   },
