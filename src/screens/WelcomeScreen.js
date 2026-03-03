@@ -1,13 +1,14 @@
-
-
-// screens/Welcome.js
-import { StyleSheet, 
-  Text, 
-  View, 
-  SafeAreaView, 
-  TouchableOpacity, 
-  Image, 
-  Dimensions } from 'react-native';
+// screens/WelcomeScreen.js
+import React from 'react';
+import {
+  StyleSheet,
+  Text,
+  View,
+  SafeAreaView,
+  TouchableOpacity,
+  Image,
+  Dimensions,
+} from 'react-native';
 
 const { height } = Dimensions.get('window');
 
@@ -17,7 +18,7 @@ export default function WelcomeScreen({ navigation }) {
       <View style={styles.content}>
         {/* Logo */}
         <Image
-          source={require("../assets/logo.png")} // replace with your actual logo path
+          source={require('../assets/logo.png')}
           style={styles.logo}
           resizeMode="contain"
         />
@@ -37,7 +38,7 @@ export default function WelcomeScreen({ navigation }) {
           <TouchableOpacity
             style={styles.loginButton}
             activeOpacity={0.85}
-            onPress={() => navigation.navigate('Login')}  // add later
+            onPress={() => navigation.navigate('Login')}
           >
             <Text style={styles.loginText}>Log In</Text>
           </TouchableOpacity>

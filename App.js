@@ -1,3 +1,7 @@
+console.log('WelcomeScreen imported:', !!WelcomeScreen);
+console.log('SignUpScreen imported:', !!SignUpScreen);
+console.log('QuizScreen imported:', !!QuizScreen);
+console.log('VerifyScreen imported:', !!VerifyScreen);
 import { StatusBar } from "expo-status-bar";
 import { NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
@@ -10,8 +14,14 @@ import LoginScreen from "./src/screens/LoginScreen";
 import ForgotPasswordScreen from "./src/screens/ForgotPasswordScreen";
 import VerifyScreen from "./src/screens/VerifyScreen";
 import QuizScreen from "./src/screens/QuizScreen";
-import { View } from "react-native";
-
+import { View, Text } from "react-native";
+console.log('=== Component Imports Check ===');
+console.log('WelcomeScreen:', WelcomeScreen ? 'OK' : 'UNDEFINED');
+console.log('SignUpScreen:', SignUpScreen ? 'OK' : 'UNDEFINED');
+console.log('LoginScreen:', LoginScreen ? 'OK' : 'UNDEFINED');
+console.log('ForgotPasswordScreen:', ForgotPasswordScreen ? 'OK' : 'UNDEFINED');
+console.log('VerifyScreen:', VerifyScreen ? 'OK' : 'UNDEFINED');
+console.log('QuizScreen:', QuizScreen ? 'OK' : 'UNDEFINED');
 const Stack = createNativeStackNavigator();
 
 function RootNavigator() {

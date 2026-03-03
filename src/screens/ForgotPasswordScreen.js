@@ -19,34 +19,26 @@ export default function ForgotPasswordScreen() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const handleSubmit = async () => {
-    setMessage("");
-    setError("");
-    setLoading(true);
+  const { forgotPassword } = useAuth();
 
-    if (!email.trim()) {
-      setError("Please enter your email");
-      setLoading(false);
-      return;
-    }
+const handleSubmit = async () => {
+  const trimmed = email.trim();
+  if (!trimmed) {
+    setError('Please enter your email');
+    return;
+  }
 
-    try {
-      // TODO: Replace with real backend call later (e.g. Firebase, Supabase, your API)
-      // For now: fake delay + success message
-      await new Promise(resolve => setTimeout(resolve, 1200));
+  const result = await forgotPassword(trimmed);
 
-      setMessage(
-        "If an account with this email exists, you will receive a password reset link.",
-      );
-      setEmail(""); // clear input
-      Alert.alert("Success", "Reset link sent! Check your email.");
-    } catch (err) {
-      setError("Something went wrong. Please try again later.");
-      Alert.alert("Error", error || "Failed to send reset link");
-    } finally {
-      setLoading(false);
-    }
-  };
+  if (result.success) {
+    setMessage(result.message);
+    Alert.alert('Success', result.message, [
+      { text: 'OK', onPress: () => navigation.goBack() }
+    ]);
+  } else {
+    setError(result.error);
+  }
+};
 
   return (
     <KeyboardAvoidingView

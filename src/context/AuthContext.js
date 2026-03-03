@@ -1,74 +1,65 @@
-// src/context/AuthContext.js
-import React, {
-  createContext,
-  useContext,
-  useEffect,
-  useState,
-  useMemo,
-} from "react";
-import * as SecureStore from "expo-secure-store";
+const login = async (email, password) => {
+  try {
+    const response = await api.post('/api/auth/login', {  // ← change to real path
+      email: email.trim(),
+      password: password.trim(),
+    });
 
-const AuthContext = createContext();
+    const data = response.data;
+    const token = data.token || data.access_token || data.accessToken; // adjust to real field
+    const user  = data.user || data.data?.user || null;
 
-export function AuthProvider({ children }) {
-  const [user, setUser] = useState(null); // null = not checked, {} = logged in
-  const [isLoading, setIsLoading] = useState(true);
-
-  // Load stored session on mount
-  useEffect(() => {
-    const bootstrapAsync = async () => {
-      try {
-        const storedUser = await SecureStore.getItemAsync("user");
-        if (storedUser) {
-          setUser(JSON.parse(storedUser));
-        }
-      } catch (e) {
-        console.log("Failed to load auth", e);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    bootstrapAsync();
-  }, []);
-
-  const signIn = async (email, password) => {
-    // ── MOCK LOGIC ── (replace later with real API)
-    if (email === "test@example.com" && password === "123456") {
-      const mockUser = { email, id: "mock-123", name: "Test User" };
-      await SecureStore.setItemAsync("user", JSON.stringify(mockUser));
-      setUser(mockUser);
-      return { success: true };
+    if (!token) {
+      throw new Error('No authentication token received');
     }
-    return { success: false, error: "Invalid credentials" };
-  };
 
-  const signUp = async (email, password, name) => {
-    // ── MOCK SIGNUP ── (later → real API + email verification)
-    const mockUser = { email, id: "mock-" + Date.now(), name };
-    await SecureStore.setItemAsync("user", JSON.stringify(mockUser));
-    setUser(mockUser);
+    await AsyncStorage.setItem('@auth_token', token);
+    if (user) await AsyncStorage.setItem('@auth_user', JSON.stringify(user));
+
+    setToken(token);
+    setUser(user);
+
     return { success: true };
-  };
+  } catch (err) {
+    let message = 'Login failed. Please check your credentials.';
 
-  const signOut = async () => {
-    await SecureStore.deleteItemAsync("user");
-    setUser(null);
-  };
+    if (err.response?.status === 401) {
+      message = 'Invalid email or password';
+    } else if (err.response?.status === 400) {
+      message = err.response.data?.message || 'Invalid request';
+    } else if (err.response?.data?.message) {
+      message = err.response.data.message;
+    }
 
-  const value = useMemo(
-    () => ({
-      user,
-      isLoading,
-      signIn,
-      signUp,
-      signOut,
-      isAuthenticated: !!user,
-    }),
-    [user, isLoading],
-  );
+    return { success: false, error: message };
+  } finally {
+    setLoading(false); // if AuthContext has loading state
+  }
+};
+const forgotPassword = async (email) => {
+  try {
+    setLoading(true);
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
-}
+    const response = await api.post('/api/auth/forgot-password', {   // ← change path if needed
+      email: email.trim(),
+    });
 
-export const useAuth = () => useContext(AuthContext);
+    // Most forgot-password endpoints return 200 even if email doesn't exist
+    return {
+      success: true,
+      message: response.data.message || 'Reset link sent! Check your email.',
+    };
+  } catch (err) {
+    let errorMessage = 'Failed to send reset link. Try again later.';
+    
+    if (err.response?.data?.message) {
+      errorMessage = err.response.data.message;
+    }
+
+    return { success: false, error: errorMessage };
+  } finally {
+    setLoading(false);
+  }
+};
+
+// ... rest of AuthContext (logout, useEffect for loading saved token, etc.)

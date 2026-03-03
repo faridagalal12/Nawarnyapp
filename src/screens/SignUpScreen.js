@@ -1,7 +1,5 @@
-
-
-// screens/Sign Up.js
-import { useState } from 'react';
+// screens/SignUpScreen.js
+import React, { useState } from 'react';
 import {
   StyleSheet,
   Text,
@@ -13,23 +11,67 @@ import {
   Platform,
   TouchableWithoutFeedback,
   Keyboard,
-  Dimensions,
-  Image
+  Alert,
 } from 'react-native';
-import { Ionicons } from "@expo/vector-icons";
-
+import { Ionicons } from '@expo/vector-icons';
 
 export default function SignUpScreen({ navigation }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const handleSignUp = () => {
-  // Close keyboard
-  Keyboard.dismiss();
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  // Navigate to Verify screen
-  navigation.navigate("Verify");
-};
+  const validateForm = () => {
+    if (!email.trim()) {
+      setError('Please enter your email');
+      return false;
+    }
+    if (!/\S+@\S+\.\S+/.test(email)) {
+      setError('Please enter a valid email address');
+      return false;
+    }
+    if (!password) {
+      setError('Please enter a password');
+      return false;
+    }
+    if (password.length < 6) {
+      setError('Password must be at least 6 characters');
+      return false;
+    }
+    if (password !== confirmPassword) {
+      setError('Passwords do not match');
+      return false;
+    }
+    setError('');
+    return true;
+  };
+
+  const handleSignUp = async () => {
+    Keyboard.dismiss();
+
+    if (!validateForm()) return;
+
+    setLoading(true);
+    setError('');
+
+    try {
+      // TODO: Replace with real API call later (e.g. from AuthContext)
+      // Example:
+      // await api.post('/api/auth/signup', { email, password });
+      
+      // For now: simulate success delay
+      await new Promise(resolve => setTimeout(resolve, 1500));
+
+      // On success → navigate to Verify (or auto-login)
+      navigation.navigate('Verify');
+    } catch (err) {
+      setError('Sign up failed. Please try again.');
+      Alert.alert('Error', err.message || 'Something went wrong');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -39,27 +81,24 @@ export default function SignUpScreen({ navigation }) {
           style={styles.keyboardView}
         >
           <View style={styles.content}>
-            {/* Logo – same as welcome */}
+            {/* Logo & Back Button */}
             <View style={styles.logoContainer}>
-
-            {/* Back Button */}
-                           <TouchableOpacity
-                             style={styles.backButton}
-                             onPress={() => navigation.navigate("Welcome")}
-                           >
-                            <Ionicons name="chevron-back" size={28} color="#000" />
-                           </TouchableOpacity>
-                           
-             
+              <TouchableOpacity
+                style={styles.backButton}
+                onPress={() => navigation.navigate('Welcome')}
+              >
+                <Ionicons name="chevron-back" size={28} color="#000" />
+              </TouchableOpacity>
               <Image
-                        source={require("../assets/logo.png")} // replace with your actual logo path
-                        style={styles.iconPlaceholder}
-                        resizeMode="contain"
-                      />
-              
+                source={require('../assets/logo.png')}
+                style={styles.iconPlaceholder}
+                resizeMode="contain"
+              />
             </View>
 
             <Text style={styles.title}>Sign Up</Text>
+
+            {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
             {/* Email */}
             <View style={styles.inputGroup}>
@@ -73,6 +112,7 @@ export default function SignUpScreen({ navigation }) {
                 keyboardType="email-address"
                 autoCapitalize="none"
                 autoCorrect={false}
+                editable={!loading}
               />
             </View>
 
@@ -87,6 +127,7 @@ export default function SignUpScreen({ navigation }) {
                 onChangeText={setPassword}
                 secureTextEntry
                 autoCapitalize="none"
+                editable={!loading}
               />
             </View>
 
@@ -101,17 +142,21 @@ export default function SignUpScreen({ navigation }) {
                 onChangeText={setConfirmPassword}
                 secureTextEntry
                 autoCapitalize="none"
+                editable={!loading}
               />
             </View>
 
             {/* Sign Up Button */}
             <TouchableOpacity
-  style={styles.signUpButton}
-  activeOpacity={0.85}
-  onPress={() => navigation.navigate("Verify")}
->
-  <Text style={styles.buttonText}>Sign up</Text>
-</TouchableOpacity>
+              style={[styles.signUpButton, loading && styles.buttonDisabled]}
+              activeOpacity={0.85}
+              onPress={handleSignUp}
+              disabled={loading}
+            >
+              <Text style={styles.buttonText}>
+                {loading ? 'Creating account...' : 'Sign up'}
+              </Text>
+            </TouchableOpacity>
 
             {/* Already have account? */}
             <View style={styles.footer}>
@@ -141,15 +186,16 @@ const styles = StyleSheet.create({
     paddingHorizontal: 32,
     paddingTop: 60,
   },
-
   backButton: {
-    position: "absolute",
+    position: 'absolute',
     top: 60,
-    left:20,
+    left: 20,
     zIndex: 5,
   },
   logoContainer: {
     marginBottom: 50,
+    width: '100%',
+    alignItems: 'center',
   },
   iconPlaceholder: {
     width: 200,
@@ -198,6 +244,9 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 5,
   },
+  buttonDisabled: {
+    opacity: 0.7,
+  },
   buttonText: {
     color: 'white',
     fontSize: 18,
@@ -215,5 +264,11 @@ const styles = StyleSheet.create({
     color: '#3B82F6',
     fontSize: 16,
     fontWeight: '600',
+  },
+  errorText: {
+    color: '#ef4444',
+    fontSize: 14,
+    marginBottom: 16,
+    textAlign: 'center',
   },
 });

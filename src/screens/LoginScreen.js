@@ -1,176 +1,170 @@
-import React, { useState } from "react";
-import { useAuth } from '../context/AuthContext';
+// screens/LoginScreen.js
+import React, { useState } from 'react';
 import {
   View,
   Text,
   TextInput,
   TouchableOpacity,
+  TouchableWithoutFeedback,
+  Keyboard,
   StyleSheet,
   Image,
-  SafeAreaView,
-  StatusBar,
-  Keyboard,
-  TouchableWithoutFeedback,
-} from "react-native";
-import { Ionicons } from "@expo/vector-icons";
+  ActivityIndicator,
+} from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { useAuth } from '../context/AuthContext';
 
 export default function LoginScreen({ navigation }) {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const { login } = useAuth();
 
-  const handleLogin = () => {
-    Keyboard.dismiss(); // dismiss keyboard on login
-    console.log("Email:", email);
-    console.log("Password:", password);
-    navigation.navigate("Verify");
-  };
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  const goToForgotPassword = () => {
-    navigation.navigate("ForgotPassword");
+  const handleLogin = async () => {
+    Keyboard.dismiss();
+    setError(''); // clear previous error
+
+    if (!email.trim() || !password.trim()) {
+      setError('Please enter email and password');
+      return;
+    }
+
+    setLoading(true);
+
+    const result = await login(email.trim(), password.trim());
+
+    setLoading(false);
+
+    if (result.success) {
+      // Only navigate when backend really said yes
+      navigation.replace('Quiz'); // ← your main protected screen
+    } else {
+      setError(result.error || 'Login failed. Please try again.');
+    }
   };
 
   return (
     <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
       <View style={styles.container}>
-        <SafeAreaView style={styles.safeArea}>
-          <StatusBar barStyle="dark-content" />
-
-          {/* Back Button */}
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={() => navigation.navigate("Welcome")}
-          >
-            <Ionicons name="chevron-back" size={28} color="#000" />
-          </TouchableOpacity>
-
+        <View style={styles.inner}>
           {/* Logo */}
-          <Image source={require("../assets/logo.png")} style={styles.logo} />
+          <Image
+            source={require('../assets/logo.png')}
+            style={styles.logo}
+          />
 
-          {/* Title */}
           <Text style={styles.title}>Welcome Back</Text>
           <Text style={styles.subtitle}>Login to Nawarny</Text>
 
+          {error ? <Text style={styles.error}>{error}</Text> : null}
+
           {/* Email Input */}
-          <View style={styles.inputContainer}>
-            <Ionicons name="mail-outline" size={20} color="#555" />
+          <View style={styles.inputGroup}>
+            <Ionicons name="mail-outline" size={20} color="#555" style={styles.inputIcon} />
             <TextInput
+              style={styles.input}
               placeholder="Email"
               placeholderTextColor="#888"
-              style={styles.input}
               value={email}
-              onChangeText={setEmail}
-              returnKeyType="done"
-              onSubmitEditing={Keyboard.dismiss} // dismiss keyboard on done
-              blurOnSubmit={true}
+              onChangeText={(text) => {
+                setEmail(text);
+                setError(''); // clear error when typing
+              }}
+              keyboardType="email-address"
+              autoCapitalize="none"
+              autoCorrect={false}
+              returnKeyType="next"
+              editable={!loading}
             />
           </View>
 
           {/* Password Input */}
-          <View style={styles.inputContainer}>
-            <Ionicons name="lock-closed-outline" size={20} color="#555" />
+          <View style={styles.inputGroup}>
+            <Ionicons name="lock-closed-outline" size={20} color="#555" style={styles.inputIcon} />
             <TextInput
+              style={styles.input}
               placeholder="Password"
               placeholderTextColor="#888"
-              secureTextEntry
-              style={styles.input}
               value={password}
-              onChangeText={setPassword}
+              onChangeText={(text) => {
+                setPassword(text);
+                setError('');
+              }}
+              secureTextEntry
+              autoCorrect={false}
               returnKeyType="done"
-              onSubmitEditing={Keyboard.dismiss} // dismiss keyboard on done
-              blurOnSubmit={true}
+              onSubmitEditing={handleLogin}
+              editable={!loading}
             />
           </View>
-          {/* Forgot Password Link */}
+
           <TouchableOpacity
-            onPress={goToForgotPassword}
-            style={styles.forgotContainer}
+            style={styles.forgotLink}
+            onPress={() => navigation.navigate('ForgotPassword')}
+            disabled={loading}
           >
             <Text style={styles.forgotText}>Forgot password?</Text>
           </TouchableOpacity>
 
-          {/* Login Button */}
-          <TouchableOpacity style={styles.loginButton} onPress={handleLogin}>
-            <Text style={styles.loginText}>Login</Text>
+          <TouchableOpacity
+            style={[styles.button, loading && styles.buttonDisabled]}
+            onPress={handleLogin}
+            disabled={loading}
+          >
+            {loading ? (
+              <ActivityIndicator color="#fff" />
+            ) : (
+              <Text style={styles.buttonText}>Login</Text>
+            )}
           </TouchableOpacity>
-        </SafeAreaView>
+
+          <TouchableOpacity
+            onPress={() => navigation.navigate('SignUp')}
+            disabled={loading}
+          >
+            <Text style={styles.signupLink}>
+              Don't have an account? <Text style={{ fontWeight: 'bold' }}>Sign up</Text>
+            </Text>
+          </TouchableOpacity>
+        </View>
       </View>
     </TouchableWithoutFeedback>
   );
 }
 
+// styles remain the same
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#FFFFFF",
-  },
-  safeArea: {
-    flex: 1,
-    width: "100%",
-    alignItems: "center",
-    justifyContent: "center", // keeps layout centered
-    padding: 20,
-  },
-  backButton: {
-    position: "absolute",
-    top: 60,
-    left: 25,
-    zIndex: 10,
-  },
-  logo: {
-    width: 130,
-    height: 130,
-    marginBottom: 20,
-    resizeMode: "contain",
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: "bold",
-    color: "#000000",
-    textAlign: "center",
-  },
-  forgotContainer: {
-    alignSelf: "flex-end",
-    marginBottom: 32,
-    marginRight: 20,
-  },
-  forgotText: {
-    color: "#3B82F6",
-    fontSize: 15,
-    fontWeight: "500",
-  },
-  subtitle: {
-    fontSize: 16,
-    color: "#000000",
-    marginBottom: 30,
-    textAlign: "center",
-  },
-  inputContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#F2F2F2",
-    width: "90%",
+  container: { flex: 1, backgroundColor: '#fff' },
+  inner: { flex: 1, padding: 24, justifyContent: 'center' },
+  logo: { width: 120, height: 120, alignSelf: 'center', marginBottom: 40 },
+  title: { fontSize: 28, fontWeight: 'bold', textAlign: 'center', marginBottom: 8 },
+  subtitle: { fontSize: 16, color: '#666', textAlign: 'center', marginBottom: 32 },
+  inputGroup: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#ddd',
     borderRadius: 12,
-    paddingHorizontal: 15,
-    marginBottom: 15,
-    height: 50,
+    paddingHorizontal: 12,
+    marginBottom: 16,
+    height: 54,
   },
-  input: {
-    flex: 1,
-    marginLeft: 10,
-    fontSize: 16,
-    color: "#000000",
-  },
-  loginButton: {
-    backgroundColor: "#3B82F6",
-    width: "90%",
-    padding: 15,
+  inputIcon: { marginRight: 10 },
+  input: { flex: 1, fontSize: 16 },
+  forgotLink: { alignSelf: 'flex-end', marginBottom: 24 },
+  forgotText: { color: '#0066ff', fontWeight: '500' },
+  button: {
+    backgroundColor: '#0066ff',
+    height: 54,
     borderRadius: 12,
-    alignItems: "center",
-    marginTop: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 16,
   },
-  loginText: {
-    fontSize: 18,
-    fontWeight: "bold",
-    color: "#FFFFFF",
-  },
+  buttonDisabled: { opacity: 0.7 },
+  buttonText: { color: '#fff', fontSize: 16, fontWeight: '600' },
+  error: { color: 'red', textAlign: 'center', marginBottom: 16 },
+  signupLink: { textAlign: 'center', color: '#555', marginTop: 8 },
 });

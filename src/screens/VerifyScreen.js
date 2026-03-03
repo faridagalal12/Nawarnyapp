@@ -1,3 +1,4 @@
+// screens/VerifyScreen.js
 import React, { useState, useRef } from "react";
 import {
   View,
@@ -8,28 +9,29 @@ import {
   KeyboardAvoidingView,
   Platform,
   Keyboard,
+  Alert,
 } from "react-native";
-import { Ionicons } from "@expo/vector-icons"; // for back icon
+import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 
 export default function VerifyScreen() {
+  const navigation = useNavigation(); // ← now imported and used
+
   const [code, setCode] = useState(["", "", "", ""]);
   const inputs = useRef([]);
-  const navigation = useNavigation(); // navigation for back button
 
   const handleChange = (text, index) => {
     if (text.length > 1) return;
-
     const newCode = [...code];
     newCode[index] = text;
     setCode(newCode);
 
-    // Move to next box automatically
+    // Auto-focus next box
     if (text !== "" && index < 3) {
-      inputs.current[index + 1].focus();
+      inputs.current[index + 1]?.focus();
     }
 
-    // Dismiss keyboard when all boxes are filled
+    // Auto-dismiss keyboard when full
     if (text !== "" && index === 3) {
       Keyboard.dismiss();
     }
@@ -37,13 +39,34 @@ export default function VerifyScreen() {
 
   const handleBackspace = (key, index) => {
     if (key === "Backspace" && code[index] === "" && index > 0) {
-      inputs.current[index - 1].focus();
+      inputs.current[index - 1]?.focus();
     }
   };
 
-  // Dismiss keyboard when pressing "Done"
-  const handleSubmitEditing = () => {
-    Keyboard.dismiss();
+  const handleVerify = () => {
+    const otp = code.join("");
+    if (otp.length !== 4 || !/^\d{4}$/.test(otp)) {
+      Alert.alert("Invalid Code", "Please enter a 4-digit code");
+      return;
+    }
+
+    // TODO: Replace with real API call
+    // e.g. await api.post('/api/auth/verify', { code: otp });
+    
+    // For now: simulate success
+    Alert.alert("Success", "Account verified!", [
+      {
+        text: "Continue",
+        onPress: () => navigation.replace("Quiz"), // or your main screen
+      },
+    ]);
+  };
+
+  const handleResend = () => {
+    Alert.alert("Code Resent", "A new code has been sent to your email.");
+    // TODO: Call resend API
+    setCode(["", "", "", ""]);
+    inputs.current[0]?.focus();
   };
 
   return (
@@ -65,35 +88,31 @@ export default function VerifyScreen() {
           Enter the verification code sent to your email
         </Text>
 
-        {/* OTP BOXES */}
+        {/* OTP Boxes */}
         <View style={styles.otpContainer}>
           {code.map((digit, index) => (
             <TextInput
               key={index}
-              ref={ref => (inputs.current[index] = ref)}
+              ref={(ref) => (inputs.current[index] = ref)}
               style={[styles.otpBox, digit !== "" && styles.otpBoxFilled]}
               keyboardType="number-pad"
               maxLength={1}
               value={digit}
               returnKeyType="done"
-              onSubmitEditing={handleSubmitEditing} // dismiss keyboard on Done
-              blurOnSubmit={true}
-              onChangeText={text => handleChange(text, index)}
-              onKeyPress={({ nativeEvent }) =>
-                handleBackspace(nativeEvent.key, index)
-              }
+              onSubmitEditing={handleVerify} // verify on "Done"
+              blurOnSubmit={false}
+              onChangeText={(text) => handleChange(text, index)}
+              onKeyPress={({ nativeEvent }) => handleBackspace(nativeEvent.key, index)}
+              autoFocus={index === 0} // auto-focus first box
             />
           ))}
         </View>
 
-        <TouchableOpacity
-          style={styles.verifyButton}
-          onPress={() => navigation.navigate("Quiz")}
-        >
+        <TouchableOpacity style={styles.verifyButton} onPress={handleVerify}>
           <Text style={styles.verifyText}>Verify</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity onPress={() => Keyboard.dismiss()}>
+        <TouchableOpacity onPress={handleResend}>
           <Text style={styles.resend}>Resend Code</Text>
         </TouchableOpacity>
       </View>
@@ -104,7 +123,7 @@ export default function VerifyScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#FFFFFF", // keeps app theme (white)
+    backgroundColor: "#FFFFFF",
     justifyContent: "center",
     alignItems: "center",
   },
@@ -148,7 +167,7 @@ const styles = StyleSheet.create({
     color: "#1E1E1E",
   },
   otpBoxFilled: {
-    backgroundColor: "#4F6FA5", // same blue theme as your app
+    backgroundColor: "#4F6FA5",
     color: "#FFFFFF",
     borderColor: "#4F6FA5",
   },
@@ -161,39 +180,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 20,
   },
-
-  // ── Next button at bottom ──
-  bottomButtonContainer: {
-    position: "absolute",
-    bottom: 40,
-    left: 0,
-    right: 0,
-    alignItems: "center",
-    paddingHorizontal: 30,
-  },
-  nextButton: {
-    width: "100%",
-    maxWidth: 340,
-    height: 56,
-    backgroundColor: "#3B82F6",
-    borderRadius: 30,
-    justifyContent: "center",
-    alignItems: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.25,
-    shadowRadius: 8,
-    elevation: 6,
-  },
-  nextButtonText: {
-    color: "white",
-    fontSize: 18,
-    fontWeight: "700",
-  },
   verifyText: {
     fontSize: 18,
     fontWeight: "600",
-    color: "#4F6FA5", // match app theme blue
+    color: "#4F6FA5",
   },
   resend: {
     fontSize: 16,
