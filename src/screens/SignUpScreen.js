@@ -16,13 +16,15 @@ import {
   ScrollView,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import axios from "axios";
 
 export default function SignUpScreen({ navigation }) {
   const [email, setEmail] = useState("");
   const [fullName, setFullName] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-const handleSignUp = async () => {
+
+  const handleSignUp = async () => {
     await axios
       .post("https://nawarny-be.onrender.com/api/v1/auth/signup", {
         name: fullName,
@@ -84,7 +86,6 @@ const handleSignUp = async () => {
                   autoCorrect={false}
                 />
               </View>
-        
 
               {/* Password */}
               <View style={styles.inputGroup}>
@@ -100,26 +101,11 @@ const handleSignUp = async () => {
                 />
               </View>
 
-              {/* Confirm Password */}
-              <View style={styles.inputGroup}>
-                <Text style={styles.label}>Confirm password</Text>
-                <TextInput
-                  style={styles.input}
-                  placeholder="••••••••••"
-                  placeholderTextColor="#999"
-                  value={confirmPassword}
-                  onChangeText={setConfirmPassword}
-                  secureTextEntry
-                  autoCapitalize="none"
-                />
-              </View>
-
               {/* Sign Up Button */}
               <TouchableOpacity
                 style={styles.signUpButton}
                 activeOpacity={0.85}
                 onPress={handleSignUp}
-                
               >
                 <Text style={styles.buttonText}>Sign up</Text>
               </TouchableOpacity>
