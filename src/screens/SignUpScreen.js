@@ -19,14 +19,22 @@ import { Ionicons } from "@expo/vector-icons";
 
 export default function SignUpScreen({ navigation }) {
   const [email, setEmail] = useState("");
+  const [fullName, setFullName] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const handleSignUp = () => {
-    // Close keyboard
-    Keyboard.dismiss();
-
-    // Navigate to Verify screen
-    navigation.navigate("Verify");
+const handleSignUp = async () => {
+    await axios
+      .post("https://nawarny-be.onrender.com/api/v1/auth/signup", {
+        name: fullName,
+        email: email,
+        password: password,
+      })
+      .then(response => {
+        console.log(response.data);
+      })
+      .catch(err => {
+        console.log(err);
+      });
   };
 
   return (
@@ -50,7 +58,18 @@ export default function SignUpScreen({ navigation }) {
               </View>
 
               <Text style={styles.title}>Sign Up</Text>
-
+              {/* Full Name */}
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>Full Name</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="ex: John Doe"
+                  placeholderTextColor="#999"
+                  value={fullName}
+                  onChangeText={setFullName}
+                  autoCapitalize="words"
+                />
+              </View>
               {/* Email */}
               <View style={styles.inputGroup}>
                 <Text style={styles.label}>Email</Text>
@@ -65,6 +84,7 @@ export default function SignUpScreen({ navigation }) {
                   autoCorrect={false}
                 />
               </View>
+        
 
               {/* Password */}
               <View style={styles.inputGroup}>
@@ -98,7 +118,8 @@ export default function SignUpScreen({ navigation }) {
               <TouchableOpacity
                 style={styles.signUpButton}
                 activeOpacity={0.85}
-                onPress={() => navigation.navigate("Verify")}
+                onPress={handleSignUp}
+                
               >
                 <Text style={styles.buttonText}>Sign up</Text>
               </TouchableOpacity>
