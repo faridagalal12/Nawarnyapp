@@ -1,24 +1,18 @@
-
-
-
 // src/screens/ProfileScreen.js
 
-import React from 'react';
-import { 
-  View, 
-  Text,                // ← keep Text here
-  TouchableOpacity, 
-  StyleSheet, 
+import React from "react";
+import {
+  View,
+  Text, // ← keep Text here
+  TouchableOpacity,
+  StyleSheet,
   SafeAreaView,
   StatusBar,
-  Image
-} from 'react-native';
+  Image,
+} from "react-native";
 
-import { Ionicons } from '@expo/vector-icons';
-
+import Ionicons from "@expo/vector-icons/Ionicons";
 // ... rest of your code
-
-import { Ionicons } from '@expo/vector-icons';
 
 export default function ProfileScreen({ navigation }) {
   // You can later connect this to real user data (context, redux, firebase, etc.)
@@ -29,39 +23,39 @@ export default function ProfileScreen({ navigation }) {
   };
 
   const menuItems = [
-    { 
-      icon: "person-outline", 
-      title: "My Learning Profile", 
+    {
+      icon: "person-outline",
+      title: "My Learning Profile",
       subtitle: "Make changes to your account",
-      onPress: () => navigation.navigate("LearningProfile") 
+      onPress: () => navigation.navigate("LearningProfile"),
     },
-    { 
-      icon: "bookmark-outline", 
-      title: "Saved Courses", 
+    {
+      icon: "bookmark-outline",
+      title: "Saved Courses",
       subtitle: "Manage saved courses",
-      onPress: () => navigation.navigate("SavedCourses") 
+      onPress: () => navigation.navigate("SavedCourses"),
     },
-    { 
-      icon: "lock-closed-outline", 
-      title: "Subscription", 
+    {
+      icon: "lock-closed-outline",
+      title: "Subscription",
       subtitle: "Manage your plan",
-      onPress: () => navigation.navigate("Subscription") 
+      onPress: () => navigation.navigate("Subscription"),
     },
-    { 
-      icon: "shield-checkmark-outline", 
+    {
+      icon: "shield-checkmark-outline",
       title: "Learning Badges Completed",
       subtitle: "Review your completed streaks and badges",
-      onPress: () => navigation.navigate("Badges") 
+      onPress: () => navigation.navigate("Badges"),
     },
-    { 
-      icon: "log-out-outline", 
+    {
+      icon: "log-out-outline",
       title: "Log out",
       subtitle: "Further secure your account for safety",
       onPress: () => {
         // handle logout logic here
         alert("Logging out...");
       },
-      danger: true 
+      danger: true,
     },
   ];
 
@@ -74,7 +68,6 @@ export default function ProfileScreen({ navigation }) {
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor="#fff" />
 
-      {/* Header / Profile Card */}
       <View style={styles.header}>
         <View style={styles.profileCard}>
           <View style={styles.avatarContainer}>
@@ -96,28 +89,23 @@ export default function ProfileScreen({ navigation }) {
         </View>
       </View>
 
-      {/* Menu Items */}
       <View style={styles.section}>
         {menuItems.map((item, index) => (
           <TouchableOpacity
             key={index}
-            style={[
-              styles.menuItem,
-              item.danger && styles.dangerItem
-            ]}
+            style={[styles.menuItem, item.danger && styles.dangerItem]}
             onPress={item.onPress}
           >
-            <Ionicons 
-              name={item.icon} 
-              size={24} 
-              color={item.danger ? "#FF3B30" : "#333"} 
-              style={styles.menuIcon} 
+            <Ionicons
+              name={item.icon}
+              size={24}
+              color={item.danger ? "#FF3B30" : "#333"}
+              style={styles.menuIcon}
             />
             <View style={styles.menuTextContainer}>
-              <Text style={[
-                styles.menuTitle,
-                item.danger && { color: "#FF3B30" }
-              ]}>
+              <Text
+                style={[styles.menuTitle, item.danger && { color: "#FF3B30" }]}
+              >
                 {item.title}
               </Text>
               <Text style={styles.menuSubtitle}>{item.subtitle}</Text>
@@ -127,8 +115,8 @@ export default function ProfileScreen({ navigation }) {
         ))}
       </View>
 
-      {/* More Section */}
-      <View style={styles.sectionTitle}>More</View>
+      <Text style={styles.sectionTitle}>More</Text>
+
       <View style={styles.section}>
         {moreItems.map((item, index) => (
           <TouchableOpacity
@@ -136,16 +124,17 @@ export default function ProfileScreen({ navigation }) {
             style={styles.menuItem}
             onPress={item.onPress}
           >
-            <Ionicons name={item.icon} size={24} color="#333" style={styles.menuIcon} />
+            <Ionicons
+              name={item.icon}
+              size={24}
+              color="#333"
+              style={styles.menuIcon}
+            />
             <Text style={styles.menuTitle}>{item.title}</Text>
             <Ionicons name="chevron-forward" size={20} color="#999" />
           </TouchableOpacity>
         ))}
       </View>
-
-      {/* Bottom Navigation Placeholder */}
-      {/* You most likely already have a bottom tab navigator */}
-      {/* If not — you can leave empty space or add custom tab bar here */}
     </SafeAreaView>
   );
 }
@@ -153,21 +142,21 @@ export default function ProfileScreen({ navigation }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8f9fa',
+    backgroundColor: "#f8f9fa",
   },
   header: {
-    backgroundColor: '#0066FF',
+    backgroundColor: "#0066FF",
     paddingHorizontal: 16,
     paddingTop: 16,
     paddingBottom: 24,
   },
   profileCard: {
-    backgroundColor: 'white',
+    backgroundColor: "white",
     borderRadius: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     padding: 16,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 8,
@@ -177,9 +166,9 @@ const styles = StyleSheet.create({
     width: 64,
     height: 64,
     borderRadius: 32,
-    backgroundColor: '#0066FF',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: "#0066FF",
+    justifyContent: "center",
+    alignItems: "center",
     marginRight: 16,
   },
   avatar: {
@@ -192,56 +181,56 @@ const styles = StyleSheet.create({
   },
   name: {
     fontSize: 20,
-    fontWeight: '600',
-    color: '#000',
+    fontWeight: "600",
+    color: "#000",
   },
   username: {
     fontSize: 15,
-    color: '#666',
+    color: "#666",
     marginTop: 2,
   },
   editButton: {
     padding: 8,
   },
   section: {
-    backgroundColor: 'white',
+    backgroundColor: "white",
     marginHorizontal: 16,
     marginTop: 16,
     borderRadius: 12,
-    overflow: 'hidden',
+    overflow: "hidden",
   },
   sectionTitle: {
     fontSize: 13,
-    color: '#666',
+    color: "#666",
     marginTop: 24,
     marginBottom: 8,
     marginLeft: 20,
-    fontWeight: '500',
+    fontWeight: "500",
   },
   menuItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     paddingVertical: 16,
     paddingHorizontal: 20,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#eee',
+    borderBottomColor: "#eee",
   },
   menuIcon: {
     marginRight: 16,
     width: 24,
-    textAlign: 'center',
+    textAlign: "center",
   },
   menuTextContainer: {
     flex: 1,
   },
   menuTitle: {
     fontSize: 16,
-    color: '#000',
-    fontWeight: '500',
+    color: "#000",
+    fontWeight: "500",
   },
   menuSubtitle: {
     fontSize: 13,
-    color: '#777',
+    color: "#777",
     marginTop: 3,
   },
   dangerItem: {
