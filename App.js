@@ -10,6 +10,7 @@ import LoginScreen from "./src/screens/LoginScreen";
 import ForgotPasswordScreen from "./src/screens/ForgotPasswordScreen";
 import VerifyScreen from "./src/screens/VerifyScreen";
 import QuizScreen from "./src/screens/QuizScreen";
+import ProfileScreen from "./src/screens/ProfileScreen";
 import { View } from "react-native";
 
 const Stack = createNativeStackNavigator();

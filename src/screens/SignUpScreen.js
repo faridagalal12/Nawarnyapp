@@ -2,6 +2,7 @@
 
 // screens/Sign Up.js
 import { useState } from 'react';
+import { useAuth } from '../context/AuthContext';
 import {
   StyleSheet,
   Text,
@@ -17,6 +18,50 @@ import {
   Image
 } from 'react-native';
 import { Ionicons } from "@expo/vector-icons";
+
+export default function SignUpScreen({ navigation }) {
+  const { signUp } = useAuth();
+
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const handleSignUp = async () => {
+    if (!email.trim() || !password || !confirmPassword) {
+      Alert.alert('Error', 'Please fill in all fields');
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      Alert.alert('Error', "Passwords don't match");
+      return;
+    }
+
+    if (password.length < 8) {
+      Alert.alert('Error', 'Password must be at least 8 characters');
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const result = await signUp(email.trim(), password, confirmPassword);
+      if (result.success) {
+        // Go to verification step
+        navigation.navigate('Verify', {
+          flow: 'signup',
+          email: email.trim(),
+        });
+      } else {
+        Alert.alert('Sign Up Failed', result.error || 'Something went wrong');
+      }
+    } catch (err) {
+      Alert.alert('Error', 'Network or unexpected error');
+    } finally {
+      setLoading(false);
+    }
+  }};
 
 
 export default function SignUpScreen({ navigation }) {

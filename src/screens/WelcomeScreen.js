@@ -8,6 +8,7 @@ import { StyleSheet,
   TouchableOpacity, 
   Image, 
   Dimensions } from 'react-native';
+  import { useAuth } from '../context/AuthContext';
 
 const { height } = Dimensions.get('window');
 
