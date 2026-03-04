@@ -52,12 +52,6 @@ export default function VerifyScreen() {
       behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
       {/* Back Button */}
-      <TouchableOpacity
-        style={styles.backButton}
-        onPress={() => navigation.navigate("Login")}
-      >
-        <Ionicons name="chevron-back" size={26} color="#1E1E1E" />
-      </TouchableOpacity>
 
       <View style={styles.content}>
         <Text style={styles.title}>Verify Account</Text>

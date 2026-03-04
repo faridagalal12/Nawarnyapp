@@ -34,22 +34,11 @@ export default function LoginScreen({ navigation }) {
         <SafeAreaView style={styles.safeArea}>
           <StatusBar barStyle="dark-content" />
 
-          {/* Back Button */}
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={() => navigation.navigate("Welcome")}
-          >
-            <Ionicons name="chevron-back" size={28} color="#000" />
-          </TouchableOpacity>
-
-          {/* Logo */}
           <Image source={require("../assets/logo.png")} style={styles.logo} />
 
-          {/* Title */}
           <Text style={styles.title}>Welcome Back</Text>
           <Text style={styles.subtitle}>Login to Nawarny</Text>
 
-          {/* Email Input */}
           <View style={styles.inputContainer}>
             <Ionicons name="mail-outline" size={20} color="#555" />
             <TextInput
