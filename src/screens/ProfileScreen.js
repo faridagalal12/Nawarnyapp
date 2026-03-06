@@ -12,9 +12,10 @@ import {
 } from "react-native";
 
 import Ionicons from "@expo/vector-icons/Ionicons";
+import * as SecureStore from "expo-secure-store";
 // ... rest of your code
 
-export default function ProfileScreen({ navigation }) {
+export default function ProfileScreen({ logout }) {
   // You can later connect this to real user data (context, redux, firebase, etc.)
   const user = {
     name: "Laila Assem",
@@ -51,13 +52,20 @@ export default function ProfileScreen({ navigation }) {
       icon: "log-out-outline",
       title: "Log out",
       subtitle: "Further secure your account for safety",
-      onPress: () => {
-        // handle logout logic here
-        alert("Logging out...");
-      },
+      onPress: () => logout(),
       danger: true,
     },
   ];
+
+
+  const handlelogout = async ()=>{
+
+
+    await SecureStore.deleteItemAsync("userToken");
+
+  };
+
+
 
   const moreItems = [
     { icon: "help-circle-outline", title: "Help & Support", onPress: () => {} },
