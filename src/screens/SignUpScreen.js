@@ -135,18 +135,10 @@ export default function SignUpScreen({ navigation }) {
               >
                 <Text style={styles.loginLink}>Log In</Text>
               </TouchableOpacity>
-
-              {/* Already have account? */}
-              <View style={styles.footer}>
-                <Text style={styles.footerText}>Have an account? </Text>
-                <TouchableOpacity onPress={() => navigation.navigate("Login")}>
-                  <Text style={styles.signInLink}>SIGN IN</Text>
-                </TouchableOpacity>
-              </View>
             </View>
-          </KeyboardAvoidingView>
-        </TouchableWithoutFeedback>
-      </ScrollView>
+          </View>
+        </KeyboardAvoidingView>
+      </TouchableWithoutFeedback>
     </SafeAreaView>
   );
 }
