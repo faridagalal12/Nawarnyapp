@@ -120,6 +120,12 @@ const styles = StyleSheet.create({
   keyboardView: {
     flex: 1,
   },
+  backButton: {
+    position: "absolute",
+    top: 60,
+    left: 25,
+    zIndex: 10,
+  },
   content: {
     flex: 1,
     alignItems: "center",
@@ -165,5 +171,6 @@ const styles = StyleSheet.create({
   link: {
     color: "#3B82F6",
     fontWeight: "600",
+    color: "#4F6FA5", // match app theme blue
   },
 });
