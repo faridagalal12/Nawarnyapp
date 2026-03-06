@@ -1,5 +1,4 @@
-// screens/Sign Up.js
-import { useState } from "react";
+import React, { useState } from "react";
 import {
   StyleSheet,
   Text,
@@ -11,116 +10,135 @@ import {
   Platform,
   TouchableWithoutFeedback,
   Keyboard,
-  Dimensions,
   Image,
-  ScrollView,
+  Alert,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import axios from "axios";
+import { signUp } from "../services/authservice";
 
 export default function SignUpScreen({ navigation }) {
   const [email, setEmail] = useState("");
-  const [fullName, setFullName] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
 
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
   const handleSignUp = async () => {
-    await axios
-      .post("https://nawarny-be.onrender.com/api/v1/auth/signup", {
-        name: fullName,
-        email: email,
-        password: password,
-      })
-      .then(response => {
-        console.log(response.data);
-      })
-      .catch(err => {
-        console.log(err);
-      });
+    Keyboard.dismiss();
+
+    if (!email || !password || !confirmPassword) {
+      Alert.alert("Error", "Please fill all fields");
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      Alert.alert("Error", "Passwords do not match");
+      return;
+    }
+
+    try {
+      await signUp(email, password);
+      navigation.navigate("Verify", { email });
+    } catch (error) {
+      Alert.alert("Sign Up Failed", error.message);
+    }
   };
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView>
-        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-          <KeyboardAvoidingView
-            behavior={Platform.OS === "ios" ? "padding" : "height"}
-            style={styles.keyboardView}
-          >
-            <View style={styles.content}>
-              {/* Logo – same as welcome */}
-              <View style={styles.logoContainer}>
-                {/* Back Button */}
+      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          style={styles.keyboardView}
+        >
+          <View style={styles.content}>
+            <Image
+              source={require("../assets/logo.png")}
+              style={styles.logo}
+              resizeMode="contain"
+            />
 
-                <Image
-                  source={require("../assets/logo.png")} // replace with your actual logo path
-                  style={styles.iconPlaceholder}
-                  resizeMode="contain"
-                />
-              </View>
+            <Text style={styles.title}>Create Account</Text>
 
-              <Text style={styles.title}>Sign Up</Text>
-              {/* Full Name */}
-              <View style={styles.inputGroup}>
-                <Text style={styles.label}>Full Name</Text>
-                <TextInput
-                  style={styles.input}
-                  placeholder="ex: John Doe"
-                  placeholderTextColor="#999"
-                  value={fullName}
-                  onChangeText={setFullName}
-                  autoCapitalize="words"
-                />
-              </View>
-              {/* Email */}
-              <View style={styles.inputGroup}>
-                <Text style={styles.label}>Email</Text>
-                <TextInput
-                  style={styles.input}
-                  placeholder="ex: jon.smith@email.com"
-                  placeholderTextColor="#999"
-                  value={email}
-                  onChangeText={setEmail}
-                  keyboardType="email-address"
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                />
-              </View>
-
-              {/* Password */}
-              <View style={styles.inputGroup}>
-                <Text style={styles.label}>Password</Text>
-                <TextInput
-                  style={styles.input}
-                  placeholder="••••••••••"
-                  placeholderTextColor="#999"
-                  value={password}
-                  onChangeText={setPassword}
-                  secureTextEntry
-                  autoCapitalize="none"
-                />
-              </View>
-
-              {/* Sign Up Button */}
-              <TouchableOpacity
-                style={styles.signUpButton}
-                activeOpacity={0.85}
-                onPress={handleSignUp}
-              >
-                <Text style={styles.buttonText}>Sign up</Text>
-              </TouchableOpacity>
-
-              {/* Already have account? */}
-              <View style={styles.footer}>
-                <Text style={styles.footerText}>Have an account? </Text>
-                <TouchableOpacity onPress={() => navigation.navigate("Login")}>
-                  <Text style={styles.signInLink}>SIGN IN</Text>
-                </TouchableOpacity>
-              </View>
+            {/* EMAIL */}
+            <View style={styles.inputGroup}>
+              <TextInput
+                style={styles.input}
+                placeholder="Email"
+                value={email}
+                onChangeText={setEmail}
+                keyboardType="email-address"
+                autoCapitalize="none"
+              />
             </View>
-          </KeyboardAvoidingView>
-        </TouchableWithoutFeedback>
-      </ScrollView>
+
+            {/* PASSWORD */}
+            <View style={styles.passwordContainer}>
+              <TextInput
+                style={styles.passwordInput}
+                placeholder="Password"
+                value={password}
+                onChangeText={setPassword}
+                secureTextEntry={!showPassword}
+              />
+              <TouchableOpacity
+                onPress={() => setShowPassword(!showPassword)}
+              >
+                <Ionicons
+                  name={showPassword ? "eye-off-outline" : "eye-outline"}
+                  size={22}
+                  color="#555"
+                />
+              </TouchableOpacity>
+            </View>
+
+            {/* CONFIRM PASSWORD */}
+            <View style={styles.passwordContainer}>
+              <TextInput
+                style={styles.passwordInput}
+                placeholder="Confirm Password"
+                value={confirmPassword}
+                onChangeText={setConfirmPassword}
+                secureTextEntry={!showConfirmPassword}
+              />
+              <TouchableOpacity
+                onPress={() =>
+                  setShowConfirmPassword(!showConfirmPassword)
+                }
+              >
+                <Ionicons
+                  name={
+                    showConfirmPassword
+                      ? "eye-off-outline"
+                      : "eye-outline"
+                  }
+                  size={22}
+                  color="#555"
+                />
+              </TouchableOpacity>
+            </View>
+
+            {/* SIGN UP BUTTON */}
+            <TouchableOpacity
+              style={styles.signUpButton}
+              onPress={handleSignUp}
+            >
+              <Text style={styles.buttonText}>Sign Up</Text>
+            </TouchableOpacity>
+
+            {/* LOGIN LINK */}
+            <View style={styles.footer}>
+              <Text>Already have an account? </Text>
+              <TouchableOpacity
+                onPress={() => navigation.navigate("Login")}
+              >
+                <Text style={styles.loginLink}>Log In</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </KeyboardAvoidingView>
+      </TouchableWithoutFeedback>
     </SafeAreaView>
   );
 }
@@ -128,7 +146,7 @@ export default function SignUpScreen({ navigation }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#fff",
+    backgroundColor: "#FFFFFF",
   },
   keyboardView: {
     flex: 1,
@@ -136,82 +154,62 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
     alignItems: "center",
-    paddingHorizontal: 32,
-    paddingTop: 60,
+    paddingHorizontal: 30,
+    justifyContent: "center",
   },
-
-  backButton: {
-    position: "absolute",
-    top: 60,
-    left: 20,
-    zIndex: 5,
-  },
-  logoContainer: {
-    marginBottom: 50,
-  },
-  iconPlaceholder: {
-    width: 200,
-    height: 200,
-    alignSelf: "center",
-    borderRadius: 20,
+  logo: {
+    width: 120,
+    height: 120,
+    marginBottom: 20,
   },
   title: {
-    fontSize: 32,
+    fontSize: 28,
     fontWeight: "bold",
-    color: "#111",
-    marginBottom: 50,
+    marginBottom: 30,
   },
   inputGroup: {
     width: "100%",
-    marginBottom: 24,
-  },
-  label: {
-    fontSize: 16,
-    color: "#444",
-    marginBottom: 8,
-    fontWeight: "500",
+    marginBottom: 15,
   },
   input: {
     width: "100%",
-    height: 54,
-    backgroundColor: "#F9FAFB",
+    height: 55,
+    backgroundColor: "#F2F2F2",
     borderRadius: 12,
-    paddingHorizontal: 16,
-    fontSize: 16,
-    borderWidth: 1,
-    borderColor: "#E5E7EB",
-    color: "#111",
+    paddingHorizontal: 15,
+  },
+  passwordContainer: {
+    width: "100%",
+    height: 55,
+    backgroundColor: "#F2F2F2",
+    borderRadius: 12,
+    paddingHorizontal: 15,
+    marginBottom: 15,
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  passwordInput: {
+    flex: 1,
   },
   signUpButton: {
     width: "100%",
     backgroundColor: "#3B82F6",
-    borderRadius: 14,
-    paddingVertical: 18,
+    padding: 16,
+    borderRadius: 12,
     alignItems: "center",
-    marginTop: 16,
-    marginBottom: 24,
-    shadowColor: "#3B82F6",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 5,
+    marginTop: 10,
   },
   buttonText: {
-    color: "white",
+    color: "#FFFFFF",
     fontSize: 18,
-    fontWeight: "700",
+    fontWeight: "bold",
   },
   footer: {
     flexDirection: "row",
-    alignItems: "center",
+    marginTop: 20,
   },
-  footerText: {
-    color: "#666",
-    fontSize: 16,
-  },
-  signInLink: {
+  loginLink: {
     color: "#3B82F6",
-    fontSize: 16,
     fontWeight: "600",
   },
 });
