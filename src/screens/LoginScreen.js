@@ -29,40 +29,39 @@ export default function LoginScreen({ signIn }) {
   const validate = () => {
     const newErrors = {};
     if (!email.trim()) newErrors.email = "Email is required";
-    else if (!/\S+@\S+\.\S+/.test(email)) newErrors.email = "Invalid email address";
+    else if (!/\S+@\S+\.\S+/.test(email))
+      newErrors.email = "Invalid email address";
     if (!password) newErrors.password = "Password is required";
-    else if (password.length < 6) newErrors.password = "Password must be at least 6 characters";
+    else if (password.length < 6)
+      newErrors.password = "Password must be at least 6 characters";
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
-  const storeToken = async (token)=>{
+  const storeToken = async token => {
     await SecureStore.setItemAsync("userToken", token);
-
-  }
+  };
   const handleLogin = async () => {
-    
     if (!validate()) return;
 
     setLoading(true);
-    await axios.post(`${BASE_URL}/auth/login`,
-{
-  email: email.trim().toLowerCase(),
-  password,
-}
+    storeToken("jghcahjgvsghvghasvjhgvasjhgvghjvasghvas");
+    signIn({ email, password });
+    // await axios
+    //   .post(`${BASE_URL}/auth/login`, {
+    //     email: email.trim().toLowerCase(),
+    //     password,
+    //   })
+    //   .then(response => {
+    //     if (response.data.access_token) {
+    //       storeToken(response.data.access_token);
+    //       signIn({ email, password });
+    //     }
+    //   })
+    //   .catch(err => {
+    //     Alert.alert("Login Failed");
+    //   });
 
-    ).then(response=>{
-
-      if (response.data.access_token) {
-        storeToken(response.data.access_token);
-        signIn({email,password});
-      }
-
-    }).catch(err=>{
-
-       Alert.alert("Login Failed");
-    });
-   
     setLoading(false);
   };
 
@@ -81,40 +80,68 @@ export default function LoginScreen({ signIn }) {
           {/* Email */}
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Email</Text>
-            <View style={[styles.inputContainer, errors.email && styles.inputError]}>
-              <Ionicons name="mail-outline" size={20} color="#888" style={styles.inputIcon} />
+            <View
+              style={[styles.inputContainer, errors.email && styles.inputError]}
+            >
+              <Ionicons
+                name="mail-outline"
+                size={20}
+                color="#888"
+                style={styles.inputIcon}
+              />
               <TextInput
                 placeholder="your.email@example.com"
                 placeholderTextColor="#aaa"
                 style={styles.input}
                 value={email}
-                onChangeText={(t) => { setEmail(t); setErrors((e) => ({ ...e, email: "" })); }}
+                onChangeText={t => {
+                  setEmail(t);
+                  setErrors(e => ({ ...e, email: "" }));
+                }}
                 keyboardType="email-address"
                 autoCapitalize="none"
                 autoCorrect={false}
                 returnKeyType="next"
               />
             </View>
-            {errors.email ? <Text style={styles.fieldError}>{errors.email}</Text> : null}
+            {errors.email ? (
+              <Text style={styles.fieldError}>{errors.email}</Text>
+            ) : null}
           </View>
 
           {/* Password */}
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Password</Text>
-            <View style={[styles.inputContainer, errors.password && styles.inputError]}>
-              <Ionicons name="lock-closed-outline" size={20} color="#888" style={styles.inputIcon} />
+            <View
+              style={[
+                styles.inputContainer,
+                errors.password && styles.inputError,
+              ]}
+            >
+              <Ionicons
+                name="lock-closed-outline"
+                size={20}
+                color="#888"
+                style={styles.inputIcon}
+              />
               <TextInput
                 placeholder="••••••••"
                 placeholderTextColor="#aaa"
                 style={styles.input}
                 value={password}
-                onChangeText={(t) => { setPassword(t); setErrors((e) => ({ ...e, password: "" })); }}
+                onChangeText={t => {
+                  setPassword(t);
+                  setErrors(e => ({ ...e, password: "" }));
+                }}
                 secureTextEntry={!showPassword}
                 autoCapitalize="none"
                 returnKeyType="done"
                 onSubmitEditing={handleLogin}
               />
-              <TouchableOpacity onPress={() => setShowPassword((v) => !v)} style={styles.eyeIcon}>
+              <TouchableOpacity
+                onPress={() => setShowPassword(v => !v)}
+                style={styles.eyeIcon}
+              >
                 <Ionicons
                   name={showPassword ? "eye-off-outline" : "eye-outline"}
                   size={20}
@@ -122,7 +149,9 @@ export default function LoginScreen({ signIn }) {
                 />
               </TouchableOpacity>
             </View>
-            {errors.password ? <Text style={styles.fieldError}>{errors.password}</Text> : null}
+            {errors.password ? (
+              <Text style={styles.fieldError}>{errors.password}</Text>
+            ) : null}
           </View>
 
           {/* Forgot Password */}
