@@ -128,7 +128,13 @@ export default function App() {
           ) : (
             <>
               {/* <Stack.Screen name="Quiz" component={QuizScreen} /> */}
-              <Stack.Screen name="App" component={AppTabs} />
+              <Stack.Screen
+                name="App"
+                component={AppTabs}
+                options={{
+                  headerShown: false,
+                }}
+              />
             </>
           )}
         </Stack.Navigator>
