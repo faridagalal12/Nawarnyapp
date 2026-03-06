@@ -82,9 +82,7 @@ export default function SignUpScreen({ navigation }) {
                 onChangeText={setPassword}
                 secureTextEntry={!showPassword}
               />
-              <TouchableOpacity
-                onPress={() => setShowPassword(!showPassword)}
-              >
+              <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
                 <Ionicons
                   name={showPassword ? "eye-off-outline" : "eye-outline"}
                   size={22}
@@ -103,16 +101,10 @@ export default function SignUpScreen({ navigation }) {
                 secureTextEntry={!showConfirmPassword}
               />
               <TouchableOpacity
-                onPress={() =>
-                  setShowConfirmPassword(!showConfirmPassword)
-                }
+                onPress={() => setShowConfirmPassword(!showConfirmPassword)}
               >
                 <Ionicons
-                  name={
-                    showConfirmPassword
-                      ? "eye-off-outline"
-                      : "eye-outline"
-                  }
+                  name={showConfirmPassword ? "eye-off-outline" : "eye-outline"}
                   size={22}
                   color="#555"
                 />
@@ -130,9 +122,7 @@ export default function SignUpScreen({ navigation }) {
             {/* LOGIN LINK */}
             <View style={styles.footer}>
               <Text>Already have an account? </Text>
-              <TouchableOpacity
-                onPress={() => navigation.navigate("Login")}
-              >
+              <TouchableOpacity onPress={() => navigation.navigate("Login")}>
                 <Text style={styles.loginLink}>Log In</Text>
               </TouchableOpacity>
             </View>

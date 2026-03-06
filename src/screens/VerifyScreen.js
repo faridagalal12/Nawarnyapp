@@ -42,7 +42,6 @@ export default function SignUpScreen({ navigation }) {
       setLoading(false);
 
       navigation.navigate("Verify", { email });
-
     } catch (error) {
       setLoading(false);
       Alert.alert("Sign Up Failed", error.message);
@@ -57,7 +56,6 @@ export default function SignUpScreen({ navigation }) {
           style={styles.keyboardView}
         >
           <View style={styles.content}>
-
             <Image
               source={require("../assets/logo.png")}
               style={styles.logo}
@@ -107,7 +105,6 @@ export default function SignUpScreen({ navigation }) {
                 <Text style={styles.link}>Sign In</Text>
               </TouchableOpacity>
             </View>
-
           </View>
         </KeyboardAvoidingView>
       </TouchableWithoutFeedback>
