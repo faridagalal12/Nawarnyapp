@@ -13,6 +13,7 @@ import QuizScreen from "./src/screens/QuizScreen";
 import { View } from "react-native";
 import * as SecureStore from "expo-secure-store";
 import ProfileScreen from "./src/screens/ProfileScreen";
+import AppTabs from "./src/navigation/AppTabs";
 
 const AuthContext = React.createContext();
 
@@ -80,7 +81,7 @@ export default function App() {
     <AuthContext.Provider value={authContext}>
       <NavigationContainer>
         <Stack.Navigator>
-          {state.userToken == null ? (
+          {state.userToken !== null ? (
             <>
               <Stack.Screen
                 name="Welcome"
@@ -127,7 +128,7 @@ export default function App() {
           ) : (
             <>
               {/* <Stack.Screen name="Quiz" component={QuizScreen} /> */}
-              <Stack.Screen name="Profile" component={ProfileScreen} />
+              <Stack.Screen name="App" component={AppTabs} />
             </>
           )}
         </Stack.Navigator>
