@@ -1,4 +1,4 @@
-import React, { useState, useRef, useContext } from "react";
+import React, { useState, useRef } from "react";
 import {
   View,
   Text,
@@ -8,84 +8,42 @@ import {
   KeyboardAvoidingView,
   Platform,
   Keyboard,
-  ActivityIndicator,
-  Alert,
 } from "react-native";
-import axios from "axios";
-import { AuthContext } from "../../App";
+import { Ionicons } from "@expo/vector-icons"; // for back icon
+import { useNavigation } from "@react-navigation/native";
 
-const BASE_URL = "https://nawarny-be.onrender.com/api/v1";
-
-export default function VerifyScreen({ route }) {
-  // email may be passed from LoginScreen or SignUpScreen
-  const email = route?.params?.email || "";
-
-  const [code, setCode] = useState(["", "", "", "", "", ""]);
-  const [loading, setLoading] = useState(false);
-  const [resending, setResending] = useState(false);
-  const [error, setError] = useState("");
+export default function VerifyScreen() {
+  const [code, setCode] = useState(["", "", "", ""]);
   const inputs = useRef([]);
-  const { signIn } = useContext(AuthContext);
+  const navigation = useNavigation(); // navigation for back button
 
   const handleChange = (text, index) => {
     if (text.length > 1) return;
+
     const newCode = [...code];
     newCode[index] = text;
     setCode(newCode);
-    setError("");
-    if (text && index < 5) inputs.current[index + 1]?.focus();
-    if (text && index === 5) Keyboard.dismiss();
+
+    // Move to next box automatically
+    if (text !== "" && index < 3) {
+      inputs.current[index + 1].focus();
+    }
+
+    // Dismiss keyboard when all boxes are filled
+    if (text !== "" && index === 3) {
+      Keyboard.dismiss();
+    }
   };
 
   const handleBackspace = (key, index) => {
     if (key === "Backspace" && code[index] === "" && index > 0) {
-      inputs.current[index - 1]?.focus();
+      inputs.current[index - 1].focus();
     }
   };
 
-  const handleVerify = async () => {
+  // Dismiss keyboard when pressing "Done"
+  const handleSubmitEditing = () => {
     Keyboard.dismiss();
-    const otp = code.join("");
-    if (otp.length < 6) {
-      setError("Please enter the full 6-digit code");
-      return;
-    }
-
-    setLoading(true);
-    setError("");
-    try {
-      const response = await axios.post(`${BASE_URL}/auth/verify`, {
-        email,
-        code: otp,
-      });
-
-      const token = response?.data?.token || response?.data?.data?.token;
-      // signIn saves the token and flips the nav stack to authenticated screens
-      await signIn(token || "verified-token");
-    } catch (err) {
-      const msg =
-        err?.response?.data?.message ||
-        err?.response?.data?.error ||
-        "Invalid or expired code. Please try again.";
-      setError(msg);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleResend = async () => {
-    setResending(true);
-    setError("");
-    try {
-      await axios.post(`${BASE_URL}/auth/resend-verification`, { email });
-      Alert.alert("Code Resent", "A new verification code has been sent to your email.");
-      setCode(["", "", "", "", "", ""]);
-      inputs.current[0]?.focus();
-    } catch {
-      setError("Could not resend code. Please try again.");
-    } finally {
-      setResending(false);
-    }
   };
 
   return (
@@ -93,60 +51,44 @@ export default function VerifyScreen({ route }) {
       style={styles.container}
       behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
+      {/* Back Button */}
+
       <View style={styles.content}>
         <Text style={styles.title}>Verify Account</Text>
         <Text style={styles.subtitle}>
-          Enter the 6-digit code sent to{"\n"}
-          {email ? <Text style={styles.emailText}>{email}</Text> : "your email"}
+          Enter the verification code sent to your email
         </Text>
 
-        {/* OTP Boxes */}
+        {/* OTP BOXES */}
         <View style={styles.otpContainer}>
           {code.map((digit, index) => (
             <TextInput
               key={index}
-              ref={(r) => (inputs.current[index] = r)}
-              style={[
-                styles.otpBox,
-                digit !== "" && styles.otpBoxFilled,
-                error && styles.otpBoxError,
-              ]}
+              ref={ref => (inputs.current[index] = ref)}
+              style={[styles.otpBox, digit !== "" && styles.otpBoxFilled]}
               keyboardType="number-pad"
               maxLength={1}
               value={digit}
               returnKeyType="done"
-              onSubmitEditing={Keyboard.dismiss}
+              onSubmitEditing={handleSubmitEditing} // dismiss keyboard on Done
               blurOnSubmit={true}
-              onChangeText={(text) => handleChange(text, index)}
-              onKeyPress={({ nativeEvent }) => handleBackspace(nativeEvent.key, index)}
+              onChangeText={text => handleChange(text, index)}
+              onKeyPress={({ nativeEvent }) =>
+                handleBackspace(nativeEvent.key, index)
+              }
             />
           ))}
         </View>
 
-        {error ? <Text style={styles.errorText}>{error}</Text> : null}
-
         <TouchableOpacity
-          style={[styles.verifyButton, loading && styles.verifyButtonDisabled]}
-          onPress={handleVerify}
-          disabled={loading}
-          activeOpacity={0.85}
+          style={styles.verifyButton}
+          onPress={() => navigation.navigate("Quiz")}
         >
-          {loading ? (
-            <ActivityIndicator color="#fff" />
-          ) : (
-            <Text style={styles.verifyText}>Verify</Text>
-          )}
+          <Text style={styles.verifyText}>Verify</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity
-          onPress={handleResend}
-          disabled={resending}
-          style={styles.resendContainer}
-        >
-          <Text style={styles.resendText}>
-            {resending ? "Resending..." : "Didn't receive it? "}
-            {!resending && <Text style={styles.resendLink}>Resend Code</Text>}
-          </Text>
+        <TouchableOpacity onPress={() => Keyboard.dismiss()}>
+          <Text style={styles.resend}>Resend Code</Text>
         </TouchableOpacity>
       </View>
     </KeyboardAvoidingView>
@@ -156,9 +98,15 @@ export default function VerifyScreen({ route }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#FFFFFF",
+    backgroundColor: "#FFFFFF", // keeps app theme (white)
     justifyContent: "center",
     alignItems: "center",
+  },
+  backButton: {
+    position: "absolute",
+    top: 60,
+    left: 25,
+    zIndex: 10,
   },
   content: {
     width: "85%",
@@ -174,80 +122,76 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: "#777",
     textAlign: "center",
-    lineHeight: 24,
     marginBottom: 40,
-  },
-  emailText: {
-    fontWeight: "600",
-    color: "#3B82F6",
   },
   otpContainer: {
     flexDirection: "row",
     justifyContent: "space-between",
     width: "100%",
-    marginBottom: 16,
-    gap: 8,
+    marginBottom: 40,
   },
   otpBox: {
-    flex: 1,
+    width: 60,
     height: 60,
     borderRadius: 12,
-    borderWidth: 1.5,
+    borderWidth: 1,
     borderColor: "#E0E0E0",
     textAlign: "center",
     fontSize: 22,
-    fontWeight: "700",
     backgroundColor: "#F5F5F5",
     color: "#1E1E1E",
   },
   otpBoxFilled: {
-    backgroundColor: "#eff6ff",
-    borderColor: "#3B82F6",
-    color: "#3B82F6",
-  },
-  otpBoxError: {
-    borderColor: "#ef4444",
-    backgroundColor: "#fff5f5",
-  },
-  errorText: {
-    color: "#ef4444",
-    fontSize: 13,
-    textAlign: "center",
-    marginBottom: 16,
+    backgroundColor: "#4F6FA5", // same blue theme as your app
+    color: "#FFFFFF",
+    borderColor: "#4F6FA5",
   },
   verifyButton: {
     width: "100%",
     height: 55,
-    backgroundColor: "#3B82F6",
-    borderRadius: 14,
+    backgroundColor: "#EDEDED",
+    borderRadius: 30,
     justifyContent: "center",
     alignItems: "center",
     marginBottom: 20,
-    shadowColor: "#3B82F6",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 5,
   },
-  verifyButtonDisabled: {
-    backgroundColor: "#93c5fd",
-    shadowOpacity: 0,
-    elevation: 0,
+
+  // ── Next button at bottom ──
+  bottomButtonContainer: {
+    position: "absolute",
+    bottom: 40,
+    left: 0,
+    right: 0,
+    alignItems: "center",
+    paddingHorizontal: 30,
+  },
+  nextButton: {
+    width: "100%",
+    maxWidth: 340,
+    height: 56,
+    backgroundColor: "#3B82F6",
+    borderRadius: 30,
+    justifyContent: "center",
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  nextButtonText: {
+    color: "white",
+    fontSize: 18,
+    fontWeight: "700",
   },
   verifyText: {
     fontSize: 18,
-    fontWeight: "700",
-    color: "#fff",
-  },
-  resendContainer: {
-    marginTop: 4,
-  },
-  resendText: {
-    fontSize: 15,
-    color: "#777",
-  },
-  resendLink: {
-    color: "#3B82F6",
     fontWeight: "600",
+    color: "#4F6FA5", // match app theme blue
+  },
+  resend: {
+    fontSize: 16,
+    color: "#4F6FA5",
+    fontWeight: "500",
   },
 });
