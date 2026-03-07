@@ -12,16 +12,45 @@ import {
   TouchableWithoutFeedback,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { useNavigation } from "@react-navigation/native";
+import axios from "axios";
+import * as SecureStore from "expo-secure-store";
+import { Button } from "galio-framework";
 
-export default function LoginScreen({ navigation }) {
+export default function LoginScreen({ signIn }) {
+  const navigation = useNavigation();
   const [email, setEmail] = useState("");
+  const [loading, setLoading] = useState(false);
   const [password, setPassword] = useState("");
 
-  const handleLogin = () => {
+  const handleLogin = async () => {
     Keyboard.dismiss(); // dismiss keyboard on login
-    console.log("Email:", email);
-    console.log("Password:", password);
-    navigation.navigate("Verify");
+    setLoading(true);
+    await axios
+      .post("https://nawarny-be.onrender.com/api/v1/auth/login", {
+        email,
+        password,
+      })
+      .then(async response => {
+        setLoading(false);
+        if (response.data.access_token) {
+          await SecureStore.setItemAsync(
+            "userToken",
+            response.data.access_token,
+          );
+          signIn(email, password);
+        } else {
+          alert("Login failed: " + response.data.message);
+        }
+      })
+      .catch(error => {
+        setLoading(false);
+        console.error("Login error:", error);
+        alert("An error occurred during login. Please try again.");
+      });
+    setEmail("");
+    setPassword("");
+    setLoading(false);
   };
 
   const goToForgotPassword = () => {
@@ -77,9 +106,17 @@ export default function LoginScreen({ navigation }) {
           </TouchableOpacity>
 
           {/* Login Button */}
-          <TouchableOpacity style={styles.loginButton} onPress={handleLogin}>
+          <Button
+            style={styles.loginButton}
+            onPress={handleLogin}
+            textStyle={styles.loginText}
+            loading={loading}
+          >
+            Login
+          </Button>
+          {/* <TouchableOpacity style={styles.loginButton} onPress={handleLogin}>
             <Text style={styles.loginText}>Login</Text>
-          </TouchableOpacity>
+          </TouchableOpacity> */}
         </SafeAreaView>
       </View>
     </TouchableWithoutFeedback>
@@ -151,7 +188,7 @@ const styles = StyleSheet.create({
   loginButton: {
     backgroundColor: "#3B82F6",
     width: "90%",
-    padding: 15,
+    // padding: 15,
     borderRadius: 12,
     alignItems: "center",
     marginTop: 10,

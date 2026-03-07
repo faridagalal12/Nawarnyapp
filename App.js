@@ -10,9 +10,11 @@ import LoginScreen from "./src/screens/LoginScreen";
 import VerifyScreen from "./src/screens/VerifyScreen";
 import ForgetPassword from "./src/screens/ForgotPasswordScreen";
 import QuizScreen from "./src/screens/QuizScreen";
-import { View } from "react-native";
+
 import * as SecureStore from "expo-secure-store";
 import ProfileScreen from "./src/screens/ProfileScreen";
+import MyTabs from "./src/navigations/AppTabs";
+import axios from "axios";
 
 const AuthContext = React.createContext();
 
@@ -58,6 +60,7 @@ export default function App() {
       } catch (e) {}
 
       dispatch({ type: "RESTORE_TOKEN", token: userToken });
+      axios.defaults.headers.common["Authorization"] = `Bearer ${userToken}`;
     };
 
     bootstrapAsync();
@@ -92,7 +95,7 @@ export default function App() {
               />
               <Stack.Screen
                 name="Login"
-                component={LoginScreen}
+                children={() => <LoginScreen signIn={authContext.signIn} />}
                 options={{
                   title: "Sign in",
                   animationTypeForReplace: state.isSignout ? "pop" : "push",
@@ -109,7 +112,7 @@ export default function App() {
 
               <Stack.Screen
                 name="ForgotPassword"
-                component={ForgotPasswordScreen}
+                component={ForgetPassword}
                 options={{
                   title: "Forgot Password",
                   animationTypeForReplace: state.isSignout ? "pop" : "push",
@@ -126,8 +129,16 @@ export default function App() {
             </>
           ) : (
             <>
-              {/* <Stack.Screen name="Quiz" component={QuizScreen} /> */}
-              <Stack.Screen name="Profile" component={ProfileScreen} />
+              <Stack.Screen
+                name="Tabs"
+                children={() => <MyTabs signOut={authContext.signOut} />}
+                options={{ headerShown: false }}
+              />
+              <Stack.Screen
+                name="Quiz"
+                component={QuizScreen}
+                options={{ headerShown: false }}
+              />
             </>
           )}
         </Stack.Navigator>

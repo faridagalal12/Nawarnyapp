@@ -1,124 +1,106 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import {
-  StyleSheet,
-  Text,
   View,
-  SafeAreaView,
+  Text,
+  StyleSheet,
   TextInput,
   TouchableOpacity,
   KeyboardAvoidingView,
   Platform,
-  TouchableWithoutFeedback,
   Keyboard,
-  Image,
-  Alert,
 } from "react-native";
-import { signUp } from "../services/authservice";
+import { Ionicons } from "@expo/vector-icons"; // for back icon
+import { useNavigation } from "@react-navigation/native";
 
-export default function SignUpScreen({ navigation }) {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [loading, setLoading] = useState(false);
+export default function VerifyScreen() {
+  const [code, setCode] = useState(["", "", "", ""]);
+  const inputs = useRef([]);
+  const navigation = useNavigation(); // navigation for back button
 
-  const handleSignUp = async () => {
-    try {
+  const handleChange = (text, index) => {
+    if (text.length > 1) return;
+
+    const newCode = [...code];
+    newCode[index] = text;
+    setCode(newCode);
+
+    // Move to next box automatically
+    if (text !== "" && index < 3) {
+      inputs.current[index + 1].focus();
+    }
+
+    // Dismiss keyboard when all boxes are filled
+    if (text !== "" && index === 3) {
       Keyboard.dismiss();
-
-      if (!email || !password || !confirmPassword) {
-        Alert.alert("Error", "Please fill all fields");
-        return;
-      }
-
-      if (password !== confirmPassword) {
-        Alert.alert("Error", "Passwords do not match");
-        return;
-      }
-
-      setLoading(true);
-
-      await signUp(email, password, confirmPassword);
-
-      setLoading(false);
-
-      navigation.navigate("Verify", { email });
-    } catch (error) {
-      setLoading(false);
-      Alert.alert("Sign Up Failed", error.message);
     }
   };
 
+  const handleBackspace = (key, index) => {
+    if (key === "Backspace" && code[index] === "" && index > 0) {
+      inputs.current[index - 1].focus();
+    }
+  };
+
+  // Dismiss keyboard when pressing "Done"
+  const handleSubmitEditing = () => {
+    Keyboard.dismiss();
+  };
+
   return (
-    <SafeAreaView style={styles.container}>
-      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-        <KeyboardAvoidingView
-          behavior={Platform.OS === "ios" ? "padding" : "height"}
-          style={styles.keyboardView}
+    <KeyboardAvoidingView
+      style={styles.container}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+    >
+      {/* Back Button */}
+
+      <View style={styles.content}>
+        <Text style={styles.title}>Verify Account</Text>
+        <Text style={styles.subtitle}>
+          Enter the verification code sent to your email
+        </Text>
+
+        {/* OTP BOXES */}
+        <View style={styles.otpContainer}>
+          {code.map((digit, index) => (
+            <TextInput
+              key={index}
+              ref={ref => (inputs.current[index] = ref)}
+              style={[styles.otpBox, digit !== "" && styles.otpBoxFilled]}
+              keyboardType="number-pad"
+              maxLength={1}
+              value={digit}
+              returnKeyType="done"
+              onSubmitEditing={handleSubmitEditing} // dismiss keyboard on Done
+              blurOnSubmit={true}
+              onChangeText={text => handleChange(text, index)}
+              onKeyPress={({ nativeEvent }) =>
+                handleBackspace(nativeEvent.key, index)
+              }
+            />
+          ))}
+        </View>
+
+        <TouchableOpacity
+          style={styles.verifyButton}
+          onPress={() => navigation.navigate("Quiz")}
         >
-          <View style={styles.content}>
-            <Image
-              source={require("../assets/logo.png")}
-              style={styles.logo}
-              resizeMode="contain"
-            />
+          <Text style={styles.verifyText}>Verify</Text>
+        </TouchableOpacity>
 
-            <Text style={styles.title}>Create Account</Text>
-
-            <TextInput
-              style={styles.input}
-              placeholder="Email"
-              value={email}
-              onChangeText={setEmail}
-              autoCapitalize="none"
-              keyboardType="email-address"
-            />
-
-            <TextInput
-              style={styles.input}
-              placeholder="Password"
-              value={password}
-              onChangeText={setPassword}
-              secureTextEntry
-            />
-
-            <TextInput
-              style={styles.input}
-              placeholder="Confirm Password"
-              value={confirmPassword}
-              onChangeText={setConfirmPassword}
-              secureTextEntry
-            />
-
-            <TouchableOpacity
-              style={styles.button}
-              onPress={handleSignUp}
-              disabled={loading}
-            >
-              <Text style={styles.buttonText}>
-                {loading ? "Creating..." : "Sign Up"}
-              </Text>
-            </TouchableOpacity>
-
-            <View style={styles.footer}>
-              <Text>Already have an account? </Text>
-              <TouchableOpacity onPress={() => navigation.navigate("Login")}>
-                <Text style={styles.link}>Sign In</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </KeyboardAvoidingView>
-      </TouchableWithoutFeedback>
-    </SafeAreaView>
+        <TouchableOpacity onPress={() => Keyboard.dismiss()}>
+          <Text style={styles.resend}>Resend Code</Text>
+        </TouchableOpacity>
+      </View>
+    </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#fff",
-  },
-  keyboardView: {
-    flex: 1,
+    backgroundColor: "#FFFFFF", // keeps app theme (white)
+    justifyContent: "center",
+    alignItems: "center",
   },
   backButton: {
     position: "absolute",
@@ -127,50 +109,89 @@ const styles = StyleSheet.create({
     zIndex: 10,
   },
   content: {
-    flex: 1,
+    width: "85%",
     alignItems: "center",
-    justifyContent: "center",
-    paddingHorizontal: 30,
-  },
-  logo: {
-    width: 120,
-    height: 120,
-    marginBottom: 30,
   },
   title: {
     fontSize: 28,
-    fontWeight: "bold",
-    marginBottom: 30,
+    fontWeight: "700",
+    color: "#1E1E1E",
+    marginBottom: 10,
   },
-  input: {
+  subtitle: {
+    fontSize: 16,
+    color: "#777",
+    textAlign: "center",
+    marginBottom: 40,
+  },
+  otpContainer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    width: "100%",
+    marginBottom: 40,
+  },
+  otpBox: {
+    width: 60,
+    height: 60,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#E0E0E0",
+    textAlign: "center",
+    fontSize: 22,
+    backgroundColor: "#F5F5F5",
+    color: "#1E1E1E",
+  },
+  otpBoxFilled: {
+    backgroundColor: "#4F6FA5", // same blue theme as your app
+    color: "#FFFFFF",
+    borderColor: "#4F6FA5",
+  },
+  verifyButton: {
     width: "100%",
     height: 55,
-    backgroundColor: "#F2F2F2",
-    borderRadius: 12,
-    paddingHorizontal: 15,
-    marginBottom: 15,
-  },
-  button: {
-    width: "100%",
-    height: 55,
-    backgroundColor: "#3B82F6",
-    borderRadius: 12,
+    backgroundColor: "#EDEDED",
+    borderRadius: 30,
     justifyContent: "center",
     alignItems: "center",
-    marginTop: 10,
+    marginBottom: 20,
   },
-  buttonText: {
-    color: "#fff",
+
+  // ── Next button at bottom ──
+  bottomButtonContainer: {
+    position: "absolute",
+    bottom: 40,
+    left: 0,
+    right: 0,
+    alignItems: "center",
+    paddingHorizontal: 30,
+  },
+  nextButton: {
+    width: "100%",
+    maxWidth: 340,
+    height: 56,
+    backgroundColor: "#3B82F6",
+    borderRadius: 30,
+    justifyContent: "center",
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  nextButtonText: {
+    color: "white",
     fontSize: 18,
-    fontWeight: "bold",
+    fontWeight: "700",
   },
-  footer: {
-    flexDirection: "row",
-    marginTop: 20,
-  },
-  link: {
-    color: "#3B82F6",
+  verifyText: {
+    fontSize: 18,
     fontWeight: "600",
     color: "#4F6FA5", // match app theme blue
+  },
+  resend: {
+    fontSize: 16,
+    color: "#4F6FA5",
+    fontWeight: "500",
   },
 });

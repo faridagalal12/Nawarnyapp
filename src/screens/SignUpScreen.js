@@ -12,17 +12,22 @@ import {
   Keyboard,
   Image,
   Alert,
+  ScrollView,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { signUp } from "../services/authservice";
+import { useNavigation } from "@react-navigation/native";
+import axios from "axios";
 
-export default function SignUpScreen({ navigation }) {
+export default function SignUpScreen({}) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [name, setName] = useState("");
 
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const navigation = useNavigation();
 
   const handleSignUp = async () => {
     Keyboard.dismiss();
@@ -38,97 +43,133 @@ export default function SignUpScreen({ navigation }) {
     }
 
     try {
-      await signUp(email, password);
-      navigation.navigate("Verify", { email });
+      await axios
+        .post("https://nawarny-be.onrender.com/api/v1/auth/signup", {
+          name,
+          email,
+          password,
+        })
+        .then(response => {
+          if (response.data) {
+            Alert.alert(
+              "Success",
+              "Account created successfully! Please verify your email.",
+            );
+            navigation.navigate("Verify", { email });
+          }
+        })
+        .catch(error => {
+          Alert.alert("Sign Up Failed", error.message);
+        });
     } catch (error) {
-      Alert.alert("Sign Up Failed", error.message);
+      Alert.alert("Error", "Failed to sign up. Please try again.");
     }
+
+    setEmail("");
+    setPassword("");
+    setConfirmPassword("");
   };
 
   return (
     <SafeAreaView style={styles.container}>
-      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-        <KeyboardAvoidingView
-          behavior={Platform.OS === "ios" ? "padding" : "height"}
-          style={styles.keyboardView}
-        >
-          <View style={styles.content}>
-            <Image
-              source={require("../assets/logo.png")}
-              style={styles.logo}
-              resizeMode="contain"
-            />
-
-            <Text style={styles.title}>Create Account</Text>
-
-            {/* EMAIL */}
-            <View style={styles.inputGroup}>
-              <TextInput
-                style={styles.input}
-                placeholder="Email"
-                value={email}
-                onChangeText={setEmail}
-                keyboardType="email-address"
-                autoCapitalize="none"
+      <ScrollView>
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+          <KeyboardAvoidingView
+            behavior={Platform.OS === "ios" ? "padding" : "height"}
+            style={styles.keyboardView}
+          >
+            <View style={styles.content}>
+              <Image
+                source={require("../assets/logo.png")}
+                style={styles.logo}
+                resizeMode="contain"
               />
-            </View>
 
-            {/* PASSWORD */}
-            <View style={styles.passwordContainer}>
-              <TextInput
-                style={styles.passwordInput}
-                placeholder="Password"
-                value={password}
-                onChangeText={setPassword}
-                secureTextEntry={!showPassword}
-              />
-              <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
-                <Ionicons
-                  name={showPassword ? "eye-off-outline" : "eye-outline"}
-                  size={22}
-                  color="#555"
+              <Text style={styles.title}>Create Account</Text>
+
+              <View style={styles.inputGroup}>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Full Name"
+                  value={name}
+                  onChangeText={setName}
+                  keyboardType="default"
+                  autoCapitalize="none"
                 />
-              </TouchableOpacity>
-            </View>
+              </View>
+              {/* EMAIL */}
+              <View style={styles.inputGroup}>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Email"
+                  value={email}
+                  onChangeText={setEmail}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                />
+              </View>
 
-            {/* CONFIRM PASSWORD */}
-            <View style={styles.passwordContainer}>
-              <TextInput
-                style={styles.passwordInput}
-                placeholder="Confirm Password"
-                value={confirmPassword}
-                onChangeText={setConfirmPassword}
-                secureTextEntry={!showConfirmPassword}
-              />
+              {/* PASSWORD */}
+              <View style={styles.passwordContainer}>
+                <TextInput
+                  style={styles.passwordInput}
+                  placeholder="Password"
+                  value={password}
+                  onChangeText={setPassword}
+                  secureTextEntry={!showPassword}
+                />
+                <TouchableOpacity
+                  onPress={() => setShowPassword(!showPassword)}
+                >
+                  <Ionicons
+                    name={showPassword ? "eye-off-outline" : "eye-outline"}
+                    size={22}
+                    color="#555"
+                  />
+                </TouchableOpacity>
+              </View>
+
+              {/* CONFIRM PASSWORD */}
+              <View style={styles.passwordContainer}>
+                <TextInput
+                  style={styles.passwordInput}
+                  placeholder="Confirm Password"
+                  value={confirmPassword}
+                  onChangeText={setConfirmPassword}
+                  secureTextEntry={!showConfirmPassword}
+                />
+                <TouchableOpacity
+                  onPress={() => setShowConfirmPassword(!showConfirmPassword)}
+                >
+                  <Ionicons
+                    name={
+                      showConfirmPassword ? "eye-off-outline" : "eye-outline"
+                    }
+                    size={22}
+                    color="#555"
+                  />
+                </TouchableOpacity>
+              </View>
+
+              {/* SIGN UP BUTTON */}
               <TouchableOpacity
-                onPress={() => setShowConfirmPassword(!showConfirmPassword)}
+                style={styles.signUpButton}
+                onPress={handleSignUp}
               >
-                <Ionicons
-                  name={showConfirmPassword ? "eye-off-outline" : "eye-outline"}
-                  size={22}
-                  color="#555"
-                />
+                <Text style={styles.buttonText}>Sign Up</Text>
               </TouchableOpacity>
-            </View>
 
-            {/* SIGN UP BUTTON */}
-            <TouchableOpacity
-              style={styles.signUpButton}
-              onPress={handleSignUp}
-            >
-              <Text style={styles.buttonText}>Sign Up</Text>
-            </TouchableOpacity>
-
-            {/* LOGIN LINK */}
-            <View style={styles.footer}>
-              <Text>Already have an account? </Text>
-              <TouchableOpacity onPress={() => navigation.navigate("Login")}>
-                <Text style={styles.loginLink}>Log In</Text>
-              </TouchableOpacity>
+              {/* LOGIN LINK */}
+              <View style={styles.footer}>
+                <Text>Already have an account? </Text>
+                <TouchableOpacity onPress={() => navigation.navigate("Login")}>
+                  <Text style={styles.loginLink}>Log In</Text>
+                </TouchableOpacity>
+              </View>
             </View>
-          </View>
-        </KeyboardAvoidingView>
-      </TouchableWithoutFeedback>
+          </KeyboardAvoidingView>
+        </TouchableWithoutFeedback>
+      </ScrollView>
     </SafeAreaView>
   );
 }

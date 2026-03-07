@@ -1,6 +1,6 @@
 // src/screens/ProfileScreen.js
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text, // ← keep Text here
@@ -14,8 +14,15 @@ import {
 import Ionicons from "@expo/vector-icons/Ionicons";
 // ... rest of your code
 
-export default function ProfileScreen({ navigation }) {
+import * as SecureStore from "expo-secure-store";
+import { useNavigation } from "@react-navigation/native";
+import axios from "axios";
+
+export default function ProfileScreen({ signOut }) {
   // You can later connect this to real user data (context, redux, firebase, etc.)
+  const [userName, setUserName] = React.useState("");
+  const [email, setEmail] = React.useState("");
+  const navigation = useNavigation();
   const user = {
     name: "Laila Assem",
     username: "@LailaAssem",
@@ -53,7 +60,6 @@ export default function ProfileScreen({ navigation }) {
       subtitle: "Further secure your account for safety",
       onPress: () => {
         // handle logout logic here
-        alert("Logging out...");
       },
       danger: true,
     },
@@ -63,6 +69,25 @@ export default function ProfileScreen({ navigation }) {
     { icon: "help-circle-outline", title: "Help & Support", onPress: () => {} },
     { icon: "heart-outline", title: "About App", onPress: () => {} },
   ];
+  const handleLogout = async () => {
+    await SecureStore.deleteItemAsync("userToken");
+    signOut();
+  };
+
+  useEffect(() => {
+    const getUserData = async () => {
+      await axios
+        .get("https://nawarny-be.onrender.com/api/v1/auth/profile")
+        .then(response => {
+          setEmail(response.data.email);
+          setUserName(response.data.name);
+        })
+        .catch(error => {
+          console.error("Failed to fetch profile data:", error);
+        });
+    };
+    getUserData();
+  }, []);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -79,8 +104,8 @@ export default function ProfileScreen({ navigation }) {
           </View>
 
           <View style={styles.userInfo}>
-            <Text style={styles.name}>{user.name}</Text>
-            <Text style={styles.username}>{user.username}</Text>
+            <Text style={styles.name}>{userName}</Text>
+            <Text style={styles.username}>{email}</Text>
           </View>
 
           <TouchableOpacity style={styles.editButton}>
