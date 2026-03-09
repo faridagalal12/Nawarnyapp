@@ -1,7 +1,6 @@
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import HomeScreen from "../screens/HomeScreen";
 import ProfileScreen from "../screens/ProfileScreen";
-import QuizScreen from "../screens/QuizScreen";
 import { Entypo, FontAwesome, Ionicons } from "@expo/vector-icons";
 import { TouchableOpacity } from "react-native";
 

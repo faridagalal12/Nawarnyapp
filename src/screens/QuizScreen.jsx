@@ -1,35 +1,46 @@
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
-  View,
-  Text,
-  TouchableOpacity,
-  StyleSheet,
-  SafeAreaView,
+  ActivityIndicator,
   Animated,
-  Dimensions,
+  BackHandler,
+  SafeAreaView,
   ScrollView,
   StatusBar,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
+import * as SecureStore from "expo-secure-store";
+import axios from "axios";
 
-const { width } = Dimensions.get("window");
+// ─── Palette ──────────────────────────────────────────────────────────────────
+const PURPLE      = "#3B82F6";
+const PURPLE_DARK = "#3550DC";
+const WHITE       = "#FFFFFF";
+const BG          = "#F0EFF7";
+const CARD_BG     = "#FFFFFF";
+const BORDER_DEF  = "#E3E2F0";
+const TEXT_DARK   = "#1A1A2E";
+const TEXT_MID    = "#6B6A8E";
+const TEXT_LIGHT  = "#A9A8C8";
 
-// ─── Palette (from Q1 screenshot) ───────────────────────────────────────────
-const PURPLE = "#3B82F6"; // header background
-const PURPLE_DARK = "#3550DC"; // darker tint for depth
-const PURPLE_LIGHT = "#3550DC"; // accent dot / letter tint
-const WHITE = "#FFFFFF";
-const BG = "#F0EFF7"; // page background (very light lavender-grey)
-const CARD_BG = "#FFFFFF";
-const BORDER_DEF = "#E3E2F0";
-const BORDER_SEL = "#4B4ACF";
-const TEXT_DARK = "#1A1A2E";
-const TEXT_MID = "#6B6A8E";
-const TEXT_LIGHT = "#A9A8C8";
-const NEXT_BG = "#4B4ACF";
+// ─── Constants ────────────────────────────────────────────────────────────────
+const OPTION_LABELS             = ["A", "B", "C", "D", "E"];
+const QUIZ_SUBMIT_URL           = "https://nawarny-be.onrender.com/api/v1/quiz/submit";
+const USER_EMAIL_KEY            = "userEmail";
+const QUIZ_PROGRESS_KEY_PREFIX  = "quizProgress";
+const QUIZ_COMPLETED_KEY_PREFIX = "quizCompleted";
 
-// ─── Data ────────────────────────────────────────────────────────────────────
-const OPTION_LABELS = ["A", "B", "C", "D", "E"];
+const toSafeKeySegment = (value) =>
+  String(value || "")
+    .toLowerCase()
+    .replace(/[^a-z0-9._-]/g, "_");
 
+const getScopedKey = (prefix, email) =>
+  `${prefix}_${toSafeKeySegment(email)}`;
+
+// ─── Questions ────────────────────────────────────────────────────────────────
 const QUESTIONS = [
   {
     id: 1,
@@ -38,7 +49,7 @@ const QUESTIONS = [
   },
   {
     id: 2,
-    question: "What’s your main goal right now? 🎯",
+    question: "What's your main goal right now? 🎯",
     options: [
       "Build better habits 💪",
       "Improve mindset & confidence 🌈",
@@ -86,7 +97,7 @@ const QUESTIONS = [
   },
   {
     id: 6,
-    question: "What’s your biggest current challenge? 😓",
+    question: "What's your biggest current challenge? 😓",
     options: [
       "Procrastination ⏳",
       "Stress & overthinking 😰",
@@ -122,99 +133,256 @@ const QUESTIONS = [
   },
 ];
 
-// ─── Component ───────────────────────────────────────────────────────────────
-export default function QuizScreen() {
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const [answers, setAnswers] = useState({});
-  const [selectedOptions, setSelectedOptions] = useState([]);
-  const [completed, setCompleted] = useState(false);
-  const [fadeAnim] = useState(new Animated.Value(1));
+// ─── Component ────────────────────────────────────────────────────────────────
+export default function QuizScreen({ onQuizCompleted }) {
+  const [currentIndex, setCurrentIndex]           = useState(0);
+  const [answers, setAnswers]                     = useState({});
+  const [selectedOptions, setSelectedOptions]     = useState([]);
+  const [completed, setCompleted]                 = useState(false);
+  const [isSubmitting, setIsSubmitting]           = useState(false);
+  const [isLoadingProgress, setIsLoadingProgress] = useState(true);
+  const [fadeAnim]                                = useState(new Animated.Value(1));
+
+  const storageKeysRef = useRef({ progressKey: null, completedKey: null });
 
   const currentQuestion = QUESTIONS[currentIndex];
-  const progress = ((currentIndex + 1) / QUESTIONS.length) * 100;
-  const formatAnswer = answer =>
+  const progress        = ((currentIndex + 1) / QUESTIONS.length) * 100;
+  const formatAnswer    = (answer) =>
     Array.isArray(answer) ? answer.join(", ") : answer || "No answer";
 
-  // ── Handlers ────────────────────────────────────────────────────────────────
-  const handleSelect = option => {
+  // ── Block Android hardware back button ─────────────────────────────────────
+  useEffect(() => {
+    const handler = BackHandler.addEventListener("hardwareBackPress", () => true);
+    return () => handler.remove();
+  }, []);
+
+  // ── Load saved progress on mount ───────────────────────────────────────────
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const userEmail    = await SecureStore.getItemAsync(USER_EMAIL_KEY);
+        const progressKey  = getScopedKey(QUIZ_PROGRESS_KEY_PREFIX, userEmail);
+        const completedKey = getScopedKey(QUIZ_COMPLETED_KEY_PREFIX, userEmail);
+
+        storageKeysRef.current = { progressKey, completedKey };
+
+        const raw = await SecureStore.getItemAsync(progressKey);
+        if (!raw) return;
+
+        const parsed = JSON.parse(raw);
+        const savedIndex = typeof parsed.currentIndex === "number"
+          ? parsed.currentIndex
+          : parseInt(parsed.currentIndex, 10);
+
+        if (!isNaN(savedIndex) && savedIndex >= 0 && savedIndex < QUESTIONS.length) {
+          const savedAnswers = parsed.answers || {};
+          setCurrentIndex(savedIndex);
+          setAnswers(savedAnswers);
+
+          // FIX: JSON keys are always strings — coerce index to string when reading back
+          const restored = savedAnswers[String(savedIndex)];
+          if (Array.isArray(restored)) {
+            setSelectedOptions(restored);
+          } else if (typeof restored === "string" && restored.length > 0) {
+            setSelectedOptions([restored]);
+          } else {
+            setSelectedOptions([]);
+          }
+        }
+      } catch (e) {
+        console.error("Failed to load quiz progress:", e);
+      } finally {
+        setIsLoadingProgress(false);
+      }
+    };
+    load();
+  }, []);
+
+  // ── Persist progress to SecureStore ────────────────────────────────────────
+  const persistProgress = async (index, savedAnswers) => {
+    const { progressKey } = storageKeysRef.current;
+    if (!progressKey) return;
+    try {
+      await SecureStore.setItemAsync(
+        progressKey,
+        JSON.stringify({ currentIndex: index, answers: savedAnswers })
+      );
+    } catch (e) {
+      console.error("Failed to persist quiz progress:", e);
+    }
+  };
+
+  // ── Fire-and-forget API submit ─────────────────────────────────────────────
+  const fireSubmit = (questionId, options, questionOptions = []) => {
+    SecureStore.getItemAsync("userToken")
+      .then((token) => {
+        const headers      = token ? { Authorization: `Bearer ${token}` } : undefined;
+        const optionLabels = options
+          .map((opt) => {
+            const idx = questionOptions.indexOf(opt);
+            return idx >= 0 ? OPTION_LABELS[idx] : opt;
+          })
+          .filter(Boolean);
+
+        return axios.post(
+          QUIZ_SUBMIT_URL,
+          { questionId, selectedOptions: optionLabels },
+          { headers, timeout: 8000 }
+        );
+      })
+      .catch((err) =>
+        console.warn("Quiz submit failed (non-blocking):", err?.message)
+      );
+  };
+
+  // ── Fade-out → swap content → fade-in ─────────────────────────────────────
+  const animateTransition = (callback) => {
+    Animated.timing(fadeAnim, {
+      toValue: 0,
+      duration: 120,
+      useNativeDriver: true,
+    }).start(() => {
+      callback();
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 180,
+        useNativeDriver: true,
+      }).start();
+    });
+  };
+
+  // ── Select / deselect an option ────────────────────────────────────────────
+  const handleSelect = (option) => {
     if (currentQuestion.allowMultiple) {
-      setSelectedOptions(prev =>
+      setSelectedOptions((prev) =>
         prev.includes(option)
-          ? prev.filter(i => i !== option)
-          : [...prev, option],
+          ? prev.filter((o) => o !== option)
+          : [...prev, option]
       );
     } else {
       setSelectedOptions([option]);
     }
   };
 
-  const handleNext = () => {
-    if (!selectedOptions.length) return;
+  // ── Next ───────────────────────────────────────────────────────────────────
+  const handleNext = async () => {
+    if (!selectedOptions.length || isSubmitting) return;
 
-    const answerValue = currentQuestion.allowMultiple
+    // FIX: set submitting at the very top so it's always cleared in the
+    // outer finally, even if an early return or throw occurs
+    setIsSubmitting(true);
+
+    try {
+      const answerValue = currentQuestion.allowMultiple
+        ? selectedOptions
+        : selectedOptions[0];
+
+      // FIX: use String keys so they survive JSON round-trips
+      const newAnswers = { ...answers, [String(currentIndex)]: answerValue };
+      setAnswers(newAnswers);
+
+      // Non-blocking API call
+      fireSubmit(currentIndex, selectedOptions, currentQuestion.options);
+
+      const { completedKey, progressKey } = storageKeysRef.current;
+
+      if (currentIndex === QUESTIONS.length - 1) {
+        // Last question
+        if (completedKey) await SecureStore.setItemAsync(completedKey, "true");
+        if (progressKey)  await SecureStore.deleteItemAsync(progressKey);
+        // FIX: reset isSubmitting BEFORE setting completed so the UI
+        // doesn't briefly show a spinner on the summary screen
+        setIsSubmitting(false);
+        setCompleted(true);
+        return;
+      }
+
+      // Advance to next question
+      const nextIndex  = currentIndex + 1;
+      // FIX: read next answer with string key
+      const nextAnswer = newAnswers[String(nextIndex)];
+      const nextSelected = Array.isArray(nextAnswer)
+        ? nextAnswer
+        : typeof nextAnswer === "string" && nextAnswer.length > 0
+          ? [nextAnswer]
+          : [];
+
+      await persistProgress(nextIndex, newAnswers);
+
+      // FIX: release the submit lock BEFORE the animation so the button
+      // is re-enabled as soon as the transition starts, not 300ms later
+      setIsSubmitting(false);
+
+      animateTransition(() => {
+        setCurrentIndex(nextIndex);
+        setSelectedOptions(nextSelected);
+      });
+    } catch (e) {
+      // FIX: catch any unexpected error so isSubmitting never stays stuck
+      console.error("handleNext error:", e);
+      setIsSubmitting(false);
+    }
+  };
+
+  // ── Back ───────────────────────────────────────────────────────────────────
+  const handleBack = () => {
+    if (currentIndex === 0 || isSubmitting) return;
+
+    const draftValue = currentQuestion.allowMultiple
       ? selectedOptions
       : selectedOptions[0];
-    const newAnswers = { ...answers, [currentQuestion.id]: answerValue };
-    setAnswers(newAnswers);
 
-    if (currentIndex === QUESTIONS.length - 1) {
-      setCompleted(true);
-      return;
-    }
+    // FIX: string key consistency
+    const draftAnswers = selectedOptions.length
+      ? { ...answers, [String(currentIndex)]: draftValue }
+      : answers;
 
-    Animated.timing(fadeAnim, {
-      toValue: 0,
-      duration: 180,
-      useNativeDriver: true,
-    }).start(() => {
-      setCurrentIndex(i => i + 1);
-      setSelectedOptions([]);
-      Animated.timing(fadeAnim, {
-        toValue: 1,
-        duration: 280,
-        useNativeDriver: true,
-      }).start();
+    const prevIndex  = currentIndex - 1;
+    // FIX: string key
+    const prevAnswer = draftAnswers[String(prevIndex)];
+    const prevSelected = Array.isArray(prevAnswer)
+      ? prevAnswer
+      : typeof prevAnswer === "string" && prevAnswer.length > 0
+        ? [prevAnswer]
+        : [];
+
+    animateTransition(() => {
+      setAnswers(draftAnswers);
+      setCurrentIndex(prevIndex);
+      setSelectedOptions(prevSelected);
     });
+
+    persistProgress(prevIndex, draftAnswers);
   };
 
-  const handleBack = () => {
-    if (currentIndex === 0) return;
-    Animated.timing(fadeAnim, {
-      toValue: 0,
-      duration: 180,
-      useNativeDriver: true,
-    }).start(() => {
-      setCurrentIndex(i => i - 1);
-      setSelectedOptions([]);
-      Animated.timing(fadeAnim, {
-        toValue: 1,
-        duration: 280,
-        useNativeDriver: true,
-      }).start();
-    });
+  // ── Done ───────────────────────────────────────────────────────────────────
+  const handleDone = () => {
+    if (onQuizCompleted) onQuizCompleted();
   };
 
-  const handleRestart = () => {
-    setCurrentIndex(0);
-    setAnswers({});
-    setSelectedOptions([]);
-    setCompleted(false);
-  };
+  // ── Loading spinner ────────────────────────────────────────────────────────
+  if (isLoadingProgress) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.loaderWrap}>
+          <ActivityIndicator size="large" color={PURPLE} />
+        </View>
+      </SafeAreaView>
+    );
+  }
 
-  // ── Completed Screen ─────────────────────────────────────────────────────────
+  // ── Completed / Summary screen ─────────────────────────────────────────────
   if (completed) {
     return (
       <SafeAreaView style={styles.container}>
         <StatusBar barStyle="light-content" backgroundColor={PURPLE} />
 
-        {/* Purple header */}
         <View style={styles.completedHeader}>
           <Text style={styles.completedHeaderLabel}>QUIZ COMPLETE</Text>
-          <Text style={styles.completedTitle}>All done!</Text>
+          <Text style={styles.completedTitle}>All done! 🎉</Text>
           <Text style={styles.completedSubtitle}>Here's what you shared:</Text>
         </View>
 
-        {/* Summary */}
         <ScrollView
           style={styles.summaryScroll}
           contentContainerStyle={styles.summaryContent}
@@ -229,8 +397,9 @@ export default function QuizScreen() {
                 <Text style={styles.summaryQ} numberOfLines={2}>
                   {q.question}
                 </Text>
+                {/* FIX: read with string key in summary too */}
                 <Text style={styles.summaryA}>
-                  {formatAnswer(answers[q.id])}
+                  {formatAnswer(answers[String(idx)])}
                 </Text>
               </View>
             </View>
@@ -239,25 +408,24 @@ export default function QuizScreen() {
 
         <View style={styles.completedFooter}>
           <TouchableOpacity
-            style={styles.restartBtn}
-            onPress={handleRestart}
+            style={styles.doneBtn}
+            onPress={handleDone}
             activeOpacity={0.85}
           >
-            <Text style={styles.restartBtnText}>Done</Text>
+            <Text style={styles.doneBtnText}>Let's go! 🚀</Text>
           </TouchableOpacity>
         </View>
       </SafeAreaView>
     );
   }
 
-  // ── Quiz Screen ──────────────────────────────────────────────────────────────
+  // ── Quiz screen ────────────────────────────────────────────────────────────
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="default" />
+      <StatusBar barStyle="light-content" backgroundColor={PURPLE} />
 
-      {/* ── Purple Header Block ── */}
+      {/* Header */}
       <View style={styles.header}>
-        {/* Progress bar inside header */}
         <View style={styles.progressRow}>
           <View style={styles.progressTrack}>
             <View style={[styles.progressFill, { width: `${progress}%` }]} />
@@ -267,7 +435,6 @@ export default function QuizScreen() {
           </Text>
         </View>
 
-        {/* Question card floating on header */}
         <Animated.View style={[styles.questionCard, { opacity: fadeAnim }]}>
           <Text style={styles.questionCategoryLabel}>Question</Text>
           <Text style={styles.questionText}>{currentQuestion.question}</Text>
@@ -277,7 +444,7 @@ export default function QuizScreen() {
         </Animated.View>
       </View>
 
-      {/* ── Options ── */}
+      {/* Options */}
       <Animated.ScrollView
         style={[styles.optionsScroll, { opacity: fadeAnim }]}
         contentContainerStyle={styles.optionsContent}
@@ -292,33 +459,16 @@ export default function QuizScreen() {
               onPress={() => handleSelect(option)}
               activeOpacity={0.75}
             >
-              {/* Letter badge */}
-              <View
-                style={[
-                  styles.letterBadge,
-                  isSelected && styles.letterBadgeSelected,
-                ]}
-              >
-                <Text
-                  style={[
-                    styles.letterText,
-                    isSelected && styles.letterTextSelected,
-                  ]}
-                >
+              <View style={[styles.letterBadge, isSelected && styles.letterBadgeSelected]}>
+                <Text style={[styles.letterText, isSelected && styles.letterTextSelected]}>
                   {OPTION_LABELS[i]}
                 </Text>
               </View>
 
-              <Text
-                style={[
-                  styles.optionText,
-                  isSelected && styles.optionTextSelected,
-                ]}
-              >
+              <Text style={[styles.optionText, isSelected && styles.optionTextSelected]}>
                 {option}
               </Text>
 
-              {/* Selection indicator on right */}
               {isSelected && (
                 <View style={styles.checkDot}>
                   <Text style={styles.checkMark}>✓</Text>
@@ -329,7 +479,7 @@ export default function QuizScreen() {
         })}
       </Animated.ScrollView>
 
-      {/* ── Footer ── */}
+      {/* Footer */}
       <View style={styles.footer}>
         <TouchableOpacity
           style={[styles.backBtn, currentIndex === 0 && styles.backBtnDisabled]}
@@ -337,12 +487,7 @@ export default function QuizScreen() {
           disabled={currentIndex === 0}
           activeOpacity={0.7}
         >
-          <Text
-            style={[
-              styles.backBtnText,
-              currentIndex === 0 && styles.backBtnTextDisabled,
-            ]}
-          >
+          <Text style={[styles.backBtnText, currentIndex === 0 && styles.backBtnTextDisabled]}>
             ←
           </Text>
         </TouchableOpacity>
@@ -350,37 +495,35 @@ export default function QuizScreen() {
         <TouchableOpacity
           style={[
             styles.nextBtn,
-            !selectedOptions.length && styles.nextBtnDisabled,
+            (!selectedOptions.length || isSubmitting) && styles.nextBtnDisabled,
           ]}
           onPress={handleNext}
-          disabled={!selectedOptions.length}
+          disabled={!selectedOptions.length || isSubmitting}
           activeOpacity={0.85}
         >
-          <Text style={styles.nextBtnText}>
-            {currentIndex === QUESTIONS.length - 1 ? "Finish" : "Next"}
-          </Text>
+          {isSubmitting ? (
+            <ActivityIndicator size="small" color={WHITE} />
+          ) : (
+            <Text style={styles.nextBtnText}>
+              {currentIndex === QUESTIONS.length - 1 ? "Finish ✓" : "Next →"}
+            </Text>
+          )}
         </TouchableOpacity>
       </View>
     </SafeAreaView>
   );
 }
 
-// ─── Styles ──────────────────────────────────────────────────────────────────
+// ─── Styles ───────────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: BG,
-  },
+  container:  { flex: 1, backgroundColor: BG },
+  loaderWrap: { flex: 1, alignItems: "center", justifyContent: "center" },
 
-  // ── Header ──────────────────────────────────────────────────────────────────
   header: {
-    backgroundColor: "#3B82F6",
+    backgroundColor: PURPLE,
     paddingTop: 18,
     paddingHorizontal: 22,
-    paddingBottom: 36, // extra bottom so card overlaps
-    // Rounded bottom corners like the screenshot
-    borderBottomLeftRadius: 0,
-    borderBottomRightRadius: 0,
+    paddingBottom: 36,
   },
   progressRow: {
     flexDirection: "row",
@@ -401,20 +544,17 @@ const styles = StyleSheet.create({
     borderRadius: 2,
   },
   stepLabel: {
-    fontFamily: "System",
     fontSize: 12,
     fontWeight: "600",
     color: "rgba(255,255,255,0.7)",
     letterSpacing: 1,
   },
 
-  // Question card
   questionCard: {
     backgroundColor: WHITE,
     borderRadius: 18,
     paddingVertical: 22,
     paddingHorizontal: 20,
-    // Subtle shadow so it floats
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.12,
@@ -422,7 +562,6 @@ const styles = StyleSheet.create({
     elevation: 6,
   },
   questionCategoryLabel: {
-    fontFamily: "System",
     fontSize: 13,
     fontWeight: "700",
     color: PURPLE,
@@ -432,7 +571,6 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
   questionText: {
-    fontFamily: "System",
     fontSize: 18,
     fontWeight: "600",
     color: TEXT_DARK,
@@ -440,7 +578,6 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
   multipleHint: {
-    fontFamily: "System",
     fontSize: 11,
     color: TEXT_LIGHT,
     textAlign: "center",
@@ -448,10 +585,7 @@ const styles = StyleSheet.create({
     fontStyle: "italic",
   },
 
-  // ── Options ─────────────────────────────────────────────────────────────────
-  optionsScroll: {
-    flex: 1,
-  },
+  optionsScroll:  { flex: 1 },
   optionsContent: {
     paddingHorizontal: 20,
     paddingTop: 20,
@@ -468,7 +602,6 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     borderColor: BORDER_DEF,
     gap: 14,
-    // subtle shadow
     shadowColor: "#4B4ACF",
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.04,
@@ -482,8 +615,6 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 3,
   },
-
-  // Letter badge (A / B / C / D)
   letterBadge: {
     width: 32,
     height: 32,
@@ -494,32 +625,16 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  letterBadgeSelected: {
-    backgroundColor: PURPLE,
-    borderColor: PURPLE,
-  },
-  letterText: {
-    fontFamily: "System",
-    fontSize: 13,
-    fontWeight: "700",
-    color: PURPLE_DARK,
-  },
-  letterTextSelected: {
-    color: WHITE,
-  },
-
+  letterBadgeSelected: { backgroundColor: PURPLE, borderColor: PURPLE },
+  letterText:          { fontSize: 13, fontWeight: "700", color: PURPLE_DARK },
+  letterTextSelected:  { color: WHITE },
   optionText: {
-    fontFamily: "System",
     fontSize: 15,
     fontWeight: "500",
     color: TEXT_DARK,
     flex: 1,
   },
-  optionTextSelected: {
-    color: PURPLE,
-    fontWeight: "600",
-  },
-
+  optionTextSelected: { color: PURPLE_DARK, fontWeight: "600" },
   checkDot: {
     width: 22,
     height: 22,
@@ -528,13 +643,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  checkMark: {
-    color: WHITE,
-    fontSize: 12,
-    fontWeight: "700",
-  },
+  checkMark: { color: WHITE, fontSize: 12, fontWeight: "700" },
 
-  // ── Footer ───────────────────────────────────────────────────────────────────
   footer: {
     flexDirection: "row",
     alignItems: "center",
@@ -559,17 +669,9 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 2,
   },
-  backBtnDisabled: {
-    opacity: 0.35,
-  },
-  backBtnText: {
-    fontSize: 20,
-    color: TEXT_DARK,
-    fontWeight: "600",
-  },
-  backBtnTextDisabled: {
-    color: TEXT_LIGHT,
-  },
+  backBtnDisabled:     { opacity: 0.35 },
+  backBtnText:         { fontSize: 20, color: TEXT_DARK, fontWeight: "600" },
+  backBtnTextDisabled: { color: TEXT_LIGHT },
   nextBtn: {
     flex: 1,
     backgroundColor: PURPLE_DARK,
@@ -588,14 +690,12 @@ const styles = StyleSheet.create({
     elevation: 0,
   },
   nextBtnText: {
-    fontFamily: "System",
     fontSize: 16,
     fontWeight: "700",
     color: WHITE,
     letterSpacing: 0.5,
   },
 
-  // ── Completed Screen ─────────────────────────────────────────────────────────
   completedHeader: {
     backgroundColor: PURPLE,
     paddingTop: 28,
@@ -603,7 +703,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
   },
   completedHeaderLabel: {
-    fontFamily: "System",
     fontSize: 11,
     fontWeight: "700",
     color: "rgba(255,255,255,0.6)",
@@ -611,22 +710,9 @@ const styles = StyleSheet.create({
     textTransform: "uppercase",
     marginBottom: 10,
   },
-  completedTitle: {
-    fontFamily: "System",
-    fontSize: 34,
-    fontWeight: "800",
-    color: WHITE,
-    marginBottom: 6,
-  },
-  completedSubtitle: {
-    fontFamily: "System",
-    fontSize: 15,
-    color: "rgba(255,255,255,0.75)",
-  },
-
-  summaryScroll: {
-    flex: 1,
-  },
+  completedTitle:    { fontSize: 34, fontWeight: "800", color: WHITE, marginBottom: 6 },
+  completedSubtitle: { fontSize: 15, color: "rgba(255,255,255,0.75)" },
+  summaryScroll:     { flex: 1 },
   summaryContent: {
     paddingHorizontal: 20,
     paddingTop: 20,
@@ -652,37 +738,26 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     marginTop: 2,
   },
-  summaryIndexText: {
-    fontFamily: "System",
-    fontSize: 13,
-    fontWeight: "700",
-    color: WHITE,
-  },
-  summaryTextBlock: {
-    flex: 1,
-    gap: 4,
-  },
+  summaryIndexText: { fontSize: 13, fontWeight: "700", color: WHITE },
+  summaryTextBlock: { flex: 1, gap: 4 },
   summaryQ: {
-    fontFamily: "System",
     fontSize: 12,
     fontWeight: "500",
     color: TEXT_MID,
     lineHeight: 17,
   },
   summaryA: {
-    fontFamily: "System",
     fontSize: 15,
     fontWeight: "600",
     color: TEXT_DARK,
     lineHeight: 21,
   },
-
   completedFooter: {
     paddingHorizontal: 20,
     paddingBottom: 32,
     paddingTop: 12,
   },
-  restartBtn: {
+  doneBtn: {
     backgroundColor: PURPLE,
     borderRadius: 14,
     paddingVertical: 16,
@@ -693,8 +768,7 @@ const styles = StyleSheet.create({
     shadowRadius: 10,
     elevation: 5,
   },
-  restartBtnText: {
-    fontFamily: "System",
+  doneBtnText: {
     fontSize: 16,
     fontWeight: "700",
     color: WHITE,

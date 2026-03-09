@@ -14,7 +14,6 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import axios from "axios";
-import * as SecureStore from "expo-secure-store";
 import { Button } from "galio-framework";
 
 export default function LoginScreen({ signIn }) {
@@ -34,11 +33,7 @@ export default function LoginScreen({ signIn }) {
       .then(async response => {
         setLoading(false);
         if (response.data.access_token) {
-          await SecureStore.setItemAsync(
-            "userToken",
-            response.data.access_token,
-          );
-          signIn(email, password);
+          await signIn(response.data.access_token, email);
         } else {
           alert("Login failed: " + response.data.message);
         }
