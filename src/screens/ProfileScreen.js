@@ -79,6 +79,7 @@ export default function ProfileScreen({ signOut }) {
       await axios
         .get("https://nawarny-be.onrender.com/api/v1/auth/profile")
         .then(response => {
+          console.log("Profile data:", response.data);
           setEmail(response.data.email);
           setUserName(response.data.name);
         })

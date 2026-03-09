@@ -123,7 +123,7 @@ const QUESTIONS = [
 ];
 
 // ─── Component ───────────────────────────────────────────────────────────────
-export default function QuizScreen() {
+export default function QuizScreen({ onQuizCompleted }) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [answers, setAnswers] = useState({});
   const [selectedOptions, setSelectedOptions] = useState([]);
@@ -201,6 +201,14 @@ export default function QuizScreen() {
     setCompleted(false);
   };
 
+  const handleDone = () => {
+    if (onQuizCompleted) {
+      onQuizCompleted();
+      return;
+    }
+    handleRestart();
+  };
+
   // ── Completed Screen ─────────────────────────────────────────────────────────
   if (completed) {
     return (
@@ -240,7 +248,7 @@ export default function QuizScreen() {
         <View style={styles.completedFooter}>
           <TouchableOpacity
             style={styles.restartBtn}
-            onPress={handleRestart}
+            onPress={handleDone}
             activeOpacity={0.85}
           >
             <Text style={styles.restartBtnText}>Done</Text>
