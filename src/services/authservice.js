@@ -1,44 +1,64 @@
-const BASE_URL = "https://your-api-url.com"; // 
+const BASE_URL = "https://nawarny-be.onrender.com/api/v1";
 
-export const signUp = async (email, password) => {
-  const response = await fetch(`${BASE_URL}/auth/signup`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      email,
-      password,
-    }),
-  });
+// SIGN UP
+export const signUp = async ( email, password) => {
+  try {
+    const response = await fetch(`${BASE_URL}/auth/signup`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+    
+        email: email,
+        password: password,
+        password_confirmation: password,
+      }),
+    });
 
-  const text = await response.text();
-  console.log("Server Response:", text);
+    const data = await response.json();
 
-  if (!response.ok) {
-    throw new Error("Sign up failed");
-  }
+    console.log("Server Response:", data);
 
-  return JSON.parse(text);
+    if (!response.ok) {
+      throw new Error(data.message || "Sign up failed");
+    }
+
+    return data;
+
+  } catch (error) {
+  console.log("SIGNUP ERROR:", error);
+  Alert.alert("Sign Up Failed", error.message || "Unknown error");
+}
 };
 
+
+// VERIFY ACCOUNT
 export const verifyAccount = async (email, code) => {
-  const response = await fetch(`${BASE_URL}/auth/verify-account`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      email,
-      code,
-    }),
-  });
+  try {
+    const response = await fetch(`${BASE_URL}/auth/verify-account`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        email,
+        code,
+      }),
+    });
 
-  const data = await response.json();
+    const data = await response.json();
 
-  if (!response.ok) {
-    throw new Error(data.message || "Verification failed");
+    console.log("Verification Response:", data);
+
+    if (!response.ok) {
+      throw new Error(data.message || "Verification failed");
+    }
+
+    return data; // should return token
+
+  } catch (error) {
+    console.log("Verification Error:", error);
+    throw error;
   }
-
-  return data; // must return token
 };

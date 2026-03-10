@@ -1,10 +1,9 @@
-import React, { useState } from "react";
 import {
-  StyleSheet,
-  Text,
-  View,
   SafeAreaView,
+  StyleSheet,
+  View,
   TextInput,
+  Text,
   TouchableOpacity,
   KeyboardAvoidingView,
   Platform,
@@ -15,6 +14,7 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { signUp } from "../services/authservice";
+import { useState } from "react";
 
 export default function SignUpScreen({ navigation }) {
   const [email, setEmail] = useState("");
@@ -60,6 +60,7 @@ export default function SignUpScreen({ navigation }) {
             />
 
             <Text style={styles.title}>Create Account</Text>
+           
 
             {/* EMAIL */}
             <View style={styles.inputGroup}>
@@ -81,12 +82,14 @@ export default function SignUpScreen({ navigation }) {
                 value={password}
                 onChangeText={setPassword}
                 secureTextEntry={!showPassword}
+                autoComplete="off"
+                textContentType="none"
               />
               <TouchableOpacity
                 onPress={() => setShowPassword(!showPassword)}
               >
                 <Ionicons
-                  name={showPassword ? "eye-off-outline" : "eye-outline"}
+                  name={showPassword ? "eye-outline" : "eye-off-outline"}
                   size={22}
                   color="#555"
                 />
@@ -101,6 +104,8 @@ export default function SignUpScreen({ navigation }) {
                 value={confirmPassword}
                 onChangeText={setConfirmPassword}
                 secureTextEntry={!showConfirmPassword}
+                autoComplete="off"
+                textContentType="none"
               />
               <TouchableOpacity
                 onPress={() =>
@@ -110,8 +115,8 @@ export default function SignUpScreen({ navigation }) {
                 <Ionicons
                   name={
                     showConfirmPassword
-                      ? "eye-off-outline"
-                      : "eye-outline"
+                      ? "eye-outline"
+                      : "eye-off-outline"
                   }
                   size={22}
                   color="#555"
