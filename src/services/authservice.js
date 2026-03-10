@@ -1,7 +1,7 @@
 const BASE_URL = "https://nawarny-be.onrender.com/api/v1";
 
 // SIGN UP
-export const signUp = async ( email, password) => {
+export const signUp = async (name, email, password) => {
   try {
     const response = await fetch(`${BASE_URL}/auth/signup`, {
       method: "POST",
@@ -9,7 +9,7 @@ export const signUp = async ( email, password) => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-    
+        name:name,
         email: email,
         password: password,
         password_confirmation: password,

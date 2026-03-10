@@ -17,6 +17,7 @@ import { signUp } from "../services/authservice";
 import { useState } from "react";
 
 export default function SignUpScreen({ navigation }) {
+  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -60,7 +61,16 @@ export default function SignUpScreen({ navigation }) {
             />
 
             <Text style={styles.title}>Create Account</Text>
-           
+            {/* NAME */}
+            <View style={styles.inputGroup}>
+              <TextInput
+                style={styles.input}
+                placeholder="full name"
+                value={name}
+                onChangeText={setName}
+                autoCapitalize="words"
+              />
+            </View>
 
             {/* EMAIL */}
             <View style={styles.inputGroup}>
