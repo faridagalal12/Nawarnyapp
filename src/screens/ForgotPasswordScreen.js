@@ -41,7 +41,10 @@ export default function ForgotPasswordScreen() {
       Alert.alert("Success", "Reset link sent! Check your email.");
     } catch (err) {
       setError("Something went wrong. Please try again later.");
-      Alert.alert("Error", error || "Failed to send reset link");
+      Alert.alert(
+        "Error",
+        err?.message || "Failed to send reset link",
+      );
     } finally {
       setLoading(false);
     }

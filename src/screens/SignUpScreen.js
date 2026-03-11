@@ -15,11 +15,15 @@ import {
   ScrollView,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { signUp } from "../services/authservice";
 import { useNavigation } from "@react-navigation/native";
-import axios from "axios";
+import * as SecureStore from "expo-secure-store";
+import api from "../services/api";
+import {
+  PENDING_VERIFY_EMAIL_KEY,
+  USER_EMAIL_KEY,
+} from "../constants/authKeys";
 
-export default function SignUpScreen({}) {
+export default function SignUpScreen({ setPendingVerificationEmail }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -43,26 +47,33 @@ export default function SignUpScreen({}) {
     }
 
     try {
-      await axios
-        .post("https://nawarny-be.onrender.com/api/v1/auth/signup", {
-          name,
-          email,
-          password,
-        })
-        .then(response => {
-          if (response.data) {
-            Alert.alert(
-              "Success",
-              "Account created successfully! Please verify your email.",
-            );
-            navigation.navigate("Verify", { email });
-          }
-        })
-        .catch(error => {
-          Alert.alert("Sign Up Failed", error.message);
-        });
+      const normalizedEmail = email.trim().toLowerCase();
+      await api.post("/auth/signup", {
+        name,
+        email: normalizedEmail,
+        password,
+      });
+      await SecureStore.setItemAsync(USER_EMAIL_KEY, normalizedEmail);
+      if (setPendingVerificationEmail) {
+        await setPendingVerificationEmail(normalizedEmail);
+      } else {
+        await SecureStore.setItemAsync(
+          PENDING_VERIFY_EMAIL_KEY,
+          normalizedEmail,
+        );
+      }
+      Alert.alert(
+        "Success",
+        "Account created successfully! Please verify your email.",
+      );
+      navigation.navigate("Verify", { email: normalizedEmail });
     } catch (error) {
-      Alert.alert("Error", "Failed to sign up. Please try again.");
+      Alert.alert(
+        "Sign Up Failed",
+        error?.response?.data?.message ||
+          error?.message ||
+          "Failed to sign up. Please try again.",
+      );
     }
 
     setEmail("");

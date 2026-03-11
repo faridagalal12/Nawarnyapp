@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -9,7 +9,10 @@ import {
   Dimensions,
   ScrollView,
   StatusBar,
+  ActivityIndicator,
+  Alert,
 } from "react-native";
+import api from "../services/api";
 
 const { width } = Dimensions.get("window");
 
@@ -28,115 +31,97 @@ const TEXT_LIGHT = "#A9A8C8";
 const NEXT_BG = "#4B4ACF";
 
 // ─── Data ────────────────────────────────────────────────────────────────────
-const OPTION_LABELS = ["A", "B", "C", "D", "E"];
-
-const QUESTIONS = [
-  {
-    id: 1,
-    question: "How old are you? 🌱",
-    options: ["Under 18 👶", "18–21 🎓", "22–25 🚀", "26–30 💼", "31+ 🌟"],
-  },
-  {
-    id: 2,
-    question: "What’s your main goal right now? 🎯",
-    options: [
-      "Build better habits 💪",
-      "Improve mindset & confidence 🌈",
-      "Advance career/studies 📈",
-      "Strengthen relationships ❤️",
-      "Feel happier & fulfilled 😊",
-    ],
-    allowMultiple: true,
-  },
-  {
-    id: 3,
-    question: "Which topics excite you most? 🔥",
-    options: [
-      "Personal development 🌱",
-      "Psychology & behavior 🧠",
-      "Productivity & focus ⏱️",
-      "Relationships & communication 💬",
-      "Money & success 💰",
-    ],
-    allowMultiple: true,
-  },
-  {
-    id: 4,
-    question: "What motivates you the most? ⚡",
-    options: [
-      "Growth & learning 📚",
-      "Recognition & praise 🏆",
-      "Making an impact 🌍",
-      "Stability & peace 🕊️",
-      "Freedom & adventure ✈️",
-    ],
-    allowMultiple: true,
-  },
-  {
-    id: 5,
-    question: "How do you prefer to learn? 📖",
-    options: [
-      "Reading summaries 📝",
-      "Listening to audio 🎧",
-      "Watching short videos 🎥",
-      "Practical challenges 🛠️",
-      "Reflecting & journaling ✍️",
-    ],
-    allowMultiple: true,
-  },
-  {
-    id: 6,
-    question: "What’s your biggest current challenge? 😓",
-    options: [
-      "Procrastination ⏳",
-      "Stress & overthinking 😰",
-      "Low confidence 🙇",
-      "Building habits 🔄",
-      "Distractions & focus 📱",
-    ],
-    allowMultiple: true,
-  },
-  {
-    id: 7,
-    question: "Which hobbies do you enjoy or want to start? 🎨",
-    options: [
-      "Reading & podcasts 📚",
-      "Exercise & movement 🏃",
-      "Creative hobbies (art/music) 🎨",
-      "Meditation & mindfulness 🧘",
-      "Learning new skills online 💻",
-    ],
-    allowMultiple: true,
-  },
-  {
-    id: 8,
-    question: "What kind of daily content would you love? ✨",
-    options: [
-      "Quick mindset shifts 🧠",
-      "Habit & productivity tips ⏰",
-      "Inspiring stories 🌟",
-      "Psychology insights 🤔",
-      "Motivational nudges 🔥",
-    ],
-    allowMultiple: true,
-  },
-];
+const OPTION_LABELS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
 
 // ─── Component ───────────────────────────────────────────────────────────────
 export default function QuizScreen({ onQuizCompleted }) {
+  const [questions, setQuestions] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [answers, setAnswers] = useState({});
   const [selectedOptions, setSelectedOptions] = useState([]);
   const [completed, setCompleted] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState("");
   const [fadeAnim] = useState(new Animated.Value(1));
 
-  const currentQuestion = QUESTIONS[currentIndex];
-  const progress = ((currentIndex + 1) / QUESTIONS.length) * 100;
+  const currentQuestion = questions[currentIndex];
+  const progress = questions.length
+    ? ((currentIndex + 1) / questions.length) * 100
+    : 0;
   const formatAnswer = answer =>
     Array.isArray(answer) ? answer.join(", ") : answer || "No answer";
 
+  const normalizeQuestions = raw => {
+    const list = Array.isArray(raw)
+      ? raw
+      : raw?.questions || raw?.data || raw?.items || [];
+    return list
+      .map((q, index) => {
+        const options = Array.isArray(q?.options)
+          ? q.options
+          : Array.isArray(q?.choices)
+            ? q.choices
+            : [];
+        return {
+          id: q?.id ?? q?._id ?? q?.questionId ?? index + 1,
+          text: q?.question ?? q?.text ?? q?.title ?? "",
+          options: options.map(option => {
+            if (typeof option === "string") return option;
+            if (option?.label) return option.label;
+            if (option?.text) return option.text;
+            return String(option);
+          }),
+          allowMultiple: Boolean(
+            q?.allowMultiple ?? q?.multiple ?? q?.isMultiple ?? false,
+          ),
+        };
+      })
+      .filter(q => q.text && q.options.length);
+  };
+
+  useEffect(() => {
+    let isMounted = true;
+    const loadQuestions = async () => {
+      setLoading(true);
+      setError("");
+      try {
+        const response = await api.get("/quiz/questions");
+        const normalized = normalizeQuestions(response?.data ?? []);
+        if (!normalized.length) {
+          throw new Error("No quiz questions available.");
+        }
+        if (isMounted) {
+          setQuestions(normalized);
+          setCurrentIndex(0);
+          setAnswers({});
+          setSelectedOptions([]);
+        }
+      } catch (err) {
+        if (isMounted) {
+          setError(err?.message || "Failed to load quiz questions.");
+        }
+      } finally {
+        if (isMounted) {
+          setLoading(false);
+        }
+      }
+    };
+
+    loadQuestions();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!currentQuestion) return;
+    setSelectedOptions(answers[currentQuestion.id] || []);
+  }, [currentQuestion?.id, answers]);
+
   // ── Handlers ────────────────────────────────────────────────────────────────
   const handleSelect = option => {
+    if (!currentQuestion) return;
     if (currentQuestion.allowMultiple) {
       setSelectedOptions(prev =>
         prev.includes(option)
@@ -149,16 +134,18 @@ export default function QuizScreen({ onQuizCompleted }) {
   };
 
   const handleNext = () => {
-    if (!selectedOptions.length) return;
+    if (!currentQuestion || !selectedOptions.length) return;
 
-    const answerValue = currentQuestion.allowMultiple
-      ? selectedOptions
-      : selectedOptions[0];
-    const newAnswers = { ...answers, [currentQuestion.id]: answerValue };
-    setAnswers(newAnswers);
+    const nextAnswers = {
+      ...answers,
+      [currentQuestion.id]: currentQuestion.allowMultiple
+        ? selectedOptions
+        : [selectedOptions[0]],
+    };
+    setAnswers(nextAnswers);
 
-    if (currentIndex === QUESTIONS.length - 1) {
-      setCompleted(true);
+    if (currentIndex === questions.length - 1) {
+      submitQuiz(nextAnswers);
       return;
     }
 
@@ -168,7 +155,6 @@ export default function QuizScreen({ onQuizCompleted }) {
       useNativeDriver: true,
     }).start(() => {
       setCurrentIndex(i => i + 1);
-      setSelectedOptions([]);
       Animated.timing(fadeAnim, {
         toValue: 1,
         duration: 280,
@@ -178,14 +164,19 @@ export default function QuizScreen({ onQuizCompleted }) {
   };
 
   const handleBack = () => {
-    if (currentIndex === 0) return;
+    if (currentIndex === 0 || !currentQuestion) return;
+    setAnswers(prev => ({
+      ...prev,
+      [currentQuestion.id]: currentQuestion.allowMultiple
+        ? selectedOptions
+        : selectedOptions.slice(0, 1),
+    }));
     Animated.timing(fadeAnim, {
       toValue: 0,
       duration: 180,
       useNativeDriver: true,
     }).start(() => {
       setCurrentIndex(i => i - 1);
-      setSelectedOptions([]);
       Animated.timing(fadeAnim, {
         toValue: 1,
         duration: 280,
@@ -209,6 +200,96 @@ export default function QuizScreen({ onQuizCompleted }) {
     handleRestart();
   };
 
+  const submitQuiz = async nextAnswers => {
+    if (submitting) return;
+    setSubmitting(true);
+    try {
+      const payload = Object.entries(nextAnswers).map(([questionId, value]) => {
+        const numericId = Number(questionId);
+        return {
+          questionId: Number.isNaN(numericId) ? questionId : numericId,
+          selectedOptions: Array.isArray(value) ? value : [value],
+        };
+      });
+      await api.post("/quiz/submit", { answers: payload });
+      setCompleted(true);
+    } catch (err) {
+      Alert.alert(
+        "Quiz submission failed",
+        err?.response?.data?.message ||
+          err?.message ||
+          "Please try again.",
+      );
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.centerState}>
+          <ActivityIndicator size="large" color={PURPLE} />
+          <Text style={styles.stateText}>Loading quiz…</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  if (error) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.centerState}>
+          <Text style={styles.stateTitle}>Couldn't load quiz</Text>
+          <Text style={styles.stateText}>{error}</Text>
+          <TouchableOpacity
+            style={styles.retryBtn}
+            onPress={() => {
+              setError("");
+              setLoading(true);
+              setQuestions([]);
+              setCurrentIndex(0);
+              setAnswers({});
+              setSelectedOptions([]);
+              setCompleted(false);
+              setSubmitting(false);
+              api
+                .get("/quiz/questions")
+                .then(response => {
+                  const normalized = normalizeQuestions(
+                    response?.data ?? [],
+                  );
+                  if (!normalized.length) {
+                    throw new Error("No quiz questions available.");
+                  }
+                  setQuestions(normalized);
+                })
+                .catch(err => {
+                  setError(
+                    err?.message || "Failed to load quiz questions.",
+                  );
+                })
+                .finally(() => setLoading(false));
+            }}
+          >
+            <Text style={styles.retryText}>Retry</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  if (!currentQuestion) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.centerState}>
+          <Text style={styles.stateTitle}>No quiz available</Text>
+          <Text style={styles.stateText}>Please try again later.</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
   // ── Completed Screen ─────────────────────────────────────────────────────────
   if (completed) {
     return (
@@ -228,14 +309,14 @@ export default function QuizScreen({ onQuizCompleted }) {
           contentContainerStyle={styles.summaryContent}
           showsVerticalScrollIndicator={false}
         >
-          {QUESTIONS.map((q, idx) => (
+          {questions.map((q, idx) => (
             <View key={q.id} style={styles.summaryRow}>
               <View style={styles.summaryIndexBadge}>
                 <Text style={styles.summaryIndexText}>{idx + 1}</Text>
               </View>
               <View style={styles.summaryTextBlock}>
                 <Text style={styles.summaryQ} numberOfLines={2}>
-                  {q.question}
+                  {q.text}
                 </Text>
                 <Text style={styles.summaryA}>
                   {formatAnswer(answers[q.id])}
@@ -278,7 +359,7 @@ export default function QuizScreen({ onQuizCompleted }) {
         {/* Question card floating on header */}
         <Animated.View style={[styles.questionCard, { opacity: fadeAnim }]}>
           <Text style={styles.questionCategoryLabel}>Question</Text>
-          <Text style={styles.questionText}>{currentQuestion.question}</Text>
+          <Text style={styles.questionText}>{currentQuestion.text}</Text>
           {currentQuestion.allowMultiple && (
             <Text style={styles.multipleHint}>Select all that apply</Text>
           )}
@@ -293,6 +374,7 @@ export default function QuizScreen({ onQuizCompleted }) {
       >
         {currentQuestion.options.map((option, i) => {
           const isSelected = selectedOptions.includes(option);
+          const label = OPTION_LABELS[i] || String(i + 1);
           return (
             <TouchableOpacity
               key={i}
@@ -311,11 +393,11 @@ export default function QuizScreen({ onQuizCompleted }) {
                   style={[
                     styles.letterText,
                     isSelected && styles.letterTextSelected,
-                  ]}
-                >
-                  {OPTION_LABELS[i]}
-                </Text>
-              </View>
+                ]}
+              >
+                {label}
+              </Text>
+            </View>
 
               <Text
                 style={[
@@ -340,9 +422,12 @@ export default function QuizScreen({ onQuizCompleted }) {
       {/* ── Footer ── */}
       <View style={styles.footer}>
         <TouchableOpacity
-          style={[styles.backBtn, currentIndex === 0 && styles.backBtnDisabled]}
+          style={[
+            styles.backBtn,
+            (currentIndex === 0 || submitting) && styles.backBtnDisabled,
+          ]}
           onPress={handleBack}
-          disabled={currentIndex === 0}
+          disabled={currentIndex === 0 || submitting}
           activeOpacity={0.7}
         >
           <Text
@@ -358,14 +443,18 @@ export default function QuizScreen({ onQuizCompleted }) {
         <TouchableOpacity
           style={[
             styles.nextBtn,
-            !selectedOptions.length && styles.nextBtnDisabled,
+            (!selectedOptions.length || submitting) && styles.nextBtnDisabled,
           ]}
           onPress={handleNext}
-          disabled={!selectedOptions.length}
+          disabled={!selectedOptions.length || submitting}
           activeOpacity={0.85}
         >
           <Text style={styles.nextBtnText}>
-            {currentIndex === QUESTIONS.length - 1 ? "Finish" : "Next"}
+            {submitting
+              ? "Submitting..."
+              : currentIndex === questions.length - 1
+                ? "Finish"
+                : "Next"}
           </Text>
         </TouchableOpacity>
       </View>
@@ -378,6 +467,39 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: BG,
+  },
+  centerState: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 24,
+    gap: 10,
+  },
+  stateTitle: {
+    fontFamily: "System",
+    fontSize: 18,
+    fontWeight: "700",
+    color: TEXT_DARK,
+    textAlign: "center",
+  },
+  stateText: {
+    fontFamily: "System",
+    fontSize: 14,
+    color: TEXT_MID,
+    textAlign: "center",
+  },
+  retryBtn: {
+    marginTop: 12,
+    backgroundColor: PURPLE,
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 12,
+  },
+  retryText: {
+    fontFamily: "System",
+    fontSize: 14,
+    fontWeight: "700",
+    color: WHITE,
   },
 
   // ── Header ──────────────────────────────────────────────────────────────────

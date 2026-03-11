@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   View,
   Text,
@@ -8,14 +8,47 @@ import {
   KeyboardAvoidingView,
   Platform,
   Keyboard,
+  Alert,
 } from "react-native";
-import { Ionicons } from "@expo/vector-icons"; // for back icon
-import { useNavigation } from "@react-navigation/native";
+import { useRoute } from "@react-navigation/native";
+import * as SecureStore from "expo-secure-store";
+import { verifyOtp } from "../services/authservice";
+import { PENDING_VERIFY_EMAIL_KEY } from "../constants/authKeys";
 
-export default function VerifyScreen() {
+export default function VerifyScreen({ signIn, pendingEmail, onVerified }) {
   const [code, setCode] = useState(["", "", "", ""]);
+  const [email, setEmail] = useState(pendingEmail || "");
+  const [loading, setLoading] = useState(false);
   const inputs = useRef([]);
-  const navigation = useNavigation(); // navigation for back button
+  const route = useRoute();
+
+  useEffect(() => {
+    let isMounted = true;
+    const hydrateEmail = async () => {
+      if (email) return;
+      const routeEmail = route?.params?.email;
+      if (routeEmail) {
+        setEmail(routeEmail);
+        return;
+      }
+      const storedEmail = await SecureStore.getItemAsync(
+        PENDING_VERIFY_EMAIL_KEY,
+      );
+      if (storedEmail && isMounted) {
+        setEmail(storedEmail);
+      }
+    };
+    hydrateEmail();
+    return () => {
+      isMounted = false;
+    };
+  }, [email, route?.params?.email]);
+
+  useEffect(() => {
+    if (!email && pendingEmail) {
+      setEmail(pendingEmail);
+    }
+  }, [email, pendingEmail]);
 
   const handleChange = (text, index) => {
     if (text.length > 1) return;
@@ -44,6 +77,46 @@ export default function VerifyScreen() {
   // Dismiss keyboard when pressing "Done"
   const handleSubmitEditing = () => {
     Keyboard.dismiss();
+  };
+
+  const handleVerify = async () => {
+    const otp = code.join("");
+    if (!email) {
+      Alert.alert("Missing email", "Please sign up again.");
+      return;
+    }
+    if (otp.length < 4) {
+      Alert.alert("Invalid code", "Please enter the full verification code.");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const data = await verifyOtp(email, otp);
+      const token =
+        data?.access_token ||
+        data?.token ||
+        data?.data?.access_token ||
+        data?.data?.token;
+      if (!token) {
+        throw new Error("No access token returned from server.");
+      }
+      if (signIn) {
+        await signIn(token, email);
+      }
+      if (onVerified) {
+        await onVerified();
+      }
+    } catch (error) {
+      Alert.alert(
+        "Verification failed",
+        error?.response?.data?.message ||
+          error?.message ||
+          "Please try again.",
+      );
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -82,9 +155,12 @@ export default function VerifyScreen() {
 
         <TouchableOpacity
           style={styles.verifyButton}
-          onPress={() => navigation.navigate("Quiz")}
+          onPress={handleVerify}
+          disabled={loading}
         >
-          <Text style={styles.verifyText}>Verify</Text>
+          <Text style={styles.verifyText}>
+            {loading ? "Verifying..." : "Verify"}
+          </Text>
         </TouchableOpacity>
 
         <TouchableOpacity onPress={() => Keyboard.dismiss()}>

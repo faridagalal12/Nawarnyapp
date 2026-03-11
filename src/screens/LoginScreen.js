@@ -13,8 +13,8 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
-import axios from "axios";
 import { Button } from "galio-framework";
+import api from "../services/api";
 
 export default function LoginScreen({ signIn }) {
   const navigation = useNavigation();
@@ -25,8 +25,8 @@ export default function LoginScreen({ signIn }) {
   const handleLogin = async () => {
     Keyboard.dismiss(); // dismiss keyboard on login
     setLoading(true);
-    await axios
-      .post("https://nawarny-be.onrender.com/api/v1/auth/login", {
+    await api
+      .post("/auth/login", {
         email,
         password,
       })
