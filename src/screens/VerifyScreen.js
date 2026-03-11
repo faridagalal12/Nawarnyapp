@@ -10,17 +10,18 @@ import {
   Keyboard,
   Alert,
 } from "react-native";
-import { useRoute } from "@react-navigation/native";
+import { useNavigation, useRoute } from "@react-navigation/native";
 import * as SecureStore from "expo-secure-store";
 import { verifyOtp } from "../services/authservice";
 import { PENDING_VERIFY_EMAIL_KEY } from "../constants/authKeys";
 
 export default function VerifyScreen({ signIn, pendingEmail, onVerified }) {
-  const [code, setCode] = useState(["", "", "", ""]);
+  const [code, setCode] = useState(["", "", "", "", "", ""]);
   const [email, setEmail] = useState(pendingEmail || "");
   const [loading, setLoading] = useState(false);
   const inputs = useRef([]);
   const route = useRoute();
+  const navigation = useNavigation();
 
   useEffect(() => {
     let isMounted = true;
@@ -98,21 +99,28 @@ export default function VerifyScreen({ signIn, pendingEmail, onVerified }) {
         data?.token ||
         data?.data?.access_token ||
         data?.data?.token;
-      if (!token) {
-        throw new Error("No access token returned from server.");
+      if (token) {
+        if (signIn) {
+          await signIn(token, email);
+        }
+        if (onVerified) {
+          await onVerified({ hasToken: true, email });
+        }
+        return;
       }
-      if (signIn) {
-        await signIn(token, email);
-      }
+
       if (onVerified) {
-        await onVerified();
+        await onVerified({ hasToken: false, email });
       }
+      Alert.alert("Verification complete", "Please sign in again to continue.");
+      navigation.reset({
+        index: 1,
+        routes: [{ name: "Welcome" }, { name: "Login" }],
+      });
     } catch (error) {
       Alert.alert(
         "Verification failed",
-        error?.response?.data?.message ||
-          error?.message ||
-          "Please try again.",
+        error?.response?.data?.message || error?.message || "Please try again.",
       );
     } finally {
       setLoading(false);
@@ -202,13 +210,14 @@ const styles = StyleSheet.create({
   },
   otpContainer: {
     flexDirection: "row",
-    justifyContent: "space-between",
-    width: "100%",
+    justifyContent: "center",
+    alignItems: "center",
+    width: "80%",
     marginBottom: 40,
   },
   otpBox: {
-    width: 60,
-    height: 60,
+    width: 40,
+    height: 40,
     borderRadius: 12,
     borderWidth: 1,
     borderColor: "#E0E0E0",
@@ -216,6 +225,7 @@ const styles = StyleSheet.create({
     fontSize: 22,
     backgroundColor: "#F5F5F5",
     color: "#1E1E1E",
+    marginHorizontal: 6,
   },
   otpBoxFilled: {
     backgroundColor: "#4F6FA5", // same blue theme as your app

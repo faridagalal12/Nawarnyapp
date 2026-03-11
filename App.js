@@ -204,7 +204,7 @@ export default function App() {
       signIn: async (token, email) => {
         const normalizedEmail = (email || "").toLowerCase();
         await SecureStore.setItemAsync(TOKEN_KEY, token);
-        await SecureStore.setItemAsync(USER_EMAIL_KEY, normalizedEmail);
+        await SecureStore.setItemAsync("userEmail", normalizedEmail);
         setAuthToken(token);
         dispatch({ type: "SIGN_IN", token });
         await refreshProfile();
@@ -267,9 +267,11 @@ export default function App() {
                   <VerifyScreen
                     signIn={authContext.signIn}
                     pendingEmail={state.pendingVerificationEmail}
-                    onVerified={async () => {
+                    onVerified={async ({ hasToken } = {}) => {
                       await authContext.completeVerification();
-                      await authContext.refreshProfile();
+                      if (hasToken) {
+                        await authContext.refreshProfile();
+                      }
                     }}
                   />
                 )}
@@ -326,9 +328,11 @@ export default function App() {
                     <VerifyScreen
                       signIn={authContext.signIn}
                       pendingEmail={state.pendingVerificationEmail}
-                      onVerified={async () => {
+                      onVerified={async ({ hasToken } = {}) => {
                         await authContext.completeVerification();
-                        await authContext.refreshProfile();
+                        if (hasToken) {
+                          await authContext.refreshProfile();
+                        }
                       }}
                     />
                   )}
@@ -346,9 +350,11 @@ export default function App() {
                 <VerifyScreen
                   signIn={authContext.signIn}
                   pendingEmail={state.pendingVerificationEmail}
-                  onVerified={async () => {
+                  onVerified={async ({ hasToken } = {}) => {
                     await authContext.completeVerification();
-                    await authContext.refreshProfile();
+                    if (hasToken) {
+                      await authContext.refreshProfile();
+                    }
                   }}
                 />
               )}

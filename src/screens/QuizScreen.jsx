@@ -49,8 +49,17 @@ export default function QuizScreen({ onQuizCompleted }) {
   const progress = questions.length
     ? ((currentIndex + 1) / questions.length) * 100
     : 0;
-  const formatAnswer = answer =>
-    Array.isArray(answer) ? answer.join(", ") : answer || "No answer";
+  const formatAnswer = (question, answer) => {
+    const values = Array.isArray(answer) ? answer : [answer];
+    const options = Array.isArray(question?.options) ? question.options : [];
+    const labelMap = new Map(
+      options.map(option => [String(option.value), option.label]),
+    );
+    const labels = values
+      .filter(value => value !== undefined && value !== null && value !== "")
+      .map(value => labelMap.get(String(value)) || String(value));
+    return labels.length ? labels.join(", ") : "No answer";
+  };
 
   const normalizeQuestions = raw => {
     const list = Array.isArray(raw)
@@ -63,15 +72,41 @@ export default function QuizScreen({ onQuizCompleted }) {
           : Array.isArray(q?.choices)
             ? q.choices
             : [];
+        const normalizedOptions = options.map(option => {
+          if (typeof option === "string") {
+            return { value: option, label: option };
+          }
+          if (typeof option === "number") {
+            return { value: option, label: String(option) };
+          }
+          if (option?.id !== undefined && option?.id !== null) {
+            return {
+              value: option.id,
+              label:
+                option.label ??
+                option.text ??
+                option.title ??
+                String(option.id),
+            };
+          }
+          if (option?.value !== undefined && option?.value !== null) {
+            return {
+              value: option.value,
+              label:
+                option.label ??
+                option.text ??
+                option.title ??
+                String(option.value),
+            };
+          }
+          const fallback =
+            option?.label ?? option?.text ?? option?.title ?? String(option);
+          return { value: fallback, label: fallback };
+        });
         return {
           id: q?.id ?? q?._id ?? q?.questionId ?? index + 1,
           text: q?.question ?? q?.text ?? q?.title ?? "",
-          options: options.map(option => {
-            if (typeof option === "string") return option;
-            if (option?.label) return option.label;
-            if (option?.text) return option.text;
-            return String(option);
-          }),
+          options: normalizedOptions,
           allowMultiple: Boolean(
             q?.allowMultiple ?? q?.multiple ?? q?.isMultiple ?? false,
           ),
@@ -204,21 +239,33 @@ export default function QuizScreen({ onQuizCompleted }) {
     if (submitting) return;
     setSubmitting(true);
     try {
+      const questionTextById = new Map(
+        questions.map(q => [String(q.id), q.text]),
+      );
       const payload = Object.entries(nextAnswers).map(([questionId, value]) => {
         const numericId = Number(questionId);
+        const questionText = questionTextById.get(String(questionId));
         return {
           questionId: Number.isNaN(numericId) ? questionId : numericId,
-          selectedOptions: Array.isArray(value) ? value : [value],
+          question: questionText || "",
+          selectedOptions: (Array.isArray(value) ? value : [value]).map(
+            option => String(option),
+          ),
         };
       });
-      await api.post("/quiz/submit", { answers: payload });
+      const requestBody = { answers: payload };
+      console.log("Quiz submit payload:", requestBody);
+      const response = await api.post("/quiz/submit", requestBody);
+      console.log("Quiz submitted successfully", response.data);
       setCompleted(true);
     } catch (err) {
+      console.error(
+        "Quiz submission error:",
+        err?.response?.data || err?.message || err,
+      );
       Alert.alert(
         "Quiz submission failed",
-        err?.response?.data?.message ||
-          err?.message ||
-          "Please try again.",
+        err?.response?.data?.message || err?.message || "Please try again.",
       );
     } finally {
       setSubmitting(false);
@@ -256,18 +303,14 @@ export default function QuizScreen({ onQuizCompleted }) {
               api
                 .get("/quiz/questions")
                 .then(response => {
-                  const normalized = normalizeQuestions(
-                    response?.data ?? [],
-                  );
+                  const normalized = normalizeQuestions(response?.data ?? []);
                   if (!normalized.length) {
                     throw new Error("No quiz questions available.");
                   }
                   setQuestions(normalized);
                 })
                 .catch(err => {
-                  setError(
-                    err?.message || "Failed to load quiz questions.",
-                  );
+                  setError(err?.message || "Failed to load quiz questions.");
                 })
                 .finally(() => setLoading(false));
             }}
@@ -319,7 +362,7 @@ export default function QuizScreen({ onQuizCompleted }) {
                   {q.text}
                 </Text>
                 <Text style={styles.summaryA}>
-                  {formatAnswer(answers[q.id])}
+                  {formatAnswer(q, answers[q.id])}
                 </Text>
               </View>
             </View>
@@ -352,7 +395,7 @@ export default function QuizScreen({ onQuizCompleted }) {
             <View style={[styles.progressFill, { width: `${progress}%` }]} />
           </View>
           <Text style={styles.stepLabel}>
-            {currentIndex + 1}/{QUESTIONS.length}
+            {currentIndex + 1}/{questions.length}
           </Text>
         </View>
 
@@ -373,13 +416,13 @@ export default function QuizScreen({ onQuizCompleted }) {
         showsVerticalScrollIndicator={false}
       >
         {currentQuestion.options.map((option, i) => {
-          const isSelected = selectedOptions.includes(option);
+          const isSelected = selectedOptions.includes(option.value);
           const label = OPTION_LABELS[i] || String(i + 1);
           return (
             <TouchableOpacity
               key={i}
               style={[styles.optionRow, isSelected && styles.optionRowSelected]}
-              onPress={() => handleSelect(option)}
+              onPress={() => handleSelect(option.value)}
               activeOpacity={0.75}
             >
               {/* Letter badge */}
@@ -393,11 +436,11 @@ export default function QuizScreen({ onQuizCompleted }) {
                   style={[
                     styles.letterText,
                     isSelected && styles.letterTextSelected,
-                ]}
-              >
-                {label}
-              </Text>
-            </View>
+                  ]}
+                >
+                  {label}
+                </Text>
+              </View>
 
               <Text
                 style={[
@@ -405,7 +448,7 @@ export default function QuizScreen({ onQuizCompleted }) {
                   isSelected && styles.optionTextSelected,
                 ]}
               >
-                {option}
+                {option.label}
               </Text>
 
               {/* Selection indicator on right */}
