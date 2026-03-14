@@ -258,7 +258,19 @@ export default function App() {
   return (
     <AuthContext.Provider value={authContext}>
       <NavigationContainer>
-        <Stack.Navigator>
+        <Stack.Navigator
+          key={
+            state.userToken == null
+              ? state.pendingVerificationEmail
+                ? "auth-verify-pending"
+                : "auth"
+              : !state.isVerified
+                ? "verify"
+                : !state.quizCompleted
+                  ? "quiz"
+                  : "app"
+          }
+        >
           {state.userToken == null ? (
             state.pendingVerificationEmail ? (
               <Stack.Screen
@@ -371,7 +383,6 @@ export default function App() {
                 <QuizScreen
                   onQuizCompleted={async () => {
                     await authContext.setQuizCompleted(true);
-                    await authContext.refreshProfile();
                   }}
                 />
               )}
@@ -387,14 +398,13 @@ export default function App() {
               <Stack.Screen
                 name="Quiz"
                 children={() => (
-                  <QuizScreen
-                    onQuizCompleted={async () => {
-                      await authContext.setQuizCompleted(true);
-                      await authContext.refreshProfile();
-                    }}
-                  />
-                )}
-                options={{ headerShown: false }}
+                <QuizScreen
+                  onQuizCompleted={async () => {
+                    await authContext.setQuizCompleted(true);
+                  }}
+                />
+              )}
+              options={{ headerShown: false }}
               />
             </>
           )}
