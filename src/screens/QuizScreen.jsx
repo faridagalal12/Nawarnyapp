@@ -9,16 +9,18 @@ import {
   Dimensions,
   ScrollView,
   StatusBar,
+  Alert,
 } from "react-native";
+import api from "../services/api";
 
 const { width } = Dimensions.get("window");
 
-// ─── Palette (from Q1 screenshot) ───────────────────────────────────────────
-const PURPLE = "#3B82F6"; // header background
-const PURPLE_DARK = "#3550DC"; // darker tint for depth
-const PURPLE_LIGHT = "#3550DC"; // accent dot / letter tint
+// ─── Palette ─────────────────────────────────────────────────────────────────
+const PURPLE = "#3B82F6";
+const PURPLE_DARK = "#3550DC";
+const PURPLE_LIGHT = "#3550DC";
 const WHITE = "#FFFFFF";
-const BG = "#F0EFF7"; // page background (very light lavender-grey)
+const BG = "#F0EFF7";
 const CARD_BG = "#FFFFFF";
 const BORDER_DEF = "#E3E2F0";
 const BORDER_SEL = "#4B4ACF";
@@ -38,7 +40,7 @@ const QUESTIONS = [
   },
   {
     id: 2,
-    question: "What’s your main goal right now? 🎯",
+    question: "What's your main goal right now? 🎯",
     options: [
       "Build better habits 💪",
       "Improve mindset & confidence 🌈",
@@ -86,7 +88,7 @@ const QUESTIONS = [
   },
   {
     id: 6,
-    question: "What’s your biggest current challenge? 😓",
+    question: "What's your biggest current challenge? 😓",
     options: [
       "Procrastination ⏳",
       "Stress & overthinking 😰",
@@ -128,6 +130,7 @@ export default function QuizScreen({ onQuizCompleted }) {
   const [answers, setAnswers] = useState({});
   const [selectedOptions, setSelectedOptions] = useState([]);
   const [completed, setCompleted] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [fadeAnim] = useState(new Animated.Value(1));
 
   const currentQuestion = QUESTIONS[currentIndex];
@@ -174,7 +177,6 @@ export default function QuizScreen({ onQuizCompleted }) {
         duration: 280,
         useNativeDriver: true,
       }).start();
-      
     });
   };
 
@@ -195,54 +197,51 @@ export default function QuizScreen({ onQuizCompleted }) {
     });
   };
 
-  const handleRestart = () => {
-    setCurrentIndex(0);
-    setAnswers({});
-    setSelectedOptions([]);
-    setCompleted(false);
-  };
-
-  
-    
-
-  // ── Completed Screen ─────────────────────────────────────────────────────────
-
-const handleDone = async () => {
-    Keyboard.dismiss();
-
-    if (onQuizCompleted) {
-      onQuizCompleted();
-    }
+  // ── Done / Submit ────────────────────────────────────────────────────────────
+  const handleDone = async () => {
+    if (isSubmitting) return;
+    setIsSubmitting(true);
 
     try {
-      await axios
-        .post("https://nawarny-be.onrender.com/api/v1/quiz/submit", {
-          
+      const payload = {
+        answers: QUESTIONS.map((question, index) => {
+          const rawAnswer = answers[question.id];
+          const selectedOpts = Array.isArray(rawAnswer)
+            ? rawAnswer
+            : typeof rawAnswer === "undefined"
+              ? []
+              : [rawAnswer];
 
-        })
-        .then(response => {
-          if (response.data) {
-            Alert.alert(
-              "Success",
-              "Account created successfully! Please verify your email.",
-            );
-            navigation.navigate("Verify", { email });
-          }
-        })
-        .catch(error => {
-          Alert.alert("Sign Up Failed", error.message);
-        });
+          return {
+            questionId: index,
+            question: question.question,
+            selectedOptions: selectedOpts,
+          };
+        }),
+      };
+
+      console.log("Submitting quiz answers:", JSON.stringify(payload));
+      const response = await api.post("/quiz/submit", payload);
+      console.log("Quiz submission response:", response?.data);
+
+      // ✅ Just update App.js state — the navigator key change handles navigation
+      if (onQuizCompleted) {
+        await onQuizCompleted(true);
+      }
     } catch (error) {
-      Alert.alert("Error", "Failed to sign up. Please try again.");
+      const responseData = error?.response?.data;
+      const message =
+        responseData?.error ||
+        responseData?.message ||
+        error?.message ||
+        "Please try again.";
+      Alert.alert("Quiz Submission Failed", message);
+    } finally {
+      setIsSubmitting(false);
     }
-
-    setEmail("");
-    setPassword("");
-    setConfirmPassword("");
   };
 
-
-
+  // ── Completed Screen ─────────────────────────────────────────────────────────
   if (completed) {
     return (
       <SafeAreaView style={styles.container}>
@@ -280,11 +279,17 @@ const handleDone = async () => {
 
         <View style={styles.completedFooter}>
           <TouchableOpacity
-            style={styles.restartBtn}
+            style={[
+              styles.restartBtn,
+              isSubmitting && styles.restartBtnDisabled,
+            ]}
             onPress={handleDone}
+            disabled={isSubmitting}
             activeOpacity={0.85}
           >
-            <Text style={styles.restartBtnText}>Done</Text>
+            <Text style={styles.restartBtnText}>
+              {isSubmitting ? "Submitting..." : "Done"}
+            </Text>
           </TouchableOpacity>
         </View>
       </SafeAreaView>
@@ -298,7 +303,6 @@ const handleDone = async () => {
 
       {/* ── Purple Header Block ── */}
       <View style={styles.header}>
-        {/* Progress bar inside header */}
         <View style={styles.progressRow}>
           <View style={styles.progressTrack}>
             <View style={[styles.progressFill, { width: `${progress}%` }]} />
@@ -308,7 +312,6 @@ const handleDone = async () => {
           </Text>
         </View>
 
-        {/* Question card floating on header */}
         <Animated.View style={[styles.questionCard, { opacity: fadeAnim }]}>
           <Text style={styles.questionCategoryLabel}>Question</Text>
           <Text style={styles.questionText}>{currentQuestion.question}</Text>
@@ -333,7 +336,6 @@ const handleDone = async () => {
               onPress={() => handleSelect(option)}
               activeOpacity={0.75}
             >
-              {/* Letter badge */}
               <View
                 style={[
                   styles.letterBadge,
@@ -359,7 +361,6 @@ const handleDone = async () => {
                 {option}
               </Text>
 
-              {/* Selection indicator on right */}
               {isSelected && (
                 <View style={styles.checkDot}>
                   <Text style={styles.checkMark}>✓</Text>
@@ -418,8 +419,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#3B82F6",
     paddingTop: 18,
     paddingHorizontal: 22,
-    paddingBottom: 36, // extra bottom so card overlaps
-    // Rounded bottom corners like the screenshot
+    paddingBottom: 36,
     borderBottomLeftRadius: 0,
     borderBottomRightRadius: 0,
   },
@@ -455,7 +455,6 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     paddingVertical: 22,
     paddingHorizontal: 20,
-    // Subtle shadow so it floats
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.12,
@@ -509,7 +508,6 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     borderColor: BORDER_DEF,
     gap: 14,
-    // subtle shadow
     shadowColor: "#4B4ACF",
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.04,
@@ -524,7 +522,7 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
 
-  // Letter badge (A / B / C / D)
+  // Letter badge
   letterBadge: {
     width: 32,
     height: 32,
@@ -733,6 +731,9 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.35,
     shadowRadius: 10,
     elevation: 5,
+  },
+  restartBtnDisabled: {
+    opacity: 0.6,
   },
   restartBtnText: {
     fontFamily: "System",

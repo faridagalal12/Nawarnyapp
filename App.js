@@ -24,42 +24,22 @@ const AuthContext = React.createContext();
 const Stack = createNativeStackNavigator();
 
 export default function App() {
+  const navigationRef = React.useRef(null);
   const [state, dispatch] = React.useReducer(
     (prevState, action) => {
       switch (action.type) {
         case "RESTORE_TOKEN":
-          return {
-            ...prevState,
-            userToken: action.token,
-            isLoading: false,
-          };
+          return { ...prevState, userToken: action.token, isLoading: false };
         case "SIGN_IN":
-          return {
-            ...prevState,
-            isSignout: false,
-            userToken: action.token,
-          };
+          return { ...prevState, isSignout: false, userToken: action.token };
         case "SIGN_OUT":
-          return {
-            ...prevState,
-            isSignout: true,
-            userToken: null,
-          };
+          return { ...prevState, isSignout: true, userToken: null };
         case "SET_QUIZ_COMPLETED":
-          return {
-            ...prevState,
-            quizCompleted: action.value,
-          };
+          return { ...prevState, quizCompleted: action.value };
         case "SET_VERIFIED":
-          return {
-            ...prevState,
-            isVerified: action.value,
-          };
+          return { ...prevState, isVerified: action.value };
         case "SET_PENDING_VERIFY_EMAIL":
-          return {
-            ...prevState,
-            pendingVerificationEmail: action.value,
-          };
+          return { ...prevState, pendingVerificationEmail: action.value };
         default:
           return prevState;
       }
@@ -84,10 +64,6 @@ export default function App() {
       return profile.quiz_completed;
     if (profile.quiz_completed === "true") return true;
     if (profile.quiz_completed === "false") return false;
-    if (typeof profile.quiz_complete === "boolean")
-      return profile.quiz_complete;
-    if (profile.quiz_complete === "true") return true;
-    if (profile.quiz_complete === "false") return false;
     return null;
   };
 
@@ -139,8 +115,6 @@ export default function App() {
           );
         }
         dispatch({ type: "SET_QUIZ_COMPLETED", value: quizCompleted });
-      } else {
-        dispatch({ type: "SET_QUIZ_COMPLETED", value: false });
       }
 
       if (verified !== null) {
@@ -172,6 +146,9 @@ export default function App() {
 
       try {
         userToken = await SecureStore.getItemAsync(TOKEN_KEY);
+        console.log("====================================");
+        console.log(userToken);
+        console.log("====================================");
         const userEmail = await SecureStore.getItemAsync(USER_EMAIL_KEY);
         pendingVerificationEmail = await SecureStore.getItemAsync(
           PENDING_VERIFY_EMAIL_KEY,
@@ -218,14 +195,18 @@ export default function App() {
         dispatch({ type: "SET_VERIFIED", value: false });
       },
       setQuizCompleted: async value => {
-        const userEmail = await SecureStore.getItemAsync(USER_EMAIL_KEY);
-        if (userEmail) {
-          await SecureStore.setItemAsync(
-            getQuizCompletedKey(userEmail),
-            String(value),
-          );
-        }
         dispatch({ type: "SET_QUIZ_COMPLETED", value });
+        try {
+          const userEmail = await SecureStore.getItemAsync(USER_EMAIL_KEY);
+          if (userEmail) {
+            await SecureStore.setItemAsync(
+              getQuizCompletedKey(userEmail),
+              String(value),
+            );
+          }
+        } catch (error) {
+          console.warn("Failed to persist quizCompleted:", error);
+        }
       },
       setPendingVerificationEmail: async email => {
         const normalizedEmail = (email || "").toLowerCase();
@@ -255,9 +236,36 @@ export default function App() {
     [refreshProfile],
   );
 
+  // ✅ Stable callback using dispatch directly — no stale closure possible
+  const handleQuizCompleted = React.useCallback(async () => {
+    // 1. Update state immediately so navigation can switch right away
+    dispatch({ type: "SET_QUIZ_COMPLETED", value: true });
+
+    // 2. Persist to SecureStore (do not block UI)
+    try {
+      const userEmail = await SecureStore.getItemAsync(USER_EMAIL_KEY);
+      if (userEmail) {
+        await SecureStore.setItemAsync(getQuizCompletedKey(userEmail), "true");
+      }
+    } catch (e) {
+      console.warn("Failed to persist quizCompleted:", e);
+    }
+  }, [dispatch]);
+
+  React.useEffect(() => {
+    if (state.userToken && state.isVerified && state.quizCompleted) {
+      const nav = navigationRef.current;
+      if (nav?.resetRoot) {
+        nav.resetRoot({ index: 0, routes: [{ name: "Tabs" }] });
+      } else if (nav?.reset) {
+        nav.reset({ index: 0, routes: [{ name: "Tabs" }] });
+      }
+    }
+  }, [state.userToken, state.isVerified, state.quizCompleted]);
+
   return (
     <AuthContext.Provider value={authContext}>
-      <NavigationContainer>
+      <NavigationContainer ref={navigationRef}>
         <Stack.Navigator
           key={
             state.userToken == null
@@ -281,9 +289,7 @@ export default function App() {
                     pendingEmail={state.pendingVerificationEmail}
                     onVerified={async ({ hasToken } = {}) => {
                       await authContext.completeVerification();
-                      if (hasToken) {
-                        await authContext.refreshProfile();
-                      }
+                      if (hasToken) await authContext.refreshProfile();
                     }}
                   />
                 )}
@@ -325,7 +331,6 @@ export default function App() {
                     animationTypeForReplace: state.isSignout ? "pop" : "push",
                   }}
                 />
-
                 <Stack.Screen
                   name="ForgotPassword"
                   component={ForgetPassword}
@@ -342,9 +347,7 @@ export default function App() {
                       pendingEmail={state.pendingVerificationEmail}
                       onVerified={async ({ hasToken } = {}) => {
                         await authContext.completeVerification();
-                        if (hasToken) {
-                          await authContext.refreshProfile();
-                        }
+                        if (hasToken) await authContext.refreshProfile();
                       }}
                     />
                   )}
@@ -364,9 +367,7 @@ export default function App() {
                   pendingEmail={state.pendingVerificationEmail}
                   onVerified={async ({ hasToken } = {}) => {
                     await authContext.completeVerification();
-                    if (hasToken) {
-                      await authContext.refreshProfile();
-                    }
+                    if (hasToken) await authContext.refreshProfile();
                   }}
                 />
               )}
@@ -379,12 +380,9 @@ export default function App() {
           ) : !state.quizCompleted ? (
             <Stack.Screen
               name="Quiz"
+              // ✅ Pass the stable handleQuizCompleted that calls dispatch directly
               children={() => (
-                <QuizScreen
-                  onQuizCompleted={async () => {
-                    await authContext.setQuizCompleted(true);
-                  }}
-                />
+                <QuizScreen onQuizCompleted={handleQuizCompleted} />
               )}
               options={{ headerShown: false }}
             />
@@ -398,13 +396,9 @@ export default function App() {
               <Stack.Screen
                 name="Quiz"
                 children={() => (
-                <QuizScreen
-                  onQuizCompleted={async () => {
-                    await authContext.setQuizCompleted(true);
-                  }}
-                />
-              )}
-              options={{ headerShown: false }}
+                  <QuizScreen onQuizCompleted={handleQuizCompleted} />
+                )}
+                options={{ headerShown: false }}
               />
             </>
           )}
