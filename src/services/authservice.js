@@ -1,44 +1,18 @@
-const BASE_URL = "https://your-api-url.com"; // 
+import api from "./api";
 
-export const signUp = async (email, password) => {
-  const response = await fetch(`${BASE_URL}/auth/signup`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      email,
-      password,
-    }),
+export const signUp = async (name, email, password) => {
+  const response = await api.post("/auth/signup", {
+    name,
+    email,
+    password,
   });
-
-  const text = await response.text();
-  console.log("Server Response:", text);
-
-  if (!response.ok) {
-    throw new Error("Sign up failed");
-  }
-
-  return JSON.parse(text);
+  return response.data;
 };
 
-export const verifyAccount = async (email, code) => {
-  const response = await fetch(`${BASE_URL}/auth/verify-account`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      email,
-      code,
-    }),
+export const verifyOtp = async (email, otp) => {
+  const response = await api.post("/auth/verify-otp", {
+    email,
+    otp,
   });
-
-  const data = await response.json();
-
-  if (!response.ok) {
-    throw new Error(data.message || "Verification failed");
-  }
-
-  return data; // must return token
+  return response.data;
 };

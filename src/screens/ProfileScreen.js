@@ -9,20 +9,21 @@ import {
   SafeAreaView,
   StatusBar,
   Image,
+  Alert,
 } from "react-native";
 
 import Ionicons from "@expo/vector-icons/Ionicons";
 // ... rest of your code
 
-import * as SecureStore from "expo-secure-store";
-import { useNavigation } from "@react-navigation/native";
-import axios from "axios";
+import api from "../services/api";
 
 export default function ProfileScreen({ signOut }) {
   // You can later connect this to real user data (context, redux, firebase, etc.)
   const [userName, setUserName] = React.useState("");
   const [email, setEmail] = React.useState("");
-  const navigation = useNavigation();
+  const comingSoon = title => {
+    Alert.alert("Coming soon", `${title} is not available yet.`);
+  };
   const user = {
     name: "Laila Assem",
     username: "@LailaAssem",
@@ -34,32 +35,32 @@ export default function ProfileScreen({ signOut }) {
       icon: "person-outline",
       title: "My Learning Profile",
       subtitle: "Make changes to your account",
-      onPress: () => navigation.navigate("LearningProfile"),
+      onPress: () => comingSoon("My Learning Profile"),
     },
     {
       icon: "bookmark-outline",
       title: "Saved Courses",
       subtitle: "Manage saved courses",
-      onPress: () => navigation.navigate("SavedCourses"),
+      onPress: () => comingSoon("Saved Courses"),
     },
     {
       icon: "lock-closed-outline",
       title: "Subscription",
       subtitle: "Manage your plan",
-      onPress: () => navigation.navigate("Subscription"),
+      onPress: () => comingSoon("Subscription"),
     },
     {
       icon: "shield-checkmark-outline",
       title: "Learning Badges Completed",
       subtitle: "Review your completed streaks and badges",
-      onPress: () => navigation.navigate("Badges"),
+      onPress: () => comingSoon("Learning Badges Completed"),
     },
     {
       icon: "log-out-outline",
       title: "Log out",
       subtitle: "Further secure your account for safety",
       onPress: () => {
-        // handle logout logic here
+        handleLogout();
       },
       danger: true,
     },
@@ -70,18 +71,18 @@ export default function ProfileScreen({ signOut }) {
     { icon: "heart-outline", title: "About App", onPress: () => {} },
   ];
   const handleLogout = async () => {
-    await SecureStore.deleteItemAsync("userToken");
     signOut();
   };
 
   useEffect(() => {
     const getUserData = async () => {
-      await axios
-        .get("https://nawarny-be.onrender.com/api/v1/auth/profile")
+      await api
+        .get("/auth/profile")
         .then(response => {
           console.log("Profile data:", response.data);
-          setEmail(response.data.email);
-          setUserName(response.data.name);
+          const profile = response?.data?.data ?? response?.data ?? {};
+          setEmail(profile.email || "");
+          setUserName(profile.name || "");
         })
         .catch(error => {
           console.error("Failed to fetch profile data:", error);
