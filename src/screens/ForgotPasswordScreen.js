@@ -1,5 +1,5 @@
 // screens/ForgotPasswordScreen.js
-import { useState } from "react";
+import { useState, useRef } from "react";
 import {
   View,
   Text,
@@ -10,43 +10,277 @@ import {
   KeyboardAvoidingView,
   Platform,
   Alert,
+  ActivityIndicator,
 } from "react-native";
 
-export default function ForgotPasswordScreen() {
+export default function ForgotPasswordScreen({ navigation }) {
+  // ── Overall flow state ──
+  const [step, setStep] = useState(1); // 1 = email, 2 = otp, 3 = new password
+
+  // Step 1
   const [email, setEmail] = useState("");
+  
+  // Step 2 - OTP
+  const [otp, setOtp] = useState(["", "", "", "", "", ""]);
+  const otpRefs = useRef([]);
+
+  // Step 3 - New password
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+
+  // UI states
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const handleSubmit = async () => {
-    setMessage("");
-    setError("");
-    setLoading(true);
+  // ── Handlers ──
 
-    if (!email.trim()) {
-      setError("Please enter your email");
-      setLoading(false);
+  const handleSendResetRequest = async () => {
+    setError("");
+    setMessage("");
+    if (!email.trim() || !email.includes("@")) {
+      setError("Please enter a valid email");
       return;
     }
 
+    setLoading(true);
     try {
-      // TODO: Replace with real backend call later (e.g. Firebase, Supabase, your API)
-      // For now: fake delay + success message
-      await new Promise(resolve => setTimeout(resolve, 1200));
+      // TODO: Replace with real API call
+      await fetch("https://nawarny-be.onrender.com/password/reset-request", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ email }),
+      });// fake delay
 
-      setMessage(
-        "If an account with this email exists, you will receive a password reset link.",
-      );
-      setEmail(""); // clear input
-      Alert.alert("Success", "Reset link sent! Check your email.");
+      setMessage("If the email exists, OTP has been sent.");
+      Alert.alert("OTP Sent", "Check your email (and spam folder).");
+      setStep(2);
     } catch (err) {
-      setError("Something went wrong. Please try again later.");
-      Alert.alert(
-        "Error",
-        err?.message || "Failed to send reset link",
-      );
+      setError("Failed to send OTP. Try again.");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleVerifyOtp = async () => {
+    const otpCode = otp.join("");
+    if (otpCode.length !== 6 || !/^\d{6}$/.test(otpCode)) {
+      setError("Please enter a valid 6-digit OTP");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      // TODO: Replace with real verification
+      // await api.post('/password/verify-otp', { email, otp: otpCode });
+      await new Promise((r) => setTimeout(r, 1200));
+
+      Alert.alert("Success", "OTP verified!");
+      setError("");
+      setStep(3);
+    } catch (err) {
+      setError("Invalid or expired OTP.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleResetPassword = async () => {
+    if (!password || password.length < 6) {
+      setError("Password must be at least 6 characters");
+      return;
+    }
+    if (password !== confirmPassword) {
+      setError("Passwords do not match");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      // TODO: Replace with real API
+      // await api.post('/password/reset', { email, otp: otp.join(''), newPassword: password });
+      await new Promise((r) => setTimeout(r, 1500));
+
+      Alert.alert(
+        "Password Reset Successful",
+        "You can now sign in with your new password.",
+        [
+          {
+            text: "Go to Login",
+            onPress: () => navigation.navigate("Login"), // ← adjust route name
+          },
+        ]
+      );
+    } catch (err) {
+      setError("Failed to reset password. Try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // ── OTP input helpers ──
+  const handleOtpChange = (value, index) => {
+    if (isNaN(value)) return; // only numbers
+
+    const newOtp = [...otp];
+    newOtp[index] = value.slice(-1); // take last char
+    setOtp(newOtp);
+
+    // Auto focus next
+    if (value && index < 5) {
+      otpRefs.current[index + 1]?.focus();
+    }
+  };
+
+  const handleOtpKeyPress = ({ nativeEvent }, index) => {
+    if (nativeEvent.key === "Backspace" && otp[index] === "" && index > 0) {
+      otpRefs.current[index - 1]?.focus();
+    }
+  };
+
+  const handleOtpPaste = (text) => {
+    if (/^\d{6}$/.test(text)) {
+      setOtp(text.split(""));
+      otpRefs.current[5]?.focus(); // last field
+    }
+  };
+
+  // ── Render logic per step ──
+  const renderStep = () => {
+    if (step === 1) {
+      return (
+        <>
+          <Text style={styles.title}>Forgot Password</Text>
+          <Text style={styles.subtitle}>
+            Enter your email and we'll send you a reset OTP
+          </Text>
+
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Email</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="your.email@example.com"
+              value={email}
+              onChangeText={setEmail}
+              keyboardType="email-address"
+              autoCapitalize="none"
+              autoCorrect={false}
+            />
+          </View>
+
+          {error ? <Text style={styles.errorText}>{error}</Text> : null}
+          {message ? <Text style={styles.successText}>{message}</Text> : null}
+
+          <TouchableOpacity
+            style={[styles.button, loading && styles.buttonDisabled]}
+            onPress={handleSendResetRequest}
+            disabled={loading}
+          >
+            {loading ? (
+              <ActivityIndicator color="white" />
+            ) : (
+              <Text style={styles.buttonText}>Send OTP</Text>
+            )}
+          </TouchableOpacity>
+        </>
+      );
+    }
+
+    if (step === 2) {
+      return (
+        <>
+          <Text style={styles.title}>Enter OTP</Text>
+          <Text style={styles.subtitle}>
+            We've sent a 6-digit code to {email}
+          </Text>
+
+          <View style={styles.otpContainer}>
+            {otp.map((digit, index) => (
+              <TextInput
+                key={index}
+                ref={(ref) => (otpRefs.current[index] = ref)}
+                style={[
+                  styles.otpInput,
+                  digit ? styles.otpInputFilled : null,
+                ]}
+                value={digit}
+                onChangeText={(v) => handleOtpChange(v, index)}
+                onKeyPress={(e) => handleOtpKeyPress(e, index)}
+                keyboardType="number-pad"
+                maxLength={1}
+                autoCapitalize="none"
+                textAlign="center"
+                onPaste={(e) => handleOtpPaste(e.nativeEvent.text)} // iOS paste support
+              />
+            ))}
+          </View>
+
+          {error ? <Text style={styles.errorText}>{error}</Text> : null}
+
+          <TouchableOpacity
+            style={[styles.button, loading && styles.buttonDisabled]}
+            onPress={handleVerifyOtp}
+            disabled={loading}
+          >
+            {loading ? (
+              <ActivityIndicator color="white" />
+            ) : (
+              <Text style={styles.buttonText}>Verify OTP</Text>
+            )}
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.resendLink}>
+            <Text style={styles.resendText}>Resend OTP</Text>
+          </TouchableOpacity>
+        </>
+      );
+    }
+
+    if (step === 3) {
+      return (
+        <>
+          <Text style={styles.title}>Set New Password</Text>
+          <Text style={styles.subtitle}>Choose a strong password</Text>
+
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>New Password</Text>
+            <TextInput
+              style={styles.input}
+              value={password}
+              onChangeText={setPassword}
+              secureTextEntry
+              placeholder="At least 6 characters"
+            />
+          </View>
+
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Confirm Password</Text>
+            <TextInput
+              style={styles.input}
+              value={confirmPassword}
+              onChangeText={setConfirmPassword}
+              secureTextEntry
+              placeholder="Re-type password"
+            />
+          </View>
+
+          {error ? <Text style={styles.errorText}>{error}</Text> : null}
+
+          <TouchableOpacity
+            style={[styles.button, loading && styles.buttonDisabled]}
+            onPress={handleResetPassword}
+            disabled={loading}
+          >
+            {loading ? (
+              <ActivityIndicator color="white" />
+            ) : (
+              <Text style={styles.buttonText}>Reset Password</Text>
+            )}
+          </TouchableOpacity>
+        </>
+      );
     }
   };
 
@@ -54,63 +288,31 @@ export default function ForgotPasswordScreen() {
     <KeyboardAvoidingView
       behavior={Platform.OS === "ios" ? "padding" : "height"}
       style={styles.container}
+      keyboardVerticalOffset={Platform.OS === "ios" ? 64 : 0}
     >
       <View style={styles.inner}>
-        {/* Logo placeholder – later replace with <Image> or custom SVG component */}
-        <Image source={require("../assets/logo.png")} style={styles.logo} />
+        {/* You can keep your logo here */}
+        {/* <Image source={...} style={styles.logo} /> */}
 
-        <Text style={styles.title}>Forgot Password</Text>
-        <Text style={styles.subtitle}>
-          Enter your email and we'll send you a reset link
-        </Text>
+        {renderStep()}
 
-        <View style={styles.inputGroup}>
-          <Text style={styles.label}>Email</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="your.email@example.com"
-            value={email}
-            onChangeText={setEmail}
-            keyboardType="email-address"
-            autoCapitalize="none"
-            autoCorrect={false}
-          />
-        </View>
-
-        {error ? <Text style={styles.errorText}>{error}</Text> : null}
-        {message ? <Text style={styles.successText}>{message}</Text> : null}
-
-        <TouchableOpacity
-          style={[styles.button, loading && styles.buttonDisabled]}
-          onPress={handleSubmit}
-          disabled={loading}
-        >
-          <Text style={styles.buttonText}>
-            {loading ? "Sending..." : "Send Reset Link"}
-          </Text>
-        </TouchableOpacity>
+        {step > 1 && (
+          <TouchableOpacity
+            style={styles.backLink}
+            onPress={() => setStep(step - 1)}
+          >
+            <Text style={styles.backText}>← Back</Text>
+          </TouchableOpacity>
+        )}
       </View>
     </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#f8fafc",
-  },
-  inner: {
-    flex: 1,
-    justifyContent: "center",
-    paddingHorizontal: 30,
-  },
-  logo: {
-    width: 130,
-    height: 130,
-    marginBottom: 32,
-    marginLeft: 100,
-    resizeMode: "contain",
-  },
+  container: { flex: 1, backgroundColor: "#f8fafc" },
+  inner: { flex: 1, justifyContent: "center", paddingHorizontal: 30 },
+
   title: {
     fontSize: 28,
     fontWeight: "bold",
@@ -124,9 +326,8 @@ const styles = StyleSheet.create({
     textAlign: "center",
     marginBottom: 40,
   },
-  inputGroup: {
-    marginBottom: 20,
-  },
+
+  inputGroup: { marginBottom: 20 },
   label: {
     fontSize: 14,
     fontWeight: "500",
@@ -141,6 +342,28 @@ const styles = StyleSheet.create({
     fontSize: 16,
     backgroundColor: "white",
   },
+
+  // ── OTP styles ──
+  otpContainer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: 30,
+  },
+  otpInput: {
+    width: 50,
+    height: 56,
+    borderWidth: 1.5,
+    borderColor: "#cbd5e1",
+    borderRadius: 12,
+    fontSize: 24,
+    textAlign: "center",
+    backgroundColor: "white",
+  },
+  otpInputFilled: {
+    borderColor: "#3b82f6",
+    backgroundColor: "#eff6ff",
+  },
+
   button: {
     backgroundColor: "#3b82f6",
     padding: 16,
@@ -148,14 +371,13 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginTop: 12,
   },
-  buttonDisabled: {
-    backgroundColor: "#93c5fd",
-  },
+  buttonDisabled: { backgroundColor: "#93c5fd" },
   buttonText: {
     color: "white",
     fontSize: 16,
     fontWeight: "600",
   },
+
   errorText: {
     color: "#ef4444",
     fontSize: 14,
@@ -165,7 +387,6 @@ const styles = StyleSheet.create({
     padding: 10,
     borderRadius: 8,
   },
-
   successText: {
     color: "#15803d",
     fontSize: 14,
@@ -175,4 +396,10 @@ const styles = StyleSheet.create({
     padding: 10,
     borderRadius: 8,
   },
+
+  resendLink: { alignItems: "center", marginTop: 20 },
+  resendText: { color: "#3b82f6", fontWeight: "500" },
+
+  backLink: { marginTop: 40, alignItems: "center" },
+  backText: { color: "#64748b", fontSize: 16 },
 });
