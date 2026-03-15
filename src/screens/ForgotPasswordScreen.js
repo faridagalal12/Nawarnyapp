@@ -98,8 +98,10 @@ export default function ForgotPasswordScreen({ navigation }) {
   };
 
   const handleResetPassword = async () => {
-    if (!password || password.length < 6) {
-      setError("Password must be at least 6 characters");
+    if (!password || password.length < 8) {
+      setError(
+        "Password must be at least 8 characters & contain uppercase, lowercase, number, and special character",
+      );
       return;
     }
     if (password !== confirmPassword) {
