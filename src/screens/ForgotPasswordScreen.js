@@ -58,7 +58,7 @@ export default function ForgotPasswordScreen({ navigation }) {
       }
 
       setMessage("If the email exists, OTP has been sent.");
-      Alert.alert("OTP Sent", "Check your email (and spam folder).");
+      Alert.alert("OTP Sent", "Check your email.");
       setStep(2);
     } catch (err) {
       setError("Failed to send OTP. Try again.");
@@ -112,7 +112,11 @@ export default function ForgotPasswordScreen({ navigation }) {
       const response = await fetch(`${BASE_URL}/reset-password`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, otp: otp.join(""), newPassword: password }),
+        body: JSON.stringify({
+          email,
+          otp: otp.join(""),
+          newPassword: password,
+        }),
       });
 
       if (!response.ok) {
@@ -124,7 +128,7 @@ export default function ForgotPasswordScreen({ navigation }) {
       Alert.alert(
         "Password Reset Successful",
         "You can now sign in with your new password.",
-        [{ text: "Go to Login", onPress: () => navigation.navigate("Login") }]
+        [{ text: "Go to Login", onPress: () => navigation.navigate("Login") }],
       );
     } catch (err) {
       setError("Failed to reset password. Try again.");
@@ -152,7 +156,7 @@ export default function ForgotPasswordScreen({ navigation }) {
     }
   };
 
-  const handleOtpPaste = (text) => {
+  const handleOtpPaste = text => {
     if (/^\d{6}$/.test(text)) {
       setOtp(text.split(""));
       otpRefs.current[5]?.focus();
@@ -212,16 +216,16 @@ export default function ForgotPasswordScreen({ navigation }) {
             {otp.map((digit, index) => (
               <TextInput
                 key={index}
-                ref={(ref) => (otpRefs.current[index] = ref)}
+                ref={ref => (otpRefs.current[index] = ref)}
                 style={[styles.otpInput, digit ? styles.otpInputFilled : null]}
                 value={digit}
-                onChangeText={(v) => handleOtpChange(v, index)}
-                onKeyPress={(e) => handleOtpKeyPress(e, index)}
+                onChangeText={v => handleOtpChange(v, index)}
+                onKeyPress={e => handleOtpKeyPress(e, index)}
                 keyboardType="number-pad"
                 maxLength={1}
                 autoCapitalize="none"
                 textAlign="center"
-                onPaste={(e) => handleOtpPaste(e.nativeEvent.text)}
+                onPaste={e => handleOtpPaste(e.nativeEvent.text)}
               />
             ))}
           </View>
