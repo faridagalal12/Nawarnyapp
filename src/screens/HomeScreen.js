@@ -3,7 +3,7 @@ import { StyleSheet, Text, View, ScrollView } from "react-native";
 import { Button } from "galio-framework";
 import { useNavigation } from "@react-navigation/native";
 
-import Reels from "../components/Reels.js";
+import Reels from "../components/Reels";
 
 export default function HomeScreen({ title = "Home" }) {
   const navigation = useNavigation();
