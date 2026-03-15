@@ -23,7 +23,7 @@ function VideoItem({ uri, isActive }) {
   const [saved, setSaved] = useState(false);
   const [likes, setLikes] = useState(128);
 
-  const player = useVideoPlayer(uri, (p) => {
+  const player = useVideoPlayer(uri, p => {
     p.loop = true;
     p.muted = true;
   });
@@ -44,7 +44,6 @@ function VideoItem({ uri, isActive }) {
   return (
     // ✅ Fix: exact screen height, overflow hidden
     <View style={styles.videoContainer}>
-
       <VideoView
         player={player}
         style={StyleSheet.absoluteFill}
@@ -54,7 +53,6 @@ function VideoItem({ uri, isActive }) {
 
       {/* RIGHT SIDE ACTIONS - fixed position */}
       <View style={styles.actions}>
-
         <TouchableOpacity onPress={handleLike} style={styles.actionBtn}>
           <Ionicons
             name={liked ? "heart" : "heart-outline"}
@@ -69,7 +67,10 @@ function VideoItem({ uri, isActive }) {
           <Text style={styles.actionText}>48</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity onPress={() => setSaved(!saved)} style={styles.actionBtn}>
+        <TouchableOpacity
+          onPress={() => setSaved(!saved)}
+          style={styles.actionBtn}
+        >
           <Ionicons
             name={saved ? "bookmark" : "bookmark-outline"}
             size={30}
@@ -82,7 +83,6 @@ function VideoItem({ uri, isActive }) {
           <Ionicons name="arrow-redo-outline" size={30} color="white" />
           <Text style={styles.actionText}>Share</Text>
         </TouchableOpacity>
-
       </View>
     </View>
   );
@@ -104,11 +104,11 @@ export default function Reels() {
   return (
     <FlatList
       data={videos}
-      keyExtractor={(item) => item.id}
+      keyExtractor={item => item.id}
       pagingEnabled
-      snapToInterval={height}        // ✅ snaps exactly to screen height
-      snapToAlignment="start"        //
-      decelerationRate="fast"        
+      snapToInterval={height} // ✅ snaps exactly to screen height
+      snapToAlignment="start" //
+      decelerationRate="fast"
       showsVerticalScrollIndicator={false}
       onViewableItemsChanged={onViewableItemsChanged.current}
       viewabilityConfig={viewabilityConfig.current}
@@ -121,15 +121,15 @@ export default function Reels() {
 
 const styles = StyleSheet.create({
   videoContainer: {
-    height: height,        
+    height: height,
     width: width,
-    overflow: "hidden",    //
+    overflow: "hidden", //
     backgroundColor: "#000",
   },
   actions: {
     position: "absolute",
     right: 15,
-    bottom: 120,           //
+    bottom: 120, //
     alignItems: "center",
     gap: 24,
   },
