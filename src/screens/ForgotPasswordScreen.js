@@ -46,7 +46,7 @@ export default function ForgotPasswordScreen({ navigation }) {
     setLoading(true);
     try {
       // TODO: Replace with real API call
-      await fetch("https://nawarny-be.onrender.com/password/reset-request", {
+      await fetch("https://nawarny-be.onrender.com/api/v1/auth/forgot-password", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -70,14 +70,15 @@ export default function ForgotPasswordScreen({ navigation }) {
       setError("Please enter a valid 6-digit OTP");
       return;
     }
-
+  
     setLoading(true);
     try {
-      // TODO: Replace with real verification
-      // await api.post('/password/verify-otp', { email, otp: otpCode });
-      await new Promise((r) => setTimeout(r, 1200));
-
-      Alert.alert("Success", "OTP verified!");
+      await fetch("https://nawarny-be.onrender.com/password/verify-otp", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, otp: otpCode }),
+      });
+  
       setError("");
       setStep(3);
     } catch (err) {
