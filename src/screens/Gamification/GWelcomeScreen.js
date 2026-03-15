@@ -1,4 +1,4 @@
-﻿import React from 'react';
+import React from 'react';
 import {
   View,
   Text,
@@ -9,247 +9,478 @@ import {
   SafeAreaView,
   StatusBar,
   Platform,
+  useWindowDimensions,
 } from 'react-native';
 
-const LAMP_IMAGE = require('../../assets/lamp.png');
+// ─────────────────────────────────────────────────────
+//  ASSETS — replace with your actual paths
+// ─────────────────────────────────────────────────────
+const LAMP_IMAGE  = require('../../assets/lamp1.png');
+const BRAIN_IMAGE = require('../../assets/brain.png');
+// ─────────────────────────────────────────────────────
 
-const BLUE = '#4BAEE8';
-const YELLOW_BG = '#FFF9D6';
-const GOLD = '#F5A623';
+const BLUE      = '#5BA8E8';
+const YELLOW_BG = '#FAF5B8';
+const DARK      = '#1A1A2E';
 
 const categories = ['Business', 'History', 'Chemistry', 'Career Skills', 'UI/UX Design'];
 
 export default function GWelcomeScreen() {
+  const { height } = useWindowDimensions();
+
   return (
     <SafeAreaView style={styles.safe}>
-      <StatusBar barStyle="dark-content" backgroundColor="#fff" />
+      <StatusBar barStyle="dark-content" backgroundColor="#F7F8FA" />
 
       <ScrollView
         style={styles.scroll}
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[styles.scrollContent, { minHeight: height }]}
         showsVerticalScrollIndicator={false}
       >
-        {/* --- TOP BAR --- */}
-        <View style={styles.topBar}>
-          <View style={styles.gemRow}>
-            <Text style={styles.gemIcon}>💎</Text>
-            <Text style={styles.gemText}>12</Text>
-            <Text style={[styles.gemIcon, { marginLeft: 12 }]}>🟡</Text>
-            <Text style={styles.gemText}>1,214</Text>
+        {/* ════════════════════════════
+            BACKGROUND — light grey top
+        ════════════════════════════ */}
+        <View style={styles.topSection}>
+
+          {/* ── Top bar: gems & coins ── */}
+          <View style={styles.topBar}>
+            <View style={styles.currencyPill}>
+              {/* Diamond icon */}
+              <View style={styles.diamondIcon}>
+                <View style={styles.diamondInner} />
+              </View>
+              <Text style={styles.currencyText}>12</Text>
+
+              <View style={styles.currencyDivider} />
+
+              {/* Coin icon */}
+              <View style={styles.coinIcon} />
+              <Text style={styles.currencyText}>1,214</Text>
+            </View>
+          </View>
+
+          {/* ── Hero ── */}
+          <View style={styles.hero}>
+            <View style={styles.heroTextBlock}>
+              <Text style={styles.welcomeTitle}>Welcome{'\n'}Back!</Text>
+              <Text style={styles.welcomeSub}>Ready to level up{'\n'}your skills</Text>
+            </View>
+            <Image source={LAMP_IMAGE} style={styles.lampImage} resizeMode="contain" />
           </View>
         </View>
 
-        {/* --- HERO SECTION --- */}
-        <View style={styles.hero}>
-          <View style={styles.heroText}>
-            <Text style={styles.welcomeTitle}>Welcome Back!</Text>
-            <Text style={styles.welcomeSub}>Ready to level up{'\n'}your skills</Text>
-          </View>
-          <Image source={LAMP_IMAGE} style={styles.lampImage} resizeMode="contain" />
-        </View>
-
-        {/* --- BOTTOM CARD --- */}
+        {/* ════════════════════════════
+            WHITE CARD
+        ════════════════════════════ */}
         <View style={styles.card}>
+
+          {/* Notch tab */}
+          <View style={styles.notchTab} />
+
           {/* Back arrow */}
-          <TouchableOpacity style={styles.backBtn}>
+          <TouchableOpacity style={styles.backBtn} activeOpacity={0.7}>
             <Text style={styles.backArrow}>←</Text>
           </TouchableOpacity>
 
-          {/* Category chips */}
-          <View style={styles.chipsContainer}>
-            {categories.map((cat) => (
-              <TouchableOpacity key={cat} style={styles.chip}>
-                <Text style={styles.chipText}>{cat}</Text>
+          {/* ── Category chips ── */}
+          <View style={styles.chipsSection}>
+
+            {/* Row 1: Business + History + See all */}
+            <View style={styles.chipRowBetween}>
+              <View style={styles.chipRow}>
+                <TouchableOpacity style={styles.chip} activeOpacity={0.8}>
+                  <Text style={styles.chipText}>{categories[0]}</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.chip} activeOpacity={0.8}>
+                  <Text style={styles.chipText}>{categories[1]}</Text>
+                </TouchableOpacity>
+              </View>
+              <TouchableOpacity style={styles.seeAllBtn} activeOpacity={0.7}>
+                <Text style={styles.seeAllText}>See all</Text>
               </TouchableOpacity>
-            ))}
-            <TouchableOpacity>
-              <Text style={styles.seeAll}>See all</Text>
-            </TouchableOpacity>
+            </View>
+
+            {/* Row 2: Chemistry + Career Skills */}
+            <View style={styles.chipRow}>
+              <TouchableOpacity style={styles.chip} activeOpacity={0.8}>
+                <Text style={styles.chipText}>{categories[2]}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.chip} activeOpacity={0.8}>
+                <Text style={styles.chipText}>{categories[3]}</Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* Row 3: UI/UX Design */}
+            <View style={styles.chipRow}>
+              <TouchableOpacity style={styles.chip} activeOpacity={0.8}>
+                <Text style={styles.chipText}>{categories[4]}</Text>
+              </TouchableOpacity>
+            </View>
           </View>
 
-          {/* Skill Unlocked Banner */}
+          {/* ── Skill Unlocked Banner ── */}
           <View style={styles.skillBanner}>
-            <View style={styles.skillBannerLeft}>
-              <Text style={styles.skillUnlockedLabel}>Skill Unlocked!</Text>
-              <Text style={styles.skillTitle}>Critical Thinking</Text>
+
+            {/* Left content */}
+            <View style={styles.bannerLeft}>
+              <Text style={styles.skillUnlockedTitle}>Skill Unlocked!</Text>
+              <Text style={styles.skillName}>Critical Thinking</Text>
               <Text style={styles.skillDesc}>
                 Deep Dive Into Problem Solving{'\n'}&amp; Decision-Making
               </Text>
-              <View style={styles.skillRewards}>
-                <Text style={styles.rewardIcon}>💎</Text>
-                <Text style={styles.rewardText}>312</Text>
-                <Text style={[styles.rewardIcon, { marginLeft: 10 }]}>🟡</Text>
-                <Text style={styles.rewardText}>3000</Text>
+
+              {/* Reward pill */}
+              <View style={styles.rewardPill}>
+                {/* Diamond */}
+                <View style={[styles.diamondIcon, { width: 14, height: 14 }]}>
+                  <View style={[styles.diamondInner, { width: 8, height: 8 }]} />
+                </View>
+                <Text style={styles.rewardValue}>312</Text>
+
+                <View style={styles.rewardDivider} />
+
+                {/* Coin */}
+                <View style={[styles.coinIcon, { width: 14, height: 14, backgroundColor: '#F5C542' }]} />
+                <Text style={styles.rewardValue}>3000</Text>
               </View>
+
+              {/* CTA button */}
+              <TouchableOpacity style={styles.ctaBtn} activeOpacity={0.85}>
+                <Text style={styles.ctaBtnText}>Check it out now</Text>
+              </TouchableOpacity>
             </View>
-            {/* Brain mascot placeholder — swap with your asset */}
-            <View style={styles.brainPlaceholder}>
-              <Text style={{ fontSize: 52 }}>🧠</Text>
-            </View>
+
+            {/* Brain mascot */}
+            <Image
+              source={BRAIN_IMAGE}
+              style={styles.brainImage}
+              resizeMode="contain"
+            />
           </View>
+
         </View>
+        {/* end card */}
       </ScrollView>
+
+      {/* YOUR NAVIGATION COMPONENT GOES HERE */}
     </SafeAreaView>
   );
 }
 
+// ─────────────────────────────────────────────────────
+//  STYLES
+// ─────────────────────────────────────────────────────
 const styles = StyleSheet.create({
+
   safe: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: '#F7F8FA',
   },
-  scroll: {
-    flex: 1,
-  },
-  scrollContent: {
-    paddingBottom: 80,
+  scroll: { flex: 1 },
+  scrollContent: { flexGrow: 1, paddingBottom: 20 },
+
+  // ── Top section (grey bg behind hero)
+  topSection: {
+    backgroundColor: '#F7F8FA',
+    paddingBottom: 25,
   },
 
-  // --- TOP BAR
+  // ── Top bar
   topBar: {
     flexDirection: 'row',
     justifyContent: 'flex-end',
-    paddingHorizontal: 20,
-    paddingTop: Platform.OS === 'android' ? 12 : 4,
+    paddingHorizontal: 22,
+    paddingTop: Platform.OS === 'android' ? 14 : 8,
+    paddingBottom: 6,
   },
-  gemRow: {
+  currencyPill: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F5F5F5',
-    borderRadius: 20,
-    paddingHorizontal: 12,
-    paddingVertical: 4,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 30,
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
+    elevation: 4,
+    borderWidth: 1,
+    borderColor: '#EBEBEB',
   },
-  gemIcon: { fontSize: 14 },
-  gemText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#333',
-    marginLeft: 4,
+  currencyText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: DARK,
+    marginLeft: 5,
+  },
+  currencyDivider: {
+    width: 1,
+    height: 14,
+    backgroundColor: '#E0E0E0',
+    marginHorizontal: 10,
   },
 
-  // --- HERO
+  // Diamond icon (CSS-drawn)
+  diamondIcon: {
+    width: 16,
+    height: 16,
+    backgroundColor: '#6EC6F5',
+    transform: [{ rotate: '45deg' }],
+    borderRadius: 2,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  diamondInner: {
+    width: 8,
+    height: 8,
+    backgroundColor: '#A8DFFB',
+    borderRadius: 1,
+  },
+
+  // Coin icon
+  coinIcon: {
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    backgroundColor: '#F5C542',
+    borderWidth: 2,
+    borderColor: '#E6A800',
+    shadowColor: '#F5C542',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.5,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+
+  // ── Hero
   hero: {
     flexDirection: 'row',
     alignItems: 'flex-end',
-    paddingHorizontal: 24,
-    paddingTop: 16,
-    paddingBottom: 32,
-    backgroundColor: '#fff',
+    paddingHorizontal: 28,
+    paddingTop: 10,
+    paddingBottom: 8,
   },
-  heroText: { flex: 1 },
+  heroTextBlock: { flex: 1 },
   welcomeTitle: {
-    fontSize: 28,
-    fontWeight: '800',
-    color: '#1A1A2E',
-    marginBottom: 6,
+    fontSize: 40,
+    fontWeight: '900',
+    color: DARK,
+    marginBottom: 10,
+    letterSpacing: -1,
+    lineHeight: 46,
   },
   welcomeSub: {
-    fontSize: 17,
-    fontWeight: '600',
-    color: '#333',
-    lineHeight: 24,
+    fontSize: 18,
+    fontWeight: '500',
+    color: '#4A4A6A',
+    lineHeight: 26,
   },
   lampImage: {
-    width: 130,
-    height: 130,
-    marginBottom: -10,
+    width: 180,
+    height: 180,
+    marginBottom: -20,
   },
 
-  // --- CARD
+  // ── White card
   card: {
-    backgroundColor: '#fff',
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
-    marginTop: -20,
-    paddingHorizontal: 20,
-    paddingTop: 20,
-    paddingBottom: 24,
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: 34,
+    borderTopRightRadius: 34,
+    paddingHorizontal: 22,
+    paddingTop: 10,
+    paddingBottom: 30,
+    marginTop: -4,
+    flex: 1,
+    // Card shadow
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: -3 },
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    elevation: 6,
-    minHeight: 420,
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.07,
+    shadowRadius: 12,
+    elevation: 16,
   },
-  backBtn: {
+
+  // Notch tab on card
+  notchTab: {
+    alignSelf: 'center',
+    width: 44,
+    height: 5,
+    borderRadius: 3,
+    backgroundColor: '#D8DAE0',
     marginBottom: 16,
+    marginTop: 4,
+  },
+
+  // Back button
+  backBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: '#F3F4F8',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.07,
+    shadowRadius: 4,
+    elevation: 2,
   },
   backArrow: {
-    fontSize: 22,
-    color: '#333',
-  },
-
-  // --- CHIPS
-  chipsContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    alignItems: 'center',
-    gap: 10,
-    marginBottom: 24,
-  },
-  chip: {
-    backgroundColor: BLUE,
-    borderRadius: 50,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-  },
-  chipText: {
-    color: '#fff',
+    fontSize: 20,
+    color: '#374151',
     fontWeight: '600',
-    fontSize: 14,
-  },
-  seeAll: {
-    color: '#555',
-    fontSize: 14,
-    fontWeight: '500',
-    marginLeft: 4,
   },
 
-  // --- SKILL BANNER
-  skillBanner: {
-    backgroundColor: YELLOW_BG,
-    borderRadius: 20,
-    padding: 18,
+  // ── Chips
+  chipsSection: {
+    gap: 12,
+    marginBottom: 28,
+  },
+  chipRowBetween: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
   },
-  skillBannerLeft: { flex: 1 },
-  skillUnlockedLabel: {
-    fontSize: 18,
-    fontWeight: '800',
-    color: '#1A1A2E',
-    marginBottom: 4,
-  },
-  skillTitle: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: '#1A1A2E',
-    marginBottom: 4,
-  },
-  skillDesc: {
-    fontSize: 13,
-    color: '#555',
-    lineHeight: 19,
-    marginBottom: 10,
-  },
-  skillRewards: {
+  chipRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 12,
   },
-  rewardIcon: { fontSize: 14 },
-  rewardText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#333',
+  chip: {
+    backgroundColor: BLUE,
+    borderRadius: 50,
+    paddingHorizontal: 20,
+    paddingVertical: 11,
+    shadowColor: BLUE,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.35,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  chipText: {
+    color: '#FFFFFF',
+    fontWeight: '700',
+    fontSize: 15,
+    letterSpacing: 0.1,
+  },
+  seeAllBtn: {
+    paddingHorizontal: 16,
+    paddingVertical: 9,
+    borderRadius: 20,
+    backgroundColor: '#F3F4F8',
+    borderWidth: 1,
+    borderColor: '#E2E4EC',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.06,
+    shadowRadius: 3,
+    elevation: 2,
+  },
+  seeAllText: {
+    color: DARK,
+    fontSize: 15,
+    fontWeight: '700',
+  },
+
+  // ── Skill Banner
+  skillBanner: {
+    backgroundColor: YELLOW_BG,
+    borderRadius: 26,
+    padding: 22,
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    justifyContent: 'space-between',
+    shadowColor: '#D4B800',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.22,
+    shadowRadius: 16,
+    elevation: 12,
+    borderWidth: 1,
+    borderColor: '#EEE090',
+    overflow: 'visible',
+  },
+  bannerLeft: {
+    flex: 1,
+    paddingRight: 8,
+  },
+  skillUnlockedTitle: {
+    fontSize: 25,
+    fontWeight: '800',
+    color: DARK,
+    marginBottom: 4,
+  },
+  skillName: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: DARK,
+    marginBottom: 5,
+  },
+  skillDesc: {
+    fontSize: 17,
+    color: '#555',
+    lineHeight: 20,
+    marginBottom: 14,
+  },
+
+  // Reward pill
+  rewardPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderWidth: 1,
+    borderColor: '#E8DFA0',
+    marginBottom: 14,
+    gap: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.07,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  rewardValue: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: DARK,
     marginLeft: 4,
   },
-  brainPlaceholder: {
-    width: 80,
-    height: 80,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginLeft: 8,
+  rewardDivider: {
+    width: 1,
+    height: 12,
+    backgroundColor: '#DDD',
+    marginHorizontal: 8,
   },
+
+  // CTA button
+  ctaBtn: {
+    backgroundColor: BLUE,
+    borderRadius: 16,
+    paddingVertical: 13,
+    paddingHorizontal: 20,
+    alignItems: 'center',
+    shadowColor: BLUE,
+    shadowOffset: { width: 0, height: 5 },
+    shadowOpacity: 0.4,
+    shadowRadius: 10,
+    elevation: 8,
+  },
+  ctaBtnText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '800',
+    letterSpacing: 0.2,
+  },
+
+  // Brain image
+  brainImage: {
+    width: 150,
+    height: 170,
+    marginBottom: -22,
+    alignSelf: 'flex-end',
+  },
+
 });
