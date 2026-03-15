@@ -1,42 +1,53 @@
-import React from "react";
-import { StyleSheet, Text, View, ScrollView } from "react-native";
-import { Button } from "galio-framework";
-import { useNavigation } from "@react-navigation/native";
-
+import React, { useState } from "react";
+import {
+  StyleSheet,
+  Text,
+  View,
+  TouchableOpacity,
+} from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import Reels from "../components/Reels";
 
-export default function HomeScreen({ title = "Home" }) {
-  const navigation = useNavigation();
+export default function HomeScreen() {
+  const [activeTab, setActiveTab] = useState("forYou");
 
   return (
     <View style={styles.container}>
-      
-      {/* REELS SECTION */}
+
+      {/* TOP BAR */}
+      <View style={styles.topBar}>
+
+        {/* FOLLOWING TAB */}
+        <TouchableOpacity onPress={() => setActiveTab("following")}>
+          <Text style={[
+            styles.tabText,
+            activeTab === "following" && styles.activeTabText
+          ]}>
+            Following
+          </Text>
+          {activeTab === "following" && <View style={styles.underline} />}
+        </TouchableOpacity>
+
+        {/* FOR YOU TAB */}
+        <TouchableOpacity onPress={() => setActiveTab("forYou")}>
+          <Text style={[
+            styles.tabText,
+            activeTab === "forYou" && styles.activeTabText
+          ]}>
+            For You
+          </Text>
+          {activeTab === "forYou" && <View style={styles.underline} />}
+        </TouchableOpacity>
+
+        {/* SEARCH ICON */}
+        <Ionicons name="search-outline" size={22} color="#fff" />
+
+      </View>
+
+      {/* REELS */}
       <View style={styles.reelsContainer}>
         <Reels />
       </View>
-
-      {/* COURSE SECTION */}
-      <ScrollView style={styles.courseContainer}>
-        <Text style={styles.courseTitle}>Suggested Courses For You</Text>
-
-        <View style={styles.courseCard}>
-          <Text style={styles.courseText}>Digital Marketing Basics</Text>
-        </View>
-
-        <View style={styles.courseCard}>
-          <Text style={styles.courseText}>Business Content Creation</Text>
-        </View>
-
-        <View style={styles.courseCard}>
-          <Text style={styles.courseText}>Branding For Entrepreneurs</Text>
-        </View>
-
-        <View style={styles.courseCard}>
-          <Text style={styles.courseText}>Startup Fundamentals</Text>
-        </View>
-
-      </ScrollView>
 
     </View>
   );
@@ -45,36 +56,40 @@ export default function HomeScreen({ title = "Home" }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#fff",
+    backgroundColor: "#000",
   },
-
-  reelsContainer: {
-    height: 450,
+  topBar: {
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    gap: 20,
+    paddingHorizontal: 20,
+    paddingTop: 100,
+    paddingBottom: 10,
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 10,
   },
-
-  courseContainer: {
-    backgroundColor: "#e6edf5",
-    padding: 15,
-  },
-
-  courseTitle: {
-    fontSize: 18,
-    fontWeight: "bold",
-    marginBottom: 15,
-  },
-
-  courseCard: {
-    backgroundColor: "#fff",
-    padding: 15,
-    borderRadius: 10,
-    marginBottom: 10,
-  },
-
-  courseText: {
+  tabText: {
     fontSize: 16,
+    fontWeight: "400",
+    color: "rgba(255,255,255,0.6)",
+    paddingBottom: 4,
+    textAlign: "center",
   },
-
-  quizButton: {
-    marginTop: 20,
+  activeTabText: {
+    fontWeight: "bold",
+    color: "#fff",
+  },
+  underline: {
+    height: 2,
+    backgroundColor: "#fff",
+    borderRadius: 2,
+    marginTop: 2,
+  },
+  reelsContainer: {
+    flex: 1,
   },
 });
