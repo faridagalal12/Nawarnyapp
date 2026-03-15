@@ -2,6 +2,7 @@ import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import HomeScreen from "../screens/HomeScreen";
 import ProfileScreen from "../screens/ProfileScreen";
 import GWelcomeScreen from "../screens/Gamification/GWelcomeScreen";
+import CoursesScreen from "../screens/CourseScreen";
 import { Entypo, FontAwesome, Ionicons } from "@expo/vector-icons";
 import { TouchableOpacity } from "react-native";
 
@@ -26,7 +27,7 @@ export default function MyTabs({ signOut }) {
       />
       <Tab.Screen
         name="Courses"
-        children={() => <HomeScreen title={"Courses"} />}
+        component={CoursesScreen}
         options={{
           headerShown: false,
           tabBarIcon: ({ color, size }) => (
