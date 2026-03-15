@@ -23,8 +23,8 @@ export default function ProfileScreen({ signOut }) {
     Alert.alert("Coming soon", `${title} is not available yet.`);
   };
   const user = {
-    name: "Laila Assem",
-    username: "@LailaAssem",
+    name: "--------",
+    username: "@---------",
     avatar: null, // can be url or require('./assets/avatar.jpg')
   };
   const [userName, setUserName] = React.useState(user.name);
