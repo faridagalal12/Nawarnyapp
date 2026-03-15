@@ -6,20 +6,20 @@ import {
   TextInput,
   TouchableOpacity,
   StyleSheet,
-  Image,
   KeyboardAvoidingView,
   Platform,
   Alert,
   ActivityIndicator,
 } from "react-native";
 
+const BASE_URL = "https://nawarny-be.onrender.com/api/v1/auth";
+
 export default function ForgotPasswordScreen({ navigation }) {
-  // ── Overall flow state ──
   const [step, setStep] = useState(1); // 1 = email, 2 = otp, 3 = new password
 
   // Step 1
   const [email, setEmail] = useState("");
-  
+
   // Step 2 - OTP
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
   const otpRefs = useRef([]);
@@ -45,14 +45,17 @@ export default function ForgotPasswordScreen({ navigation }) {
 
     setLoading(true);
     try {
-      // TODO: Replace with real API call
-      await fetch("https://nawarny-be.onrender.com/api/v1/auth/forgot-password", {
+      const response = await fetch(`${BASE_URL}/forgot-password`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email }),
-      });// fake delay
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        setError(data.message || "Failed to send OTP. Try again.");
+        return;
+      }
 
       setMessage("If the email exists, OTP has been sent.");
       Alert.alert("OTP Sent", "Check your email (and spam folder).");
@@ -70,15 +73,21 @@ export default function ForgotPasswordScreen({ navigation }) {
       setError("Please enter a valid 6-digit OTP");
       return;
     }
-  
+
     setLoading(true);
     try {
-      await fetch("https://nawarny-be.onrender.com/password/verify-otp", {
+      const response = await fetch(`${BASE_URL}/verify-otp`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, otp: otpCode }),
       });
-  
+
+      if (!response.ok) {
+        const data = await response.json();
+        setError(data.message || "Invalid or expired OTP.");
+        return;
+      }
+
       setError("");
       setStep(3);
     } catch (err) {
@@ -100,19 +109,22 @@ export default function ForgotPasswordScreen({ navigation }) {
 
     setLoading(true);
     try {
-      // TODO: Replace with real API
-      // await api.post('/password/reset', { email, otp: otp.join(''), newPassword: password });
-      await new Promise((r) => setTimeout(r, 1500));
+      const response = await fetch(`${BASE_URL}/reset-password`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, otp: otp.join(""), newPassword: password }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        setError(data.message || "Failed to reset password. Try again.");
+        return;
+      }
 
       Alert.alert(
         "Password Reset Successful",
         "You can now sign in with your new password.",
-        [
-          {
-            text: "Go to Login",
-            onPress: () => navigation.navigate("Login"), // ← adjust route name
-          },
-        ]
+        [{ text: "Go to Login", onPress: () => navigation.navigate("Login") }]
       );
     } catch (err) {
       setError("Failed to reset password. Try again.");
@@ -123,13 +135,12 @@ export default function ForgotPasswordScreen({ navigation }) {
 
   // ── OTP input helpers ──
   const handleOtpChange = (value, index) => {
-    if (isNaN(value)) return; // only numbers
+    if (isNaN(value)) return;
 
     const newOtp = [...otp];
-    newOtp[index] = value.slice(-1); // take last char
+    newOtp[index] = value.slice(-1);
     setOtp(newOtp);
 
-    // Auto focus next
     if (value && index < 5) {
       otpRefs.current[index + 1]?.focus();
     }
@@ -144,7 +155,7 @@ export default function ForgotPasswordScreen({ navigation }) {
   const handleOtpPaste = (text) => {
     if (/^\d{6}$/.test(text)) {
       setOtp(text.split(""));
-      otpRefs.current[5]?.focus(); // last field
+      otpRefs.current[5]?.focus();
     }
   };
 
@@ -202,10 +213,7 @@ export default function ForgotPasswordScreen({ navigation }) {
               <TextInput
                 key={index}
                 ref={(ref) => (otpRefs.current[index] = ref)}
-                style={[
-                  styles.otpInput,
-                  digit ? styles.otpInputFilled : null,
-                ]}
+                style={[styles.otpInput, digit ? styles.otpInputFilled : null]}
                 value={digit}
                 onChangeText={(v) => handleOtpChange(v, index)}
                 onKeyPress={(e) => handleOtpKeyPress(e, index)}
@@ -213,7 +221,7 @@ export default function ForgotPasswordScreen({ navigation }) {
                 maxLength={1}
                 autoCapitalize="none"
                 textAlign="center"
-                onPaste={(e) => handleOtpPaste(e.nativeEvent.text)} // iOS paste support
+                onPaste={(e) => handleOtpPaste(e.nativeEvent.text)}
               />
             ))}
           </View>
@@ -232,7 +240,10 @@ export default function ForgotPasswordScreen({ navigation }) {
             )}
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.resendLink}>
+          <TouchableOpacity
+            style={styles.resendLink}
+            onPress={handleSendResetRequest}
+          >
             <Text style={styles.resendText}>Resend OTP</Text>
           </TouchableOpacity>
         </>
@@ -292,15 +303,15 @@ export default function ForgotPasswordScreen({ navigation }) {
       keyboardVerticalOffset={Platform.OS === "ios" ? 64 : 0}
     >
       <View style={styles.inner}>
-        {/* You can keep your logo here */}
-        {/* <Image source={...} style={styles.logo} /> */}
-
         {renderStep()}
 
         {step > 1 && (
           <TouchableOpacity
             style={styles.backLink}
-            onPress={() => setStep(step - 1)}
+            onPress={() => {
+              setError("");
+              setStep(step - 1);
+            }}
           >
             <Text style={styles.backText}>← Back</Text>
           </TouchableOpacity>
@@ -344,7 +355,6 @@ const styles = StyleSheet.create({
     backgroundColor: "white",
   },
 
-  // ── OTP styles ──
   otpContainer: {
     flexDirection: "row",
     justifyContent: "space-between",
