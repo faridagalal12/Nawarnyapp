@@ -19,8 +19,6 @@ import api from "../services/api";
 
 export default function ProfileScreen({ signOut }) {
   // You can later connect this to real user data (context, redux, firebase, etc.)
-  const [userName, setUserName] = React.useState("");
-  const [email, setEmail] = React.useState("");
   const comingSoon = title => {
     Alert.alert("Coming soon", `${title} is not available yet.`);
   };
@@ -29,6 +27,8 @@ export default function ProfileScreen({ signOut }) {
     username: "@LailaAssem",
     avatar: null, // can be url or require('./assets/avatar.jpg')
   };
+  const [userName, setUserName] = React.useState(user.name);
+  const [email, setEmail] = React.useState(user.username);
 
   const menuItems = [
     {
@@ -75,20 +75,23 @@ export default function ProfileScreen({ signOut }) {
   };
 
   useEffect(() => {
+    let isMounted = true;
     const getUserData = async () => {
-      await api
-        .get("/auth/profile")
-        .then(response => {
-          console.log("Profile data:", response.data);
-          const profile = response?.data?.data ?? response?.data ?? {};
-          setEmail(profile.email || "");
-          setUserName(profile.name || "");
-        })
-        .catch(error => {
-          console.error("Failed to fetch profile data:", error);
-        });
+      try {
+        const response = await api.get("/auth/profile");
+        const profile = response?.data?.data ?? response?.data ?? {};
+        if (!isMounted) return;
+        setEmail(profile.email || user.username || "");
+        setUserName(profile.name || user.name || "");
+      } catch (error) {
+        if (!isMounted) return;
+        // Keep fallback profile data when the backend is unavailable (e.g., 502)
+      }
     };
     getUserData();
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   return (
