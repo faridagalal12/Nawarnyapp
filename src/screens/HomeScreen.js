@@ -36,14 +36,6 @@ export default function HomeScreen({ title = "Home" }) {
           <Text style={styles.courseText}>Startup Fundamentals</Text>
         </View>
 
-        {/* QUIZ BUTTON (YOUR ORIGINAL NAVIGATION) */}
-        <Button
-          style={styles.quizButton}
-          onPress={() => navigation.navigate("Quiz")}
-        >
-          Quiz
-        </Button>
-
       </ScrollView>
 
     </View>
