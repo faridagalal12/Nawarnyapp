@@ -5,6 +5,7 @@ import GWelcomeScreen from "../screens/Gamification/GWelcomeScreen";
 import CoursesScreen from "../screens/CourseScreen";
 import { Entypo, FontAwesome, Ionicons } from "@expo/vector-icons";
 import { TouchableOpacity } from "react-native";
+import AddPostScreen from "../screens/AddPosts/AddPostScreen";
 
 const Tab = createBottomTabNavigator();
 
@@ -37,7 +38,7 @@ export default function MyTabs({ signOut }) {
       />
       <Tab.Screen
         name="AddPost"
-        children={() => <HomeScreen title={"Add Post"} />}
+        children={() => <AddPostScreen/>}
         options={{
           headerShown: false,
 
