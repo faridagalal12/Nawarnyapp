@@ -1,40 +1,37 @@
 // src/screens/ProfileScreen.js
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useCallback } from "react";
+import { useFocusEffect } from "@react-navigation/native";
 import {
   View,
-  Text, // ← keep Text here
+  Text,
   TouchableOpacity,
   StyleSheet,
   SafeAreaView,
   StatusBar,
   Image,
   Alert,
+  ActivityIndicator,
 } from "react-native";
-
 import Ionicons from "@expo/vector-icons/Ionicons";
-// ... rest of your code
-
 import api from "../services/api";
 
-export default function ProfileScreen({ signOut }) {
-  // You can later connect this to real user data (context, redux, firebase, etc.)
+export default function ProfileScreen({ signOut, navigation }) {
+  const [userName, setUserName] = useState("--------");
+  const [username, setUsername] = useState("@---------");
+  const [avatar, setAvatar] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [refreshKey, setRefreshKey] = useState(0);
+
   const comingSoon = title => {
     Alert.alert("Coming soon", `${title} is not available yet.`);
   };
-  const user = {
-    name: "--------",
-    username: "@---------",
-    avatar: null, // can be url or require('./assets/avatar.jpg')
-  };
-  const [userName, setUserName] = React.useState(user.name);
-  const [email, setEmail] = React.useState(user.username);
 
   const menuItems = [
     {
       icon: "person-outline",
       title: "My Learning Profile",
-      subtitle: "Make changes to your account",
+      subtitle: "Monitor your progress",
       onPress: () => comingSoon("My Learning Profile"),
     },
     {
@@ -59,40 +56,52 @@ export default function ProfileScreen({ signOut }) {
       icon: "log-out-outline",
       title: "Log out",
       subtitle: "Further secure your account for safety",
-      onPress: () => {
-        handleLogout();
-      },
+      onPress: handleLogout,
       danger: true,
     },
   ];
 
   const moreItems = [
-    { icon: "help-circle-outline", title: "Help & Support", onPress: () => {} },
-    { icon: "heart-outline", title: "About App", onPress: () => {} },
+    {
+      icon: "help-circle-outline",
+      title: "Help & Support",
+      onPress: () => comingSoon("Help & Support"),
+    },
+    {
+      icon: "heart-outline",
+      title: "About App",
+      onPress: () => comingSoon("About App"),
+    },
   ];
-  const handleLogout = async () => {
-    signOut();
-  };
 
-  useEffect(() => {
-    let isMounted = true;
-    const getUserData = async () => {
-      try {
-        const response = await api.get("/auth/profile");
-        const profile = response?.data?.data ?? response?.data ?? {};
-        if (!isMounted) return;
-        setEmail(profile.email || user.username || "");
-        setUserName(profile.name || user.name || "");
-      } catch (error) {
-        if (!isMounted) return;
-        // Keep fallback profile data when the backend is unavailable (e.g., 502)
-      }
-    };
-    getUserData();
-    return () => {
-      isMounted = false;
-    };
-  }, []);
+  async function handleLogout() {
+    Alert.alert("Log out", "Are you sure you want to log out?", [
+      { text: "Cancel", style: "cancel" },
+      { text: "Log out", style: "destructive", onPress: () => signOut() },
+    ]);
+  }
+
+  useFocusEffect(
+    useCallback(() => {
+      setRefreshKey(k => k + 1);
+      setLoading(true);
+      const fetchProfile = async () => {
+        try {
+          const res = await api.get("/users/profile/editable");
+          console.log("Profile fetch:", JSON.stringify(res?.data));
+          const profile = res?.data ?? {};
+          setUserName(profile.name ?? "");
+          setUsername(profile.username ? `@${profile.username}` : profile.email ?? "");
+          setAvatar(profile.avatarUrl ?? null);
+        } catch (err) {
+          // silently keep placeholders
+        } finally {
+          setLoading(false);
+        }
+      };
+      fetchProfile();
+    }, [])
+  );
 
   return (
     <SafeAreaView style={styles.container}>
@@ -101,19 +110,28 @@ export default function ProfileScreen({ signOut }) {
       <View style={styles.header}>
         <View style={styles.profileCard}>
           <View style={styles.avatarContainer}>
-            {user.avatar ? (
-              <Image source={{ uri: user.avatar }} style={styles.avatar} />
+            {avatar ? (
+              <Image source={{ uri: avatar }} style={styles.avatar} />
             ) : (
               <Ionicons name="person" size={40} color="#fff" />
             )}
           </View>
 
           <View style={styles.userInfo}>
-            <Text style={styles.name}>{userName}</Text>
-            <Text style={styles.username}>{email}</Text>
+            {loading ? (
+              <ActivityIndicator size="small" color="#0066FF" />
+            ) : (
+              <>
+                <Text style={styles.name}>{userName}</Text>
+                <Text style={styles.usernameText}>{username}</Text>
+              </>
+            )}
           </View>
 
-          <TouchableOpacity style={styles.editButton}>
+          <TouchableOpacity
+            style={styles.editButton}
+            onPress={() => navigation.navigate("EditProfile")}
+>
             <Ionicons name="pencil" size={20} color="#0066FF" />
           </TouchableOpacity>
         </View>
@@ -133,9 +151,7 @@ export default function ProfileScreen({ signOut }) {
               style={styles.menuIcon}
             />
             <View style={styles.menuTextContainer}>
-              <Text
-                style={[styles.menuTitle, item.danger && { color: "#FF3B30" }]}
-              >
+              <Text style={[styles.menuTitle, item.danger && { color: "#FF3B30" }]}>
                 {item.title}
               </Text>
               <Text style={styles.menuSubtitle}>{item.subtitle}</Text>
@@ -169,11 +185,9 @@ export default function ProfileScreen({ signOut }) {
   );
 }
 
+// styles stay exactly the same — no changes needed
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#f8f9fa",
-  },
+  container: { flex: 1, backgroundColor: "#f8f9fa" },
   header: {
     backgroundColor: "#0066FF",
     paddingHorizontal: 16,
@@ -200,28 +214,13 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     marginRight: 16,
+    overflow:"hidden",
   },
-  avatar: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-  },
-  userInfo: {
-    flex: 1,
-  },
-  name: {
-    fontSize: 20,
-    fontWeight: "600",
-    color: "#000",
-  },
-  username: {
-    fontSize: 15,
-    color: "#666",
-    marginTop: 2,
-  },
-  editButton: {
-    padding: 8,
-  },
+  avatar: { width: 64, height: 64, borderRadius: 32 },
+  userInfo: { flex: 1 },
+  name: { fontSize: 20, fontWeight: "600", color: "#000" },
+  username: { fontSize: 15, color: "#666", marginTop: 2 },
+  editButton: { padding: 8 },
   section: {
     backgroundColor: "white",
     marginHorizontal: 16,
@@ -245,25 +244,9 @@ const styles = StyleSheet.create({
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: "#eee",
   },
-  menuIcon: {
-    marginRight: 16,
-    width: 24,
-    textAlign: "center",
-  },
-  menuTextContainer: {
-    flex: 1,
-  },
-  menuTitle: {
-    fontSize: 16,
-    color: "#000",
-    fontWeight: "500",
-  },
-  menuSubtitle: {
-    fontSize: 13,
-    color: "#777",
-    marginTop: 3,
-  },
-  dangerItem: {
-    borderBottomWidth: 0,
-  },
+  menuIcon: { marginRight: 16, width: 24, textAlign: "center" },
+  menuTextContainer: { flex: 1 },
+  menuTitle: { fontSize: 16, color: "#000", fontWeight: "500" },
+  menuSubtitle: { fontSize: 13, color: "#777", marginTop: 3 },
+  dangerItem: { borderBottomWidth: 0 },
 });

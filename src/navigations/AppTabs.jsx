@@ -6,6 +6,8 @@ import CoursesScreen from "../screens/CourseScreen";
 import { Entypo, FontAwesome, Ionicons } from "@expo/vector-icons";
 import { TouchableOpacity } from "react-native";
 import AddPostScreen from "../screens/AddPosts/AddPostScreen";
+import ProfileStack from "./ProfileStack";
+
 
 const Tab = createBottomTabNavigator();
 
@@ -79,14 +81,15 @@ export default function MyTabs({ signOut }) {
       />
       <Tab.Screen
         name="Profile"
-        children={() => <ProfileScreen signOut={signOut} />}
         options={{
           headerShown: false,
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="person-outline" size={size} color={color} />
           ),
         }}
-      />
+        
+          children={() => <ProfileStack signOut={signOut} />}
+          />
     </Tab.Navigator>
   );
 }
