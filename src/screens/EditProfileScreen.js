@@ -1,9 +1,11 @@
 import React, { useState, useCallback } from "react";
 import {
   View, Text, TextInput, TouchableOpacity,
-  StyleSheet, SafeAreaView, ActivityIndicator, Alert
+  StyleSheet, SafeAreaView, ActivityIndicator, Alert, Image
 } from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
+import * as ImagePicker from "expo-image-picker";
+import Ionicons from "@expo/vector-icons/Ionicons";
 import api from "../services/api";
 
 export default function EditProfileScreen({ navigation }) {
@@ -32,16 +34,36 @@ export default function EditProfileScreen({ navigation }) {
     }, [])
   );
 
+  const pickImage = async () => {
+    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!permission.granted) {
+      Alert.alert("Permission required", "Please allow access to your photo library.");
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.1,
+      base64: true,
+      exif: false,
+    });
+
+    if (!result.canceled) {
+      const base64Image = `data:image/jpeg;base64,${result.assets[0].base64}`;
+      setAvatarUrl(base64Image);
+    }
+  };
+
   const handleSave = async () => {
     setSaving(true);
     try {
-      const response = await api.put("/users/profile", { name, username, avatarUrl });
-      console.log("Save response:", JSON.stringify(response?.data));
+      await api.put("/users/profile", { name, username, avatarUrl });
       Alert.alert("Success", "Profile updated successfully", [
         { text: "OK", onPress: () => navigation.goBack() }
       ]);
     } catch (err) {
-      console.log("Save error:", err?.response?.data ?? err?.message);
       Alert.alert("Error", err?.response?.data?.error?.message ?? "Failed to update profile");
     } finally {
       setSaving(false);
@@ -69,6 +91,21 @@ export default function EditProfileScreen({ navigation }) {
       </View>
 
       <View style={styles.form}>
+        {/* Avatar Picker */}
+        <TouchableOpacity style={styles.avatarContainer} onPress={pickImage}>
+          {avatarUrl ? (
+            <Image source={{ uri: avatarUrl }} style={styles.avatar} />
+          ) : (
+            <View style={styles.avatarPlaceholder}>
+              <Ionicons name="camera" size={30} color="#999" />
+              <Text style={styles.avatarText}>Upload Photo</Text>
+            </View>
+          )}
+          <View style={styles.cameraIcon}>
+            <Ionicons name="camera" size={16} color="#fff" />
+          </View>
+        </TouchableOpacity>
+
         <Text style={styles.label}>Name</Text>
         <TextInput
           style={styles.input}
@@ -84,16 +121,6 @@ export default function EditProfileScreen({ navigation }) {
           onChangeText={setUsername}
           placeholder="Your username"
           autoCapitalize="none"
-        />
-
-        <Text style={styles.label}>Avatar URL</Text>
-        <TextInput
-          style={styles.input}
-          value={avatarUrl}
-          onChangeText={setAvatarUrl}
-          placeholder="Paste your avatar image URL"
-          autoCapitalize="none"
-          autoCorrect={false}
         />
       </View>
     </SafeAreaView>
@@ -115,8 +142,45 @@ const styles = StyleSheet.create({
   title: { fontSize: 17, fontWeight: "600" },
   cancel: { fontSize: 16, color: "#666" },
   save: { fontSize: 16, color: "#0066FF", fontWeight: "600" },
-  form: { padding: 16 },
-  label: { fontSize: 14, color: "#666", marginBottom: 6, marginTop: 16 },
+  form: { padding: 16, alignItems: "center" },
+  avatarContainer: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    marginTop: 20,
+    marginBottom: 24,
+    position: "relative",
+  },
+  avatar: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+  },
+  avatarPlaceholder: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: "#eee",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  avatarText: { fontSize: 12, color: "#999", marginTop: 4 },
+  cameraIcon: {
+    position: "absolute",
+    bottom: 0,
+    right: 0,
+    backgroundColor: "#0066FF",
+    borderRadius: 12,
+    padding: 4,
+  },
+  label: {
+    fontSize: 14,
+    color: "#666",
+    marginBottom: 6,
+    marginTop: 16,
+    alignSelf: "flex-start",
+    width: "100%",
+  },
   input: {
     backgroundColor: "white",
     borderRadius: 10,
@@ -124,5 +188,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     borderWidth: 1,
     borderColor: "#eee",
+    width: "100%",
   },
 });
