@@ -20,6 +20,7 @@ export default function ProfileScreen({ signOut, navigation }) {
   const [userName, setUserName] = useState("--------");
   const [username, setUsername] = useState("@---------");
   const [bio, setBio] = useState("");
+  const [bioExpanded, setBioExpanded] = useState(false);
   const [avatar, setAvatar] = useState(null);
   const [loading, setLoading] = useState(true);
   const [refreshKey, setRefreshKey] = useState(0);
@@ -66,7 +67,7 @@ export default function ProfileScreen({ signOut, navigation }) {
     {
       icon: "help-circle-outline",
       title: "Help & Support",
-      onPress: () => comingSoon("Help & Support"),
+      onPress: () => navigation.navigate("ContactSupport"),
     },
     {
       icon: "heart-outline",
@@ -94,6 +95,7 @@ export default function ProfileScreen({ signOut, navigation }) {
           setUserName(profile.name ?? "");
           setUsername(profile.username ? `@${profile.username}` : profile.email ?? "");
           setBio(profile.bio ?? "");
+          setBioExpanded(false);
           setAvatar(profile.avatarUrl ?? null);
         } catch (err) {
           // silently keep placeholders
@@ -131,9 +133,21 @@ export default function ProfileScreen({ signOut, navigation }) {
                   {username}
                 </Text>
                 {!!bio && (
-                  <Text style={styles.bio} numberOfLines={2}>
-                    {bio}
-                  </Text>
+                  <>
+                    <Text style={styles.bio} numberOfLines={bioExpanded ? undefined : 2}>
+                      {bio}
+                    </Text>
+                    {bio.length > 90 && (
+                      <TouchableOpacity
+                        onPress={() => setBioExpanded(v => !v)}
+                        activeOpacity={0.85}
+                      >
+                        <Text style={styles.bioToggle}>
+                          {bioExpanded ? "Show less" : "Show more"}
+                        </Text>
+                      </TouchableOpacity>
+                    )}
+                  </>
                 )}
               </>
             )}
@@ -209,7 +223,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#2F54EB",
     borderRadius: 14,
     flexDirection: "row",
-    alignItems: "center",
+    alignItems: "flex-start",
     paddingVertical: 18,
     paddingHorizontal: 16,
     shadowColor: "#000",
@@ -226,6 +240,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     marginRight: 14,
+    marginTop: 2,
     overflow: "hidden",
   },
   avatarImage: { width: 54, height: 54 },
@@ -233,12 +248,15 @@ const styles = StyleSheet.create({
   name: { fontSize: 18, fontWeight: "700", color: "#ffffff" },
   username: { fontSize: 14, color: "#e7ecff", marginTop: 2, fontWeight: "600" },
   bio: { fontSize: 12, color: "#d6ddff", marginTop: 6, lineHeight: 16 },
+  bioToggle: { fontSize: 12, color: "#ffffff", marginTop: 6, fontWeight: "700" },
   editPill: {
     backgroundColor: "#ffffff",
     borderRadius: 10,
     paddingHorizontal: 12,
     paddingVertical: 10,
     marginLeft: 12,
+    alignSelf: "flex-start",
+    marginTop: 2,
   },
   section: {
     backgroundColor: "white",
