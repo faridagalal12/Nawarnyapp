@@ -19,6 +19,7 @@ import api from "../services/api";
 export default function ProfileScreen({ signOut, navigation }) {
   const [userName, setUserName] = useState("--------");
   const [username, setUsername] = useState("@---------");
+  const [bio, setBio] = useState("");
   const [avatar, setAvatar] = useState(null);
   const [loading, setLoading] = useState(true);
   const [refreshKey, setRefreshKey] = useState(0);
@@ -92,6 +93,7 @@ export default function ProfileScreen({ signOut, navigation }) {
           const profile = res?.data ?? {};
           setUserName(profile.name ?? "");
           setUsername(profile.username ? `@${profile.username}` : profile.email ?? "");
+          setBio(profile.bio ?? "");
           setAvatar(profile.avatarUrl ?? null);
         } catch (err) {
           // silently keep placeholders
@@ -108,31 +110,40 @@ export default function ProfileScreen({ signOut, navigation }) {
       <StatusBar barStyle="dark-content" backgroundColor="#fff" />
 
       <View style={styles.header}>
-        <View style={styles.profileCard}>
-          <View style={styles.avatarContainer}>
+        <View style={styles.blueFrameCard}>
+          <View style={styles.avatarCircle}>
             {avatar ? (
-              <Image source={{ uri: avatar }} style={styles.avatar} />
+              <Image source={{ uri: avatar }} style={styles.avatarImage} />
             ) : (
-              <Ionicons name="person" size={40} color="#fff" />
+              <Ionicons name="person" size={34} color="#2F54EB" />
             )}
           </View>
 
           <View style={styles.userInfo}>
             {loading ? (
-              <ActivityIndicator size="small" color="#0066FF" />
+              <ActivityIndicator size="small" color="#ffffff" />
             ) : (
               <>
-                <Text style={styles.name}>{userName}</Text>
-                <Text style={styles.usernameText}>{username}</Text>
+                <Text style={styles.name} numberOfLines={1}>
+                  {userName}
+                </Text>
+                <Text style={styles.username} numberOfLines={1}>
+                  {username}
+                </Text>
+                {!!bio && (
+                  <Text style={styles.bio} numberOfLines={2}>
+                    {bio}
+                  </Text>
+                )}
               </>
             )}
           </View>
 
           <TouchableOpacity
-            style={styles.editButton}
+            style={styles.editPill}
             onPress={() => navigation.navigate("EditProfile")}
->
-            <Ionicons name="pencil" size={20} color="#0066FF" />
+          >
+            <Ionicons name="pencil" size={18} color="#2F54EB" />
           </TouchableOpacity>
         </View>
       </View>
@@ -189,38 +200,46 @@ export default function ProfileScreen({ signOut, navigation }) {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#f8f9fa" },
   header: {
-    backgroundColor: "#0066FF",
+    backgroundColor: "#f8f9fa",
     paddingHorizontal: 16,
     paddingTop: 16,
-    paddingBottom: 24,
+    paddingBottom: 8,
   },
-  profileCard: {
-    backgroundColor: "white",
-    borderRadius: 16,
+  blueFrameCard: {
+    backgroundColor: "#2F54EB",
+    borderRadius: 14,
     flexDirection: "row",
     alignItems: "center",
-    padding: 16,
+    paddingVertical: 18,
+    paddingHorizontal: 16,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 3,
+    shadowOpacity: 0.12,
+    shadowRadius: 10,
+    elevation: 4,
   },
-  avatarContainer: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    backgroundColor: "#0066FF",
+  avatarCircle: {
+    width: 54,
+    height: 54,
+    borderRadius: 27,
+    backgroundColor: "#ffffff",
     justifyContent: "center",
     alignItems: "center",
-    marginRight: 16,
-    overflow:"hidden",
+    marginRight: 14,
+    overflow: "hidden",
   },
-  avatar: { width: 64, height: 64, borderRadius: 32 },
-  userInfo: { flex: 1 },
-  name: { fontSize: 20, fontWeight: "600", color: "#000" },
-  username: { fontSize: 15, color: "#666", marginTop: 2 },
-  editButton: { padding: 8 },
+  avatarImage: { width: 54, height: 54 },
+  userInfo: { flex: 1, minWidth: 0 },
+  name: { fontSize: 18, fontWeight: "700", color: "#ffffff" },
+  username: { fontSize: 14, color: "#e7ecff", marginTop: 2, fontWeight: "600" },
+  bio: { fontSize: 12, color: "#d6ddff", marginTop: 6, lineHeight: 16 },
+  editPill: {
+    backgroundColor: "#ffffff",
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    marginLeft: 12,
+  },
   section: {
     backgroundColor: "white",
     marginHorizontal: 16,
