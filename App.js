@@ -145,16 +145,16 @@ export default function App() {
       let pendingVerificationEmail;
 
       try {
-        userToken = await SecureStore.getItemAsync(TOKEN_KEY);
+        userToken = await SecureStore.deleteItemAsync(TOKEN_KEY);
         console.log("====================================");
         console.log(userToken);
         console.log("====================================");
-        const userEmail = await SecureStore.getItemAsync(USER_EMAIL_KEY);
-        pendingVerificationEmail = await SecureStore.getItemAsync(
+        const userEmail = await SecureStore.deleteItemAsync(USER_EMAIL_KEY);
+        pendingVerificationEmail = await SecureStore.deleteItemAsync(
           PENDING_VERIFY_EMAIL_KEY,
         );
         if (userEmail) {
-          const storedQuizCompleted = await SecureStore.getItemAsync(
+          const storedQuizCompleted = await SecureStore.deleteItemAsync(
             getQuizCompletedKey(userEmail),
           );
           quizCompleted = storedQuizCompleted === "true";
