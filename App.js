@@ -9,6 +9,9 @@ import LoginScreen from "./src/screens/LoginScreen";
 import VerifyScreen from "./src/screens/VerifyScreen";
 import ForgetPassword from "./src/screens/ForgotPasswordScreen";
 import QuizScreen from "./src/screens/QuizScreen";
+import SearchScreen from "./src/screens/SearchScreen";
+import VideoPlayerScreen from "./src/screens/VideoPlayerScreen";
+import CoursesSearchScreen from "./src/screens/CoursesSearchScreen";
 
 import * as SecureStore from "expo-secure-store";
 import MyTabs from "./src/navigations/AppTabs";
@@ -387,7 +390,7 @@ export default function App() {
               options={{ headerShown: false }}
             />
           ) : (
-            <>
+                        <>
               <Stack.Screen
                 name="Tabs"
                 children={() => <MyTabs signOut={authContext.signOut} />}
@@ -400,7 +403,25 @@ export default function App() {
                 )}
                 options={{ headerShown: false }}
               />
+              <Stack.Screen
+                name="Search"
+                component={SearchScreen}
+                options={{ headerShown: false }}
+              />
+              <Stack.Screen
+                name="VideoPlayer"
+                component={VideoPlayerScreen}
+                options={{ headerShown: false }}
+              />
+              <Stack.Screen
+                name="CoursesSearch"
+                component={CoursesSearchScreen}
+                options={{ headerShown: false }}
+/>
+
             </>
+
+
           )}
         </Stack.Navigator>
       </NavigationContainer>
