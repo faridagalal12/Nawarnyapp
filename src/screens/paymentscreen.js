@@ -59,7 +59,13 @@ export default function PaymentScreen({ navigation, route }) {
 
         <TouchableOpacity
           style={styles.payBtn}
-          onPress={() => Alert.alert('Success', `You subscribed to ${plan}!`)}
+         onPress={() => {
+  if (selected === 'card') {
+    navigation.navigate('Card', { plan, price });
+  } else {
+    Alert.alert('Success', `You subscribed to ${plan}!`);
+  }
+}}
         >
           <Text style={styles.payText}>Confirm & Pay</Text>
         </TouchableOpacity>
