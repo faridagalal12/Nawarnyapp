@@ -2,7 +2,7 @@ import React from "react";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import ProfileScreen from "../screens/ProfileScreen";
 import EditProfileScreen from "../screens/EditProfileScreen";
-
+import LearningProfileScreen from "../screens/learningProfileScreen";
 const Stack = createNativeStackNavigator();
 
 export default function ProfileStack({ signOut }) {
@@ -17,6 +17,11 @@ export default function ProfileStack({ signOut }) {
       <Stack.Screen
         name="EditProfile"
         component={EditProfileScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen                          // ← add this
+        name="LearningProfileScreen"
+        component={LearningProfileScreen}
         options={{ headerShown: false }}
       />
     </Stack.Navigator>
