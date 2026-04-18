@@ -1,45 +1,147 @@
-import React, { useRef, useState, useEffect } from "react";
+import React, { useRef, useState, useEffect, useCallback } from "react";
 import {
-  View, FlatList, Dimensions, StyleSheet,
-  TouchableOpacity, Text, ActivityIndicator,
-  StatusBar, Image, Platform,
+  View,
+  FlatList,
+  Dimensions,
+  StyleSheet,
+  TouchableOpacity,
+  TouchableWithoutFeedback,
+  Text,
+  ActivityIndicator,
+  StatusBar,
+  Image,
+  Animated,
+  Easing,
 } from "react-native";
 import { VideoView, useVideoPlayer } from "expo-video";
 import { Ionicons } from "@expo/vector-icons";
 import { BlurView } from "expo-blur";
 import api from "../services/api";
 
-const { height, width } = Dimensions.get("window");
-const BLUE = "#0066FF";
-const TAB_BAR_HEIGHT = 80;
-const PANEL_HEIGHT = 220;
+// ─────────────────────────────────────────────
+//  CONSTANTS
+// ─────────────────────────────────────────────
+const { height: SCREEN_H, width: SCREEN_W } = Dimensions.get("window");
+const TAB_BAR_H = 80;
 
-const levelColors = {
-  Beginner: "#22C55E",
-  Intermediate: "#F59E0B",
-  Advanced: "#EF4444",
+const PALETTE = {
+  bg:           "#080A0F",
+  surfaceLight: "rgba(255,255,255,0.06)",
+  border:       "rgba(255,255,255,0.1)",
+  textPrimary:  "#F0F2F8",
+  textMuted:    "rgba(240,242,248,0.45)",
+  blue:         "#2F7EFF",
+  blueGlow:     "rgba(47,126,255,0.25)",
 };
 
+const CATEGORY_ACCENT = {
+  Programming: "#2F7EFF",
+  Design:      "#A855F7",
+  Business:    "#F59E0B",
+  Science:     "#10B981",
+  Language:    "#EC4899",
+  Mathematics: "#06B6D4",
+  default:     "#2F7EFF",
+};
+
+const LEVEL_COLORS = {
+  Beginner:     "#22C55E",
+  Intermediate: "#F59E0B",
+  Advanced:     "#EF4444",
+};
+
+// ─────────────────────────────────────────────
+//  CHAPTER DOTS  (vertical strip, left side)
+// ─────────────────────────────────────────────
+function ChapterDots({ total = 1, current = 0, accent }) {
+  if (total <= 1) return null;
+  const visible = Math.min(total, 9);
+  return (
+    <View style={styles.chapterDots}>
+      {Array.from({ length: visible }).map((_, i) => {
+        const isCurrent = i === current;
+        const isPast    = i < current;
+        return (
+          <View
+            key={i}
+            style={[
+              styles.chapterDot,
+              isCurrent && { backgroundColor: accent, height: 20, borderRadius: 3 },
+              isPast    && { backgroundColor: accent + "66" },
+            ]}
+          />
+        );
+      })}
+    </View>
+  );
+}
+
+// ─────────────────────────────────────────────
+//  MAIN VIDEO ITEM
+// ─────────────────────────────────────────────
 function VideoItem({ item, isActive, navigation }) {
-  const [liked, setLiked] = useState(item.isLiked ?? false);
-  const [saved, setSaved] = useState(false);
-  const [likes, setLikes] = useState(item.likesCount ?? 0);
+  const accent     = CATEGORY_ACCENT[item.category] ?? CATEGORY_ACCENT.default;
+  const levelColor = LEVEL_COLORS[item.level] ?? accent;
+
+  const [liked,  setLiked]  = useState(item.isLiked ?? false);
+  const [saved,  setSaved]  = useState(false);
+  const [likes,  setLikes]  = useState(item.likesCount ?? 0);
   const [paused, setPaused] = useState(false);
 
+  const overlayOpacity = useRef(new Animated.Value(0)).current;
+  const pauseScale     = useRef(new Animated.Value(0)).current;
+  const bookmarkBurst  = useRef(new Animated.Value(0)).current;
+  const lastTap        = useRef(0);
+
   const player = useVideoPlayer(item.videoUrl, p => {
-    p.loop = true;
+    p.loop  = true;
     p.muted = false;
   });
 
   useEffect(() => {
-    if (isActive && !paused) player.play();
-    else player.pause();
+    if (isActive && !paused) {
+      player.play();
+      Animated.timing(overlayOpacity, {
+        toValue: 1, duration: 500,
+        easing: Easing.out(Easing.quad),
+        useNativeDriver: true,
+      }).start();
+    } else {
+      player.pause();
+    }
   }, [isActive, paused]);
+
+  useEffect(() => {
+    if (paused) {
+      Animated.sequence([
+        Animated.spring(pauseScale, { toValue: 1, useNativeDriver: true }),
+        Animated.delay(800),
+        Animated.timing(pauseScale, { toValue: 0, duration: 200, useNativeDriver: true }),
+      ]).start();
+    }
+  }, [paused]);
+
+  // Double-tap → bookmark  /  single tap → pause/play
+  const handleTap = useCallback(() => {
+    const now = Date.now();
+    if (now - lastTap.current < 300) {
+      if (!saved) {
+        setSaved(true);
+        Animated.sequence([
+          Animated.timing(bookmarkBurst, { toValue: 1, duration: 400, useNativeDriver: true }),
+          Animated.timing(bookmarkBurst, { toValue: 0, duration: 300, useNativeDriver: true }),
+        ]).start();
+      }
+    } else {
+      setPaused(p => !p);
+    }
+    lastTap.current = now;
+  }, [saved]);
 
   const handleLike = async () => {
     try {
-      setLiked(!liked);
-      setLikes(liked ? likes - 1 : likes + 1);
+      setLiked(l => !l);
+      setLikes(n => liked ? n - 1 : n + 1);
       await api.post(`/videos/${item.id}/like`);
     } catch {
       setLiked(liked);
@@ -47,229 +149,238 @@ function VideoItem({ item, isActive, navigation }) {
     }
   };
 
-  const hasProgress = item.watchedPercent != null && item.watchedPercent > 0;
-  const levelColor = levelColors[item.level] ?? BLUE;
+  const lessonIndex  = item.lessonIndex  ?? 0;
+  const totalLessons = item.lessonsCount ?? 1;
+  const tags         = item.tags         ?? [];
+
+  const bookmarkScale = bookmarkBurst.interpolate({
+    inputRange:  [0, 0.5, 1],
+    outputRange: [0, 1.4,  0],
+  });
 
   return (
-    <View style={styles.videoContainer}>
+    <View style={styles.container}>
       <StatusBar barStyle="light-content" />
 
-      {/* FULL SCREEN VIDEO */}
-      <TouchableOpacity
-        style={StyleSheet.absoluteFill}
-        onPress={() => setPaused(!paused)}
-        activeOpacity={1}
-      >
-        <VideoView
-          player={player}
-          style={StyleSheet.absoluteFill}
-          contentFit="cover"
-          nativeControls={false}
-        />
-      </TouchableOpacity>
-
-      {/* PAUSE OVERLAY */}
-      {paused && (
-        <View style={styles.pauseOverlay} pointerEvents="none">
-          <View style={styles.pauseCircle}>
-            <Ionicons name="play" size={28} color="#fff" />
-          </View>
+      {/* ── VIDEO ── */}
+      <TouchableWithoutFeedback onPress={handleTap}>
+        <View style={StyleSheet.absoluteFill}>
+          <VideoView
+            player={player}
+            style={StyleSheet.absoluteFill}
+            contentFit="cover"
+            nativeControls={false}
+          />
+          <View style={styles.vignetteTop}    pointerEvents="none" />
+          <View style={styles.vignetteBottom} pointerEvents="none" />
         </View>
-      )}
+      </TouchableWithoutFeedback>
+
+      {/* BOOKMARK BURST */}
+      <Animated.View
+        pointerEvents="none"
+        style={[styles.bookmarkBurst, {
+          transform: [{ scale: bookmarkScale }],
+          opacity: bookmarkBurst,
+        }]}
+      >
+        <Ionicons name="bookmark" size={72} color="#FFD60A" />
+      </Animated.View>
+
+      {/* PAUSE ICON */}
+      <Animated.View
+        pointerEvents="none"
+        style={[styles.pauseOverlay, { transform: [{ scale: pauseScale }] }]}
+      >
+        <View style={[styles.pauseCircle, { borderColor: accent + "99" }]}>
+          <Ionicons name={paused ? "play" : "pause"} size={30} color="#fff" />
+        </View>
+      </Animated.View>
 
       {/* ── TOP BAR ── */}
-      <View style={styles.topBar}>
-        {/* Nawarny Logo */}
-        <View style={styles.logoWrap}>
-          <Text style={styles.logoText}>Nawarny</Text>
-          <View style={styles.logoDot} />
-        </View>
-
-        {/* Level + Duration */}
-        <View style={styles.topBadges}>
-          {item.level && (
-            <View style={[styles.levelBadge, { backgroundColor: levelColor }]}>
-              <Text style={styles.levelText}>{item.level}</Text>
-            </View>
-          )}
-          {item.duration && (
-            <View style={styles.durationBadge}>
-              <Ionicons name="time-outline" size={12} color="#fff" />
-              <Text style={styles.durationText}>{item.duration}</Text>
-            </View>
-          )}
-        </View>
-      </View>
-
-      {/* ── SIDE ACTIONS (minimal) ── */}
-      <View style={styles.sideActions}>
-        {/* Instructor avatar */}
-        <TouchableOpacity
-          style={styles.avatarWrap}
-          onPress={() => navigation.navigate("InstructorProfile", {
-            instructorId: item.instructorId,
-          })}
-        >
-          {item.instructorAvatar ? (
-            <Image source={{ uri: item.instructorAvatar }} style={styles.avatarImg} />
-          ) : (
-            <View style={styles.avatarPlaceholder}>
-              <Ionicons name="person" size={18} color="#fff" />
-            </View>
-          )}
-          <View style={styles.plusDot}>
-            <Ionicons name="add" size={9} color="#fff" />
-          </View>
-        </TouchableOpacity>
-
-        <TouchableOpacity onPress={handleLike} style={styles.sideBtn}>
-          <Ionicons
-            name={liked ? "heart" : "heart-outline"}
-            size={26}
-            color={liked ? "#FF4D6D" : "#fff"}
-          />
-          <Text style={styles.sideBtnLabel}>{likes}</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.sideBtn}>
-          <Ionicons name="chatbubble-ellipses-outline" size={26} color="#fff" />
-          <Text style={styles.sideBtnLabel}>{item.commentsCount ?? 0}</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.sideBtn} onPress={() => setSaved(!saved)}>
-          <Ionicons
-            name={saved ? "bookmark" : "bookmark-outline"}
-            size={26}
-            color={saved ? "#FFD60A" : "#fff"}
-          />
-          <Text style={styles.sideBtnLabel}>Save</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.sideBtn}>
-          <Ionicons name="paper-plane-outline" size={26} color="#fff" />
-          <Text style={styles.sideBtnLabel}>Share</Text>
-        </TouchableOpacity>
-      </View>
-
-      {/* ── BOTTOM FROSTED PANEL ── */}
-      <View style={styles.panel}>
-        <BlurView intensity={60} tint="dark" style={StyleSheet.absoluteFill} />
-
-        {/* Blue top accent line */}
-        <View style={styles.panelAccent} />
-
-        <View style={styles.panelContent}>
-          {/* Row 1: Category + Lessons count */}
-          <View style={styles.panelRow}>
-            {item.category && (
-              <View style={styles.categoryChip}>
-                <Text style={styles.categoryChipText}>{item.category}</Text>
-              </View>
-            )}
-            {item.lessonsCount && (
-              <View style={styles.lessonsChip}>
-                <Ionicons name="layers-outline" size={13} color={BLUE} />
-                <Text style={styles.lessonsChipText}>{item.lessonsCount} lessons</Text>
-              </View>
-            )}
-          </View>
-
-          {/* Row 2: Title */}
-          <Text style={styles.panelTitle} numberOfLines={2}>
-            {item.title}
+      <Animated.View style={[styles.topBar, { opacity: overlayOpacity }]}>
+        <View style={[styles.categoryChip, { backgroundColor: accent + "22", borderColor: accent + "55" }]}>
+          <View style={[styles.categoryDot, { backgroundColor: accent }]} />
+          <Text style={[styles.categoryChipText, { color: accent }]}>
+            {item.category ?? "Course"}
           </Text>
+        </View>
 
-          {/* Row 3: Instructor */}
-          {(item.instructor || item.username) && (
-            <View style={styles.instructorRow}>
-              {item.instructorAvatar ? (
-                <Image source={{ uri: item.instructorAvatar }} style={styles.instructorAvatar} />
-              ) : (
-                <View style={styles.instructorAvatarPlaceholder}>
-                  <Ionicons name="person" size={11} color="#fff" />
-                </View>
-              )}
-              <View>
-                {item.instructor && (
-                  <Text style={styles.instructorName}>{item.instructor}</Text>
-                )}
-                {item.username && (
-                  <Text style={styles.instructorUsername}>@{item.username}</Text>
-                )}
+        <View style={styles.topRight}>
+          {item.level && (
+            <View style={[styles.levelPill, { backgroundColor: levelColor + "22", borderColor: levelColor + "66" }]}>
+              <Text style={[styles.levelPillText, { color: levelColor }]}>{item.level}</Text>
+            </View>
+          )}
+          <View style={styles.lessonCounter}>
+            <Text style={styles.lessonCounterCurrent}>{lessonIndex + 1}</Text>
+            <Text style={styles.lessonCounterSep}>/</Text>
+            <Text style={styles.lessonCounterTotal}>{totalLessons}</Text>
+          </View>
+        </View>
+      </Animated.View>
+
+      {/* ── CHAPTER DOTS (left side) ── */}
+      <Animated.View style={[styles.chapterDotsWrap, { opacity: overlayOpacity }]}>
+        <ChapterDots total={totalLessons} current={lessonIndex} accent={accent} />
+      </Animated.View>
+
+      {/* ── ACTION RAIL — Like / Comments / Save / Share ── */}
+      <Animated.View style={[styles.actionRail, { opacity: overlayOpacity }]}>
+
+        <TouchableOpacity onPress={handleLike} style={styles.railBtn}>
+          <Ionicons name={liked ? "heart" : "heart-outline"} size={28}
+            color={liked ? "#FF4D6D" : "#fff"} />
+          <Text style={styles.railLabel}>{likes}</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.railBtn}>
+          <Ionicons name="chatbubble-ellipses-outline" size={26} color="#fff" />
+          <Text style={styles.railLabel}>{item.commentsCount ?? 0}</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.railBtn} onPress={() => setSaved(s => !s)}>
+          <Ionicons name={saved ? "bookmark" : "bookmark-outline"} size={26}
+            color={saved ? "#FFD60A" : "#fff"} />
+          <Text style={styles.railLabel}>Save</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.railBtn}>
+          <Ionicons name="paper-plane-outline" size={26} color="#fff" />
+          <Text style={styles.railLabel}>Share</Text>
+        </TouchableOpacity>
+      </Animated.View>
+
+      {/* ── BOTTOM PANEL — BlurView ── */}
+      <Animated.View style={[styles.bottomPanel, { opacity: overlayOpacity }]}>
+        <BlurView intensity={65} tint="dark" style={StyleSheet.absoluteFill} />
+
+        {/* Category-coloured accent line */}
+        <View style={[styles.panelAccent, { backgroundColor: accent }]} />
+
+        <View style={styles.panelBody}>
+
+          {/* Instructor */}
+          <View style={styles.instructorRow}>
+            {item.instructorAvatar ? (
+              <Image source={{ uri: item.instructorAvatar }} style={styles.miniAvatar} />
+            ) : (
+              <View style={[styles.miniAvatarFallback, { backgroundColor: accent }]}>
+                <Ionicons name="person" size={10} color="#fff" />
               </View>
+            )}
+            <Text style={styles.instructorName} numberOfLines={1}>
+              {item.instructor ?? item.username ?? "Instructor"}
+            </Text>
+            {item.username && (
+              <Text style={styles.instructorHandle}>@{item.username}</Text>
+            )}
+          </View>
+
+          {/* Title */}
+          <Text style={styles.videoTitle} numberOfLines={2}>{item.title}</Text>
+
+          {/* Tags */}
+          {tags.length > 0 && (
+            <View style={styles.tagsRow}>
+              {tags.slice(0, 4).map((tag, i) => (
+                <View key={i} style={styles.tag}>
+                  <Text style={styles.tagText}>{tag}</Text>
+                </View>
+              ))}
             </View>
           )}
 
-          {/* Row 4: Progress + Continue (conditional) */}
-          {hasProgress ? (
-            <View style={styles.progressSection}>
-              <View style={styles.progressTrack}>
-                <View style={[styles.progressFill, { width: `${item.watchedPercent}%` }]} />
-              </View>
-              <TouchableOpacity
-                style={styles.continueBtn}
-                activeOpacity={0.85}
-                onPress={() => navigation.navigate("CourseDetail", {
-                  courseId: item.courseId,
-                  courseTitle: item.courseTitle ?? item.title,
-                })}
-              >
-                <Ionicons name="play" size={14} color="#fff" />
-                <Text style={styles.continueBtnText}>Continue Learning</Text>
-              </TouchableOpacity>
-            </View>
-          ) : (
+          {/* CTA */}
+          <View style={styles.ctaRow}>
             <TouchableOpacity
-              style={styles.startBtn}
-              activeOpacity={0.85}
+              style={[styles.ctaBtn, { backgroundColor: accent }]}
               onPress={() => navigation.navigate("CourseDetail", {
-                courseId: item.courseId,
+                courseId:    item.courseId,
                 courseTitle: item.courseTitle ?? item.title,
               })}
             >
-              <Ionicons name="rocket-outline" size={14} color={BLUE} />
-              <Text style={styles.startBtnText}>Start Course</Text>
+              <Ionicons name="rocket-outline" size={13} color="#fff" />
+              <Text style={styles.ctaBtnText}>
+                {(item.watchedPercent ?? 0) > 0 ? "Continue" : "Start Course"}
+              </Text>
             </TouchableOpacity>
-          )}
+
+            {item.duration && (
+              <View style={styles.durationBadge}>
+                <Ionicons name="time-outline" size={11} color={PALETTE.textMuted} />
+                <Text style={styles.durationText}>{item.duration}</Text>
+              </View>
+            )}
+          </View>
         </View>
-      </View>
+      </Animated.View>
     </View>
   );
 }
 
+// ─────────────────────────────────────────────
+//  DURATION FILTER HELPERS
+// ─────────────────────────────────────────────
+function parseDurationToSeconds(duration) {
+  if (duration == null) return null;
+  if (typeof duration === "number") return duration;
+  const str = String(duration).trim();
+  const iso  = str.match(/^PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+(?:\.\d+)?)S)?$/i);
+  if (iso) {
+    return (parseInt(iso[1] ?? 0) * 3600)
+         + (parseInt(iso[2] ?? 0) * 60)
+         + parseFloat(iso[3]  ?? 0);
+  }
+  const parts = str.split(":").map(Number);
+  if (parts.some(isNaN)) return null;
+  if (parts.length === 2) return parts[0] * 60  + parts[1];
+  if (parts.length === 3) return parts[0] * 3600 + parts[1] * 60 + parts[2];
+  return null;
+}
+
+function isAllowedDuration(video) {
+  const raw  = video.durationSeconds ?? video.duration;
+  const secs = parseDurationToSeconds(raw);
+  if (secs === null) return true;
+  return secs >= 30 && secs <= 300;
+}
+
+// ─────────────────────────────────────────────
+//  FEED SCREEN
+// ─────────────────────────────────────────────
 export default function Reels({ navigation }) {
-  const [videos, setVideos] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [videos,      setVideos]      = useState([]);
+  const [loading,     setLoading]     = useState(true);
   const [activeIndex, setActiveIndex] = useState(0);
 
   useEffect(() => {
-    const fetchVideos = async () => {
+    (async () => {
       try {
-        const response = await api.get("/videos/feed");
-        setVideos(response?.data?.videos ?? []);
-      } catch (err) {
-        console.log("Failed to load videos:", err?.message);
+        const res = await api.get("/videos/feed");
+        const all = res?.data?.videos ?? [];
+        setVideos(all.filter(isAllowedDuration));
+      } catch (e) {
+        console.log("Feed error:", e?.message);
       } finally {
         setLoading(false);
       }
-    };
-    fetchVideos();
+    })();
   }, []);
 
   const onViewableItemsChanged = useRef(({ viewableItems }) => {
     if (viewableItems.length > 0) setActiveIndex(viewableItems[0].index);
   });
-
-  const viewabilityConfig = useRef({ itemVisiblePercentThreshold: 80 });
+  const viewabilityConfig = useRef({ itemVisiblePercentThreshold: 75 });
 
   if (loading) {
     return (
-      <View style={styles.loadingContainer}>
-        <View style={styles.loadingLogo}>
-          <Text style={styles.loadingLogoText}>Nawarny</Text>
+      <View style={styles.loadingScreen}>
+        <View style={styles.loadingIcon}>
+          <Ionicons name="school-outline" size={32} color={PALETTE.blue} />
         </View>
-        <ActivityIndicator size="large" color={BLUE} style={{ marginTop: 24 }} />
-        <Text style={styles.loadingText}>Loading lessons...</Text>
+        <ActivityIndicator size="small" color={PALETTE.blue} style={{ marginTop: 20 }} />
+        <Text style={styles.loadingLabel}>Preparing your feed…</Text>
       </View>
     );
   }
@@ -277,172 +388,151 @@ export default function Reels({ navigation }) {
   return (
     <FlatList
       data={videos}
-      keyExtractor={item => item.id}
+      keyExtractor={item => String(item.id)}
       pagingEnabled
-      snapToInterval={height}
+      snapToInterval={SCREEN_H}
       snapToAlignment="start"
       decelerationRate="fast"
       showsVerticalScrollIndicator={false}
       onViewableItemsChanged={onViewableItemsChanged.current}
       viewabilityConfig={viewabilityConfig.current}
       renderItem={({ item, index }) => (
-        <VideoItem item={item} isActive={index === activeIndex} navigation={navigation} />
+        <VideoItem
+          item={item}
+          isActive={index === activeIndex}
+          navigation={navigation}
+        />
       )}
     />
   );
 }
 
+// ─────────────────────────────────────────────
+//  STYLES
+// ─────────────────────────────────────────────
 const styles = StyleSheet.create({
-  loadingContainer: {
-    flex: 1, backgroundColor: "#fff",
-    justifyContent: "center", alignItems: "center",
-  },
-  loadingLogo: {
-    backgroundColor: BLUE, paddingHorizontal: 24,
-    paddingVertical: 10, borderRadius: 20,
-  },
-  loadingLogoText: { fontSize: 22, fontWeight: "900", color: "#fff", letterSpacing: 1 },
-  loadingText: { color: "#aaa", fontSize: 14, marginTop: 12 },
 
-  videoContainer: { height, width, backgroundColor: "#000" },
+  loadingScreen: {
+    flex: 1, backgroundColor: PALETTE.bg,
+    alignItems: "center", justifyContent: "center",
+  },
+  loadingIcon: {
+    width: 72, height: 72, borderRadius: 36,
+    backgroundColor: PALETTE.blueGlow,
+    alignItems: "center", justifyContent: "center",
+    borderWidth: 1, borderColor: PALETTE.blue + "44",
+  },
+  loadingLabel: { color: PALETTE.textMuted, fontSize: 13, marginTop: 12, letterSpacing: 0.3 },
+
+  container: { height: SCREEN_H, width: SCREEN_W, backgroundColor: PALETTE.bg },
+
+  vignetteTop:    { position: "absolute", top: 0,    left: 0, right: 0, height: 180, backgroundColor: "transparent" },
+  vignetteBottom: { position: "absolute", bottom: 0, left: 0, right: 0, height: 420, backgroundColor: "transparent" },
 
   pauseOverlay: {
     ...StyleSheet.absoluteFillObject,
-    justifyContent: "center", alignItems: "center",
+    alignItems: "center", justifyContent: "center",
   },
   pauseCircle: {
-    width: 64, height: 64, borderRadius: 32,
-    backgroundColor: "rgba(0,0,0,0.45)",
-    justifyContent: "center", alignItems: "center",
+    width: 68, height: 68, borderRadius: 34,
+    backgroundColor: "rgba(0,0,0,0.5)", borderWidth: 1.5,
+    alignItems: "center", justifyContent: "center",
+  },
+
+  bookmarkBurst: {
+    ...StyleSheet.absoluteFillObject,
+    alignItems: "center", justifyContent: "center",
   },
 
   // TOP BAR
   topBar: {
     position: "absolute", top: 52, left: 16, right: 16,
-    flexDirection: "row",
-    justifyContent: "space-between", alignItems: "center",
+    flexDirection: "row", justifyContent: "space-between", alignItems: "center",
   },
-  logoWrap: { flexDirection: "row", alignItems: "center", gap: 4 },
-  logoText: {
-    fontSize: 18, fontWeight: "900", color: "#fff",
-    letterSpacing: 0.5,
-    textShadowColor: "rgba(0,0,0,0.4)",
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 4,
+  categoryChip: {
+    flexDirection: "row", alignItems: "center", gap: 6,
+    paddingHorizontal: 12, paddingVertical: 5,
+    borderRadius: 20, borderWidth: 1,
   },
-  logoDot: {
-    width: 6, height: 6, borderRadius: 3,
-    backgroundColor: BLUE, marginBottom: 8,
-  },
-  topBadges: { flexDirection: "row", gap: 8, alignItems: "center" },
-  levelBadge: {
-    paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20,
-  },
-  levelText: { fontSize: 11, fontWeight: "700", color: "#fff" },
-  durationBadge: {
-    flexDirection: "row", alignItems: "center", gap: 4,
-    backgroundColor: "rgba(0,0,0,0.4)",
-    paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20,
-  },
-  durationText: { fontSize: 11, color: "#fff", fontWeight: "600" },
+  categoryDot:      { width: 6, height: 6, borderRadius: 3 },
+  categoryChipText: { fontSize: 12, fontWeight: "700", letterSpacing: 0.4 },
 
-  // SIDE ACTIONS
-  sideActions: {
-    position: "absolute",
-    right: 12, bottom: TAB_BAR_HEIGHT + PANEL_HEIGHT + 12,
-    alignItems: "center", gap: 20,
+  topRight:    { flexDirection: "row", alignItems: "center", gap: 8 },
+  levelPill:   { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20, borderWidth: 1 },
+  levelPillText: { fontSize: 11, fontWeight: "700" },
+  lessonCounter: {
+    flexDirection: "row", alignItems: "baseline",
+    backgroundColor: "rgba(0,0,0,0.45)",
+    paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20, gap: 2,
   },
-  avatarWrap: { alignItems: "center", marginBottom: 4 },
-  avatarImg: {
-    width: 44, height: 44, borderRadius: 22,
-    borderWidth: 2, borderColor: "#fff",
-  },
-  avatarPlaceholder: {
-    width: 44, height: 44, borderRadius: 22,
-    backgroundColor: BLUE,
-    justifyContent: "center", alignItems: "center",
-    borderWidth: 2, borderColor: "#fff",
-  },
-  plusDot: {
-    position: "absolute", bottom: -4,
-    width: 16, height: 16, borderRadius: 8,
-    backgroundColor: BLUE,
-    justifyContent: "center", alignItems: "center",
-    borderWidth: 1.5, borderColor: "#fff",
-  },
-  sideBtn: { alignItems: "center", gap: 4 },
-  sideBtnLabel: { fontSize: 11, color: "#fff", fontWeight: "600" },
+  lessonCounterCurrent: { fontSize: 13, fontWeight: "800", color: "#fff" },
+  lessonCounterSep:     { fontSize: 11, color: PALETTE.textMuted },
+  lessonCounterTotal:   { fontSize: 11, color: PALETTE.textMuted, fontWeight: "600" },
 
-  // FROSTED BOTTOM PANEL
-  panel: {
-    position: "absolute",
-    bottom: TAB_BAR_HEIGHT,
+  // CHAPTER DOTS
+  chapterDotsWrap: {
+    position: "absolute", left: 14,
+    top: SCREEN_H * 0.3, bottom: TAB_BAR_H + 200,
+    justifyContent: "center",
+  },
+  chapterDots: { alignItems: "center", gap: 6 },
+  chapterDot:  { width: 4, height: 4, borderRadius: 2, backgroundColor: "rgba(255,255,255,0.2)" },
+
+  // ACTION RAIL
+  actionRail: {
+    position: "absolute", right: 12,
+    bottom: TAB_BAR_H + 20,
+    alignItems: "center", gap: 22,
+  },
+  railBtn:   { alignItems: "center", gap: 3 },
+  railLabel: { fontSize: 11, color: "#fff", fontWeight: "600" },
+
+  // BOTTOM PANEL
+  bottomPanel: {
+    position: "absolute", bottom: TAB_BAR_H,
     left: 0, right: 0,
-    height: PANEL_HEIGHT,
+    borderTopLeftRadius: 22, borderTopRightRadius: 22,
     overflow: "hidden",
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
+    borderTopWidth: 0.75, borderColor: PALETTE.border,
   },
   panelAccent: {
     position: "absolute", top: 0, left: 0, right: 0,
-    height: 3, backgroundColor: BLUE, zIndex: 2,
+    height: 3, zIndex: 2,
   },
-  panelContent: { padding: 16, paddingTop: 18, zIndex: 1 },
+  panelBody: { padding: 16, paddingTop: 20, zIndex: 1 },
 
-  panelRow: { flexDirection: "row", gap: 8, marginBottom: 10 },
-  categoryChip: {
-    backgroundColor: BLUE,
-    paddingHorizontal: 12, paddingVertical: 4, borderRadius: 20,
+  instructorRow: { flexDirection: "row", alignItems: "center", gap: 7, marginBottom: 6 },
+  miniAvatar:    { width: 24, height: 24, borderRadius: 12 },
+  miniAvatarFallback: {
+    width: 24, height: 24, borderRadius: 12,
+    alignItems: "center", justifyContent: "center",
   },
-  categoryChipText: { fontSize: 12, color: "#fff", fontWeight: "700" },
-  lessonsChip: {
-    flexDirection: "row", alignItems: "center", gap: 5,
-    backgroundColor: "rgba(255,255,255,0.12)",
-    paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20,
-    borderWidth: 1, borderColor: "rgba(255,255,255,0.2)",
-  },
-  lessonsChipText: { fontSize: 12, color: "#fff", fontWeight: "600" },
+  instructorName:   { fontSize: 12, color: PALETTE.textPrimary, fontWeight: "600" },
+  instructorHandle: { fontSize: 11, color: PALETTE.textMuted, marginLeft: 2 },
 
-  panelTitle: {
-    fontSize: 17, fontWeight: "800",
-    color: "#fff", lineHeight: 24, marginBottom: 8,
+  videoTitle: {
+    fontSize: 16, fontWeight: "800", color: PALETTE.textPrimary,
+    lineHeight: 22, marginBottom: 10, letterSpacing: 0.1,
   },
 
-  instructorRow: {
-    flexDirection: "row", alignItems: "center",
-    gap: 8, marginBottom: 12,
+  tagsRow: { flexDirection: "row", flexWrap: "wrap", gap: 6, marginBottom: 12 },
+  tag: {
+    backgroundColor: PALETTE.surfaceLight,
+    paddingHorizontal: 10, paddingVertical: 3,
+    borderRadius: 20, borderWidth: 1, borderColor: PALETTE.border,
   },
-  instructorAvatar: {
-    width: 26, height: 26, borderRadius: 13,
-    borderWidth: 1.5, borderColor: "#fff",
-  },
-  instructorAvatarPlaceholder: {
-    width: 26, height: 26, borderRadius: 13,
-    backgroundColor: BLUE,
-    justifyContent: "center", alignItems: "center",
-  },
-  instructorName: { fontSize: 13, color: "#fff", fontWeight: "600" },
-  instructorUsername: { fontSize: 11, color: "rgba(255,255,255,0.55)", marginTop: 1 },
+  tagText: { fontSize: 11, color: PALETTE.textMuted, fontWeight: "600" },
 
-  progressSection: { gap: 10 },
-  progressTrack: {
-    height: 3, backgroundColor: "rgba(255,255,255,0.2)",
-    borderRadius: 2,
-  },
-  progressFill: { height: 3, backgroundColor: BLUE, borderRadius: 2 },
-  continueBtn: {
+  ctaRow: { flexDirection: "row", alignItems: "center", gap: 10 },
+  ctaBtn: {
     flexDirection: "row", alignItems: "center", gap: 6,
-    backgroundColor: BLUE, alignSelf: "flex-start",
-    paddingHorizontal: 18, paddingVertical: 8, borderRadius: 20,
+    paddingHorizontal: 18, paddingVertical: 9, borderRadius: 20,
   },
-  continueBtnText: { fontSize: 13, fontWeight: "700", color: "#fff" },
-
-  startBtn: {
-    flexDirection: "row", alignItems: "center", gap: 6,
-    backgroundColor: "rgba(255,255,255,0.12)",
-    alignSelf: "flex-start",
-    paddingHorizontal: 18, paddingVertical: 8, borderRadius: 20,
-    borderWidth: 1, borderColor: "rgba(255,255,255,0.3)",
+  ctaBtnText: { fontSize: 13, fontWeight: "700", color: "#fff" },
+  durationBadge: {
+    flexDirection: "row", alignItems: "center", gap: 4,
+    backgroundColor: PALETTE.surfaceLight,
+    paddingHorizontal: 10, paddingVertical: 6, borderRadius: 20,
   },
-  startBtnText: { fontSize: 13, fontWeight: "700", color: "#fff" },
+  durationText: { fontSize: 11, color: PALETTE.textMuted, fontWeight: "600" },
 });
