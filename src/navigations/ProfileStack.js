@@ -2,10 +2,10 @@ import React from "react";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import ProfileScreen from "../screens/ProfileScreen";
 import EditProfileScreen from "../screens/EditProfileScreen";
-import ContactSupportScreen from "../screens/ContactSupportScreen";
+import LearningProfileScreen from "../screens/learningProfileScreen";
+
 
 const Stack = createNativeStackNavigator();
-
 export default function ProfileStack({ signOut }) {
   return (
     <Stack.Navigator>
@@ -21,10 +21,11 @@ export default function ProfileStack({ signOut }) {
         options={{ headerShown: false }}
       />
       <Stack.Screen
-        name="ContactSupport"
-        component={ContactSupportScreen}
+        name="LearningProfileScreen"
+        component={LearningProfileScreen}
         options={{ headerShown: false }}
       />
+      
     </Stack.Navigator>
   );
 }
