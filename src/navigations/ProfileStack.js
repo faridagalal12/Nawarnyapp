@@ -3,6 +3,8 @@ import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import ProfileScreen from "../screens/ProfileScreen";
 import EditProfileScreen from "../screens/EditProfileScreen";
 import LearningProfileScreen from "../screens/learningProfileScreen";
+import ContactSupportScreen from "../screens/ContactSupportScreen";
+
 const Stack = createNativeStackNavigator();
 
 export default function ProfileStack({ signOut }) {
@@ -19,9 +21,14 @@ export default function ProfileStack({ signOut }) {
         component={EditProfileScreen}
         options={{ headerShown: false }}
       />
-      <Stack.Screen                          // ← add this
+      <Stack.Screen
         name="LearningProfileScreen"
         component={LearningProfileScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="ContactSupport"
+        component={ContactSupportScreen}
         options={{ headerShown: false }}
       />
     </Stack.Navigator>
