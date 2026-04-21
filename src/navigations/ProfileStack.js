@@ -2,6 +2,9 @@ import React from "react";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import ProfileScreen from "../screens/ProfileScreen";
 import EditProfileScreen from "../screens/EditProfileScreen";
+import SubscriptionScreen from "../screens/SubscriptionScreen";
+import PaymentScreen from "../screens/paymentscreen";
+import CardScreen from "../screens/cardscreen";
 import ContactSupportScreen from "../screens/ContactSupportScreen";
 import AboutAppScreen from "../screens/AboutAppScreen";
 
@@ -22,6 +25,18 @@ export default function ProfileStack({ signOut }) {
         options={{ headerShown: false }}
       />
       <Stack.Screen
+        name="Subscription"
+        component={SubscriptionScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+  name="Payment"
+  component={PaymentScreen}
+  options={{ headerShown: false }}
+/>
+      <Stack.Screen
+        name="Card"
+        component={CardScreen}
         name="ContactSupport"
         component={ContactSupportScreen}
         options={{ headerShown: false }}
@@ -32,5 +47,6 @@ export default function ProfileStack({ signOut }) {
         options={{ headerShown: false }}
       />
     </Stack.Navigator>
+    
   );
 }
