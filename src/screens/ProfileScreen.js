@@ -72,7 +72,7 @@ export default function ProfileScreen({ signOut, navigation }) {
     {
       icon: "heart-outline",
       title: "About App",
-      onPress: () => comingSoon("About App"),
+      onPress: () => navigation.navigate("AboutApp"),
     },
   ];
 
