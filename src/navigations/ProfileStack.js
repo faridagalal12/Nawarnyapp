@@ -7,6 +7,7 @@ import PaymentScreen from "../screens/paymentscreen";
 import CardScreen from "../screens/cardscreen";
 import ContactSupportScreen from "../screens/ContactSupportScreen";
 import AboutAppScreen from "../screens/AboutAppScreen";
+import LearningProfileScreen from "../screens/learningProfileScreen";
 
 const Stack = createNativeStackNavigator();
 
@@ -27,6 +28,11 @@ export default function ProfileStack({ signOut }) {
       <Stack.Screen
         name="Subscription"
         component={SubscriptionScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="LearningProfileScreen"
+        component={LearningProfileScreen}
         options={{ headerShown: false }}
       />
       <Stack.Screen
