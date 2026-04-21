@@ -200,7 +200,6 @@ export default function EditProfileScreen({ navigation }) {
         { text: "OK", onPress: () => navigation.goBack() }
       ]);
     } catch (err) {
-      console.log("Save error:", err?.response?.data ?? err?.message);
       Alert.alert("Error", err?.response?.data?.error?.message ?? "Failed to update profile");
     } finally {
       setSaving(false);
@@ -215,6 +214,106 @@ export default function EditProfileScreen({ navigation }) {
     );
   }
 
+  const renderTopBar = () => (
+    <View style={styles.topBar}>
+      <TouchableOpacity onPress={() => navigation.goBack()} disabled={saving}>
+        <Text style={[styles.topBarText, saving && styles.topBarTextDisabled]}>Cancel</Text>
+      </TouchableOpacity>
+      <TouchableOpacity onPress={handleSave} disabled={saving}>
+        <Text style={[styles.topBarText, styles.topBarPrimary]}>
+          {saving ? "Saving..." : "Save"}
+        </Text>
+      </TouchableOpacity>
+    </View>
+  );
+
+  const renderBody = () => (
+    <ScrollView
+      ref={scrollRef}
+      contentContainerStyle={{ paddingBottom: 16 + insets.bottom }}
+      keyboardShouldPersistTaps="handled"
+      keyboardDismissMode="on-drag"
+      showsVerticalScrollIndicator={false}
+    >
+      <View style={styles.uploadCard}>
+        <View style={styles.uploadAvatarCircle}>
+          {avatarLocalUri || avatarUrl ? (
+            <Image
+              source={{ uri: avatarLocalUri || avatarUrl }}
+              style={styles.uploadAvatarImage}
+            />
+          ) : (
+            <Ionicons name="person" size={30} color="#2F54EB" />
+          )}
+        </View>
+        <TouchableOpacity
+          style={styles.uploadButton}
+          onPress={handlePickAvatar}
+          disabled={saving}
+        >
+          <Text style={styles.uploadButtonText}>Upload Photo</Text>
+        </TouchableOpacity>
+      </View>
+
+      <View style={styles.formCard}>
+        <Text style={styles.sectionTitle}>Edit details</Text>
+
+        <Text style={styles.label}>Name</Text>
+        <TextInput
+          style={styles.input}
+          value={name}
+          onChangeText={setName}
+          placeholder="Your name"
+        />
+
+        <Text style={styles.label}>Username</Text>
+        <TextInput
+          style={styles.input}
+          value={username}
+          onChangeText={setUsername}
+          placeholder="Your username"
+          autoCapitalize="none"
+        />
+
+        <Text style={styles.label}>Email</Text>
+        <TextInput
+          style={styles.input}
+          value={email}
+          onChangeText={setEmail}
+          placeholder="Your email"
+          autoCapitalize="none"
+          autoCorrect={false}
+          keyboardType="email-address"
+        />
+
+        <View style={styles.labelRow}>
+          <Text style={styles.label}>Bio</Text>
+          <Text style={styles.counter}>
+            {bio.length}/{BIO_MAX_LEN}
+          </Text>
+        </View>
+        <TextInput
+          style={[styles.input, styles.bioInput, { height: bioHeight }]}
+          value={bio}
+          onChangeText={setBio}
+          placeholder="Tell us about you"
+          multiline
+          textAlignVertical="top"
+          onFocus={handleBioFocus}
+          maxLength={BIO_MAX_LEN}
+          scrollEnabled
+          onContentSizeChange={(e) => {
+            const next = Math.max(
+              BIO_MIN_HEIGHT,
+              Math.min(BIO_MAX_HEIGHT, e?.nativeEvent?.contentSize?.height ?? BIO_MIN_HEIGHT)
+            );
+            setBioHeight(next);
+          }}
+        />
+      </View>
+    </ScrollView>
+  );
+
   return (
     <SafeAreaView style={styles.container}>
       {Platform.OS === "ios" ? (
@@ -223,199 +322,13 @@ export default function EditProfileScreen({ navigation }) {
           behavior="padding"
           keyboardVerticalOffset={0}
         >
-          <View style={styles.topBar}>
-            <TouchableOpacity onPress={() => navigation.goBack()} disabled={saving}>
-              <Text style={[styles.topBarText, saving && styles.topBarTextDisabled]}>Cancel</Text>
-            </TouchableOpacity>
-            <TouchableOpacity onPress={handleSave} disabled={saving}>
-              <Text style={[styles.topBarText, styles.topBarPrimary]}>
-                {saving ? "Saving..." : "Save"}
-              </Text>
-            </TouchableOpacity>
-          </View>
-
-          <ScrollView
-            ref={scrollRef}
-            contentContainerStyle={{ paddingBottom: 16 + insets.bottom }}
-            keyboardShouldPersistTaps="handled"
-            keyboardDismissMode="on-drag"
-            showsVerticalScrollIndicator={false}
-          >
-            <View style={styles.uploadCard}>
-              <View style={styles.uploadAvatarCircle}>
-                {avatarLocalUri || avatarUrl ? (
-                  <Image
-                    source={{ uri: avatarLocalUri || avatarUrl }}
-                    style={styles.uploadAvatarImage}
-                  />
-                ) : (
-                  <Ionicons name="person" size={30} color="#2F54EB" />
-                )}
-              </View>
-              <TouchableOpacity
-                style={styles.uploadButton}
-                onPress={handlePickAvatar}
-                disabled={saving}
-              >
-                <Text style={styles.uploadButtonText}>Upload Photo</Text>
-              </TouchableOpacity>
-            </View>
-
-            <View style={styles.formCard}>
-              <Text style={styles.sectionTitle}>Edit details</Text>
-
-              <Text style={styles.label}>Name</Text>
-              <TextInput
-                style={styles.input}
-                value={name}
-                onChangeText={setName}
-                placeholder="Your name"
-              />
-
-              <Text style={styles.label}>Username</Text>
-              <TextInput
-                style={styles.input}
-                value={username}
-                onChangeText={setUsername}
-                placeholder="Your username"
-                autoCapitalize="none"
-              />
-
-              <Text style={styles.label}>Email</Text>
-              <TextInput
-                style={styles.input}
-                value={email}
-                onChangeText={setEmail}
-                placeholder="Your email"
-                autoCapitalize="none"
-                autoCorrect={false}
-                keyboardType="email-address"
-              />
-
-              <View style={styles.labelRow}>
-                <Text style={styles.label}>Bio</Text>
-                <Text style={styles.counter}>
-                  {bio.length}/{BIO_MAX_LEN}
-                </Text>
-              </View>
-              <TextInput
-                style={[styles.input, styles.bioInput, { height: bioHeight }]}
-                value={bio}
-                onChangeText={setBio}
-                placeholder="Tell us about you"
-                multiline
-                textAlignVertical="top"
-                onFocus={handleBioFocus}
-                maxLength={BIO_MAX_LEN}
-                scrollEnabled
-                onContentSizeChange={(e) => {
-                  const next = Math.max(
-                    BIO_MIN_HEIGHT,
-                    Math.min(BIO_MAX_HEIGHT, e?.nativeEvent?.contentSize?.height ?? BIO_MIN_HEIGHT)
-                  );
-                  setBioHeight(next);
-                }}
-              />
-            </View>
-          </ScrollView>
+          {renderTopBar()}
+          {renderBody()}
         </KeyboardAvoidingView>
       ) : (
         <View style={styles.flex}>
-          <View style={styles.topBar}>
-            <TouchableOpacity onPress={() => navigation.goBack()} disabled={saving}>
-              <Text style={[styles.topBarText, saving && styles.topBarTextDisabled]}>Cancel</Text>
-            </TouchableOpacity>
-            <TouchableOpacity onPress={handleSave} disabled={saving}>
-              <Text style={[styles.topBarText, styles.topBarPrimary]}>
-                {saving ? "Saving..." : "Save"}
-              </Text>
-            </TouchableOpacity>
-          </View>
-
-          <ScrollView
-            ref={scrollRef}
-            contentContainerStyle={{ paddingBottom: 16 + insets.bottom }}
-            keyboardShouldPersistTaps="handled"
-            keyboardDismissMode="on-drag"
-            showsVerticalScrollIndicator={false}
-          >
-            <View style={styles.uploadCard}>
-              <View style={styles.uploadAvatarCircle}>
-                {avatarLocalUri || avatarUrl ? (
-                  <Image
-                    source={{ uri: avatarLocalUri || avatarUrl }}
-                    style={styles.uploadAvatarImage}
-                  />
-                ) : (
-                  <Ionicons name="person" size={30} color="#2F54EB" />
-                )}
-              </View>
-              <TouchableOpacity
-                style={styles.uploadButton}
-                onPress={handlePickAvatar}
-                disabled={saving}
-              >
-                <Text style={styles.uploadButtonText}>Upload Photo</Text>
-              </TouchableOpacity>
-            </View>
-
-            <View style={styles.formCard}>
-              <Text style={styles.sectionTitle}>Edit details</Text>
-
-              <Text style={styles.label}>Name</Text>
-              <TextInput
-                style={styles.input}
-                value={name}
-                onChangeText={setName}
-                placeholder="Your name"
-              />
-
-              <Text style={styles.label}>Username</Text>
-              <TextInput
-                style={styles.input}
-                value={username}
-                onChangeText={setUsername}
-                placeholder="Your username"
-                autoCapitalize="none"
-              />
-
-              <Text style={styles.label}>Email</Text>
-              <TextInput
-                style={styles.input}
-                value={email}
-                onChangeText={setEmail}
-                placeholder="Your email"
-                autoCapitalize="none"
-                autoCorrect={false}
-                keyboardType="email-address"
-              />
-
-              <View style={styles.labelRow}>
-                <Text style={styles.label}>Bio</Text>
-                <Text style={styles.counter}>
-                  {bio.length}/{BIO_MAX_LEN}
-                </Text>
-              </View>
-              <TextInput
-                style={[styles.input, styles.bioInput, { height: bioHeight }]}
-                value={bio}
-                onChangeText={setBio}
-                placeholder="Tell us about you"
-                multiline
-                textAlignVertical="top"
-                onFocus={handleBioFocus}
-                maxLength={BIO_MAX_LEN}
-                scrollEnabled
-                onContentSizeChange={(e) => {
-                  const next = Math.max(
-                    BIO_MIN_HEIGHT,
-                    Math.min(BIO_MAX_HEIGHT, e?.nativeEvent?.contentSize?.height ?? BIO_MIN_HEIGHT)
-                  );
-                  setBioHeight(next);
-                }}
-              />
-            </View>
-          </ScrollView>
+          {renderTopBar()}
+          {renderBody()}
         </View>
       )}
     </SafeAreaView>
