@@ -1,4 +1,4 @@
-import React, { useRef, useState, useEffect, useCallback } from "react";
+import React, { useRef, useState, useEffect } from "react";
 import {
   View,
   FlatList,
@@ -7,91 +7,166 @@ import {
   TouchableOpacity,
   TouchableWithoutFeedback,
   Text,
-  ActivityIndicator,
-  StatusBar,
   Image,
+  ActivityIndicator,
   Animated,
-  Easing,
+  Modal,
+  TextInput,
+  ScrollView,
+  KeyboardAvoidingView,
+  Platform,
 } from "react-native";
 import { VideoView, useVideoPlayer } from "expo-video";
 import { Ionicons } from "@expo/vector-icons";
-import { BlurView } from "expo-blur";
 import api from "../services/api";
 
-// ─────────────────────────────────────────────
-//  CONSTANTS
-// ─────────────────────────────────────────────
-const { height: SCREEN_H, width: SCREEN_W } = Dimensions.get("window");
-const TAB_BAR_H = 80;
+const { height, width } = Dimensions.get("window");
 
-const PALETTE = {
-  bg:           "#080A0F",
-  surfaceLight: "rgba(255,255,255,0.06)",
-  border:       "rgba(255,255,255,0.1)",
-  textPrimary:  "#F0F2F8",
-  textMuted:    "rgba(240,242,248,0.45)",
-  blue:         "#2F7EFF",
-  blueGlow:     "rgba(47,126,255,0.25)",
+const CATEGORY_CONFIG = {
+  Science:                { color: "#5ba8ff", bg: "rgba(91,168,255,0.18)",  border: "rgba(91,168,255,0.4)"  },
+  Technology:             { color: "#a78bfa", bg: "rgba(167,139,250,0.18)", border: "rgba(167,139,250,0.4)" },
+  Business:               { color: "#34d399", bg: "rgba(52,211,153,0.18)",  border: "rgba(52,211,153,0.4)"  },
+  Design:                 { color: "#f472b6", bg: "rgba(244,114,182,0.18)", border: "rgba(244,114,182,0.4)" },
+  Mathematics:            { color: "#fb923c", bg: "rgba(251,146,60,0.18)",  border: "rgba(251,146,60,0.4)"  },
+  History:                { color: "#fbbf24", bg: "rgba(251,191,36,0.18)",  border: "rgba(251,191,36,0.4)"  },
+  "Personal Development": { color: "#4ade80", bg: "rgba(74,222,128,0.18)", border: "rgba(74,222,128,0.4)"  },
+  Physics:                { color: "#38bdf8", bg: "rgba(56,189,248,0.18)",  border: "rgba(56,189,248,0.4)"  },
+  Chemistry:              { color: "#fb923c", bg: "rgba(251,146,60,0.18)",  border: "rgba(251,146,60,0.4)"  },
+  Default:                { color: "#5ba8ff", bg: "rgba(91,168,255,0.18)",  border: "rgba(91,168,255,0.35)" },
 };
 
-const CATEGORY_ACCENT = {
-  Programming: "#2F7EFF",
-  Design:      "#A855F7",
-  Business:    "#F59E0B",
-  Science:     "#10B981",
-  Language:    "#EC4899",
-  Mathematics: "#06B6D4",
-  default:     "#2F7EFF",
+const DIFFICULTY_CONFIG = {
+  Beginner:     { color: "#4ade80", bg: "rgba(74,222,128,0.15)",  border: "rgba(74,222,128,0.35)"  },
+  Intermediate: { color: "#f5c352", bg: "rgba(245,175,55,0.15)",  border: "rgba(245,175,55,0.35)"  },
+  Advanced:     { color: "#f87171", bg: "rgba(248,113,113,0.15)", border: "rgba(248,113,113,0.35)" },
+  Default:      { color: "#f5c352", bg: "rgba(245,175,55,0.15)",  border: "rgba(245,175,55,0.30)"  },
 };
 
-const LEVEL_COLORS = {
-  Beginner:     "#22C55E",
-  Intermediate: "#F59E0B",
-  Advanced:     "#EF4444",
+function getCat(s)  { return CATEGORY_CONFIG[s]   ?? CATEGORY_CONFIG.Default;   }
+function getDiff(d) { return DIFFICULTY_CONFIG[d] ?? DIFFICULTY_CONFIG.Default; }
+
+const S = {
+  textShadowColor: "rgba(0,0,0,0.99)",
+  textShadowOffset: { width: 0, height: 1 },
+  textShadowRadius: 12,
 };
 
-// ─────────────────────────────────────────────
-//  CHAPTER DOTS  (vertical strip, left side)
-// ─────────────────────────────────────────────
-function ChapterDots({ total = 1, current = 0, accent }) {
-  if (total <= 1) return null;
-  const visible = Math.min(total, 9);
+// ── Notes Modal ───────────────────────────────────────────────────────────────
+function NotesModal({ visible, onClose, videoTitle, videoId }) {
+  const [notes,   setNotes]   = useState([]);
+  const [input,   setInput]   = useState("");
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (!visible) return;
+    (async () => {
+      setLoading(true);
+      try {
+        const res = await api.get(`/videos/${videoId}/notes`);
+        setNotes(res?.data?.notes ?? []);
+      } catch {
+        setNotes([]);
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, [visible, videoId]);
+
+  const addNote = async () => {
+    const text = input.trim();
+    if (!text) return;
+    const newNote = { id: Date.now().toString(), text };
+    setNotes(prev => [newNote, ...prev]);
+    setInput("");
+    try {
+      await api.post(`/videos/${videoId}/notes`, { text });
+    } catch {
+      setNotes(prev => prev.filter(n => n.id !== newNote.id));
+    }
+  };
+
+  const deleteNote = async (id) => {
+    setNotes(prev => prev.filter(n => n.id !== id));
+    try { await api.delete(`/videos/${videoId}/notes/${id}`); } catch {}
+  };
+
   return (
-    <View style={styles.chapterDots}>
-      {Array.from({ length: visible }).map((_, i) => {
-        const isCurrent = i === current;
-        const isPast    = i < current;
-        return (
-          <View
-            key={i}
-            style={[
-              styles.chapterDot,
-              isCurrent && { backgroundColor: accent, height: 20, borderRadius: 3 },
-              isPast    && { backgroundColor: accent + "66" },
-            ]}
-          />
-        );
-      })}
-    </View>
+    <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        style={styles.modalBackdrop}
+      >
+        <TouchableWithoutFeedback onPress={onClose}>
+          <View style={styles.modalDismiss} />
+        </TouchableWithoutFeedback>
+
+        <View style={styles.modalSheet}>
+          <View style={styles.modalHeader}>
+            <View style={styles.modalHandle} />
+            <Text style={styles.modalTitle}>My Notes</Text>
+            <Text style={styles.modalSub} numberOfLines={1}>{videoTitle}</Text>
+          </View>
+
+          <View style={styles.inputRow}>
+            <TextInput
+              style={styles.noteInput}
+              placeholder="Write a note..."
+              placeholderTextColor="rgba(255,255,255,0.3)"
+              value={input}
+              onChangeText={setInput}
+              multiline
+              maxLength={300}
+            />
+            <TouchableOpacity
+              onPress={addNote}
+              style={[styles.addBtn, !input.trim() && { opacity: 0.4 }]}
+              disabled={!input.trim()}
+            >
+              <Ionicons name="send" size={18} color="#fff" />
+            </TouchableOpacity>
+          </View>
+
+          {loading ? (
+            <ActivityIndicator color="#1a5ff5" style={{ marginTop: 24 }} />
+          ) : notes.length === 0 ? (
+            <View style={styles.emptyNotes}>
+              <Ionicons name="document-text-outline" size={40} color="rgba(255,255,255,0.15)" />
+              <Text style={styles.emptyText}>No notes yet. Add your first one!</Text>
+            </View>
+          ) : (
+            <ScrollView style={styles.notesList} showsVerticalScrollIndicator={false}>
+              {notes.map(n => (
+                <View key={n.id} style={styles.noteCard}>
+                  <Text style={styles.noteText}>{n.text}</Text>
+                  <TouchableOpacity onPress={() => deleteNote(n.id)}>
+                    <Ionicons name="trash-outline" size={16} color="rgba(255,80,90,0.7)" />
+                  </TouchableOpacity>
+                </View>
+              ))}
+            </ScrollView>
+          )}
+        </View>
+      </KeyboardAvoidingView>
+    </Modal>
   );
 }
 
-// ─────────────────────────────────────────────
-//  MAIN VIDEO ITEM
-// ─────────────────────────────────────────────
-function VideoItem({ item, isActive, navigation }) {
-  const accent     = CATEGORY_ACCENT[item.category] ?? CATEGORY_ACCENT.default;
-  const levelColor = LEVEL_COLORS[item.level] ?? accent;
+// ── VideoItem ─────────────────────────────────────────────────────────────────
+function VideoItem({ item, isActive }) {
+  const [liked,     setLiked]     = useState(item.isLiked ?? false);
+  const [saved,     setSaved]     = useState(false);
+  const [followed,  setFollowed]  = useState(false);
+  const [likes,     setLikes]     = useState(item.likesCount ?? 0);
+  const [progress,  setProgress]  = useState(0);
+  const [paused,    setPaused]    = useState(false);
+  const [isPlaying, setIsPlaying] = useState(true);
+  const [showNotes, setShowNotes] = useState(false);
 
-  const [liked,  setLiked]  = useState(item.isLiked ?? false);
-  const [saved,  setSaved]  = useState(false);
-  const [likes,  setLikes]  = useState(item.likesCount ?? 0);
-  const [paused, setPaused] = useState(false);
+  const iconOpacity = useRef(new Animated.Value(0)).current;
+  const iconScale   = useRef(new Animated.Value(0.5)).current;
 
-  const overlayOpacity = useRef(new Animated.Value(0)).current;
-  const pauseScale     = useRef(new Animated.Value(0)).current;
-  const bookmarkBurst  = useRef(new Animated.Value(0)).current;
-  const lastTap        = useRef(0);
+  const cat  = getCat(item.subject ?? item.category);
+  const diff = getDiff(item.difficulty);
 
   const player = useVideoPlayer(item.videoUrl, p => {
     p.loop  = true;
@@ -101,68 +176,63 @@ function VideoItem({ item, isActive, navigation }) {
   useEffect(() => {
     if (isActive && !paused) {
       player.play();
-      Animated.timing(overlayOpacity, {
-        toValue: 1, duration: 500,
-        easing: Easing.out(Easing.quad),
-        useNativeDriver: true,
-      }).start();
+      setIsPlaying(true);
     } else {
       player.pause();
     }
   }, [isActive, paused]);
 
   useEffect(() => {
-    if (paused) {
-      Animated.sequence([
-        Animated.spring(pauseScale, { toValue: 1, useNativeDriver: true }),
-        Animated.delay(800),
-        Animated.timing(pauseScale, { toValue: 0, duration: 200, useNativeDriver: true }),
-      ]).start();
+    if (!isActive) {
+      setPaused(false);
+      setIsPlaying(true);
     }
-  }, [paused]);
+  }, [isActive]);
 
-  // Double-tap → bookmark  /  single tap → pause/play
-  const handleTap = useCallback(() => {
-    const now = Date.now();
-    if (now - lastTap.current < 300) {
-      if (!saved) {
-        setSaved(true);
-        Animated.sequence([
-          Animated.timing(bookmarkBurst, { toValue: 1, duration: 400, useNativeDriver: true }),
-          Animated.timing(bookmarkBurst, { toValue: 0, duration: 300, useNativeDriver: true }),
-        ]).start();
-      }
-    } else {
-      setPaused(p => !p);
-    }
-    lastTap.current = now;
-  }, [saved]);
+  useEffect(() => {
+    if (!isActive) return;
+    const id = setInterval(() => {
+      if (player.duration > 0)
+        setProgress(player.currentTime / player.duration);
+    }, 500);
+    return () => clearInterval(id);
+  }, [isActive, player]);
+
+  const handleTap = () => {
+    const willPause = !paused;
+    setPaused(willPause);
+    setIsPlaying(!willPause);
+
+    iconOpacity.stopAnimation();
+    iconScale.stopAnimation();
+    iconOpacity.setValue(0);
+    iconScale.setValue(0.5);
+
+    Animated.sequence([
+      Animated.parallel([
+        Animated.spring(iconScale, { toValue: 1, useNativeDriver: true, speed: 28, bounciness: 6 }),
+        Animated.timing(iconOpacity, { toValue: 1, duration: 80, useNativeDriver: true }),
+      ]),
+      Animated.delay(700),
+      Animated.timing(iconOpacity, { toValue: 0, duration: 350, useNativeDriver: true }),
+    ]).start(() => iconScale.setValue(0.5));
+  };
 
   const handleLike = async () => {
+    const next = !liked;
+    setLiked(next);
+    setLikes(n => n + (next ? 1 : -1));
     try {
-      setLiked(l => !l);
-      setLikes(n => liked ? n - 1 : n + 1);
       await api.post(`/videos/${item.id}/like`);
     } catch {
-      setLiked(liked);
-      setLikes(likes);
+      setLiked(!next);
+      setLikes(n => n + (next ? -1 : 1));
     }
   };
 
-  const lessonIndex  = item.lessonIndex  ?? 0;
-  const totalLessons = item.lessonsCount ?? 1;
-  const tags         = item.tags         ?? [];
-
-  const bookmarkScale = bookmarkBurst.interpolate({
-    inputRange:  [0, 0.5, 1],
-    outputRange: [0, 1.4,  0],
-  });
-
   return (
-    <View style={styles.container}>
-      <StatusBar barStyle="light-content" />
+    <View style={styles.videoContainer}>
 
-      {/* ── VIDEO ── */}
       <TouchableWithoutFeedback onPress={handleTap}>
         <View style={StyleSheet.absoluteFill}>
           <VideoView
@@ -171,185 +241,126 @@ function VideoItem({ item, isActive, navigation }) {
             contentFit="cover"
             nativeControls={false}
           />
-          <View style={styles.vignetteTop}    pointerEvents="none" />
-          <View style={styles.vignetteBottom} pointerEvents="none" />
         </View>
       </TouchableWithoutFeedback>
 
-      {/* BOOKMARK BURST */}
+      {/* play/pause animated icon */}
       <Animated.View
+        style={[styles.pauseOverlay, { opacity: iconOpacity }]}
         pointerEvents="none"
-        style={[styles.bookmarkBurst, {
-          transform: [{ scale: bookmarkScale }],
-          opacity: bookmarkBurst,
-        }]}
       >
-        <Ionicons name="bookmark" size={72} color="#FFD60A" />
+        <Animated.View style={[styles.pauseCircle, { transform: [{ scale: iconScale }] }]}>
+          <Ionicons name={isPlaying ? "pause" : "play"} size={44} color="#fff" />
+        </Animated.View>
       </Animated.View>
 
-      {/* PAUSE ICON */}
-      <Animated.View
-        pointerEvents="none"
-        style={[styles.pauseOverlay, { transform: [{ scale: pauseScale }] }]}
-      >
-        <View style={[styles.pauseCircle, { borderColor: accent + "99" }]}>
-          <Ionicons name={paused ? "play" : "pause"} size={30} color="#fff" />
-        </View>
-      </Animated.View>
-
-      {/* ── TOP BAR ── */}
-      <Animated.View style={[styles.topBar, { opacity: overlayOpacity }]}>
-        <View style={[styles.categoryChip, { backgroundColor: accent + "22", borderColor: accent + "55" }]}>
-          <View style={[styles.categoryDot, { backgroundColor: accent }]} />
-          <Text style={[styles.categoryChipText, { color: accent }]}>
-            {item.category ?? "Course"}
+      {/* ── dynamic top bar ── */}
+      <View style={styles.topBar}>
+        <View style={[styles.pill, { backgroundColor: cat.bg, borderColor: cat.border }]}>
+          <View style={[styles.dot, { backgroundColor: cat.color }]} />
+          <Text style={[styles.pillText, { color: cat.color }]}>
+            {item.subject ?? item.category ?? "General"}
           </Text>
         </View>
-
-        <View style={styles.topRight}>
-          {item.level && (
-            <View style={[styles.levelPill, { backgroundColor: levelColor + "22", borderColor: levelColor + "66" }]}>
-              <Text style={[styles.levelPillText, { color: levelColor }]}>{item.level}</Text>
-            </View>
-          )}
-          <View style={styles.lessonCounter}>
-            <Text style={styles.lessonCounterCurrent}>{lessonIndex + 1}</Text>
-            <Text style={styles.lessonCounterSep}>/</Text>
-            <Text style={styles.lessonCounterTotal}>{totalLessons}</Text>
-          </View>
+        <View style={[styles.pill, { backgroundColor: diff.bg, borderColor: diff.border }]}>
+          <Text style={[styles.pillText, { color: diff.color }]}>
+            {item.difficulty ?? "Intermediate"}
+          </Text>
         </View>
-      </Animated.View>
+      </View>
 
-      {/* ── CHAPTER DOTS (left side) ── */}
-      <Animated.View style={[styles.chapterDotsWrap, { opacity: overlayOpacity }]}>
-        <ChapterDots total={totalLessons} current={lessonIndex} accent={accent} />
-      </Animated.View>
-
-      {/* ── ACTION RAIL — Like / Comments / Save / Share ── */}
-      <Animated.View style={[styles.actionRail, { opacity: overlayOpacity }]}>
-
-        <TouchableOpacity onPress={handleLike} style={styles.railBtn}>
-          <Ionicons name={liked ? "heart" : "heart-outline"} size={28}
-            color={liked ? "#FF4D6D" : "#fff"} />
-          <Text style={styles.railLabel}>{likes}</Text>
+      {/* ── right actions ── */}
+      <View style={styles.actions}>
+        <TouchableOpacity onPress={handleLike} style={styles.actionBtn}>
+          <Ionicons
+            name={liked ? "heart" : "heart-outline"}
+            size={32}
+            color={liked ? "#ff4d58" : "#fff"}
+          />
+          <Text style={[styles.actionCount, S]}>{likes}</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.railBtn}>
-          <Ionicons name="chatbubble-ellipses-outline" size={26} color="#fff" />
-          <Text style={styles.railLabel}>{item.commentsCount ?? 0}</Text>
+        <TouchableOpacity onPress={() => setShowNotes(true)} style={styles.actionBtn}>
+          <Ionicons name="create-outline" size={30} color="#fff" />
+          <Text style={[styles.actionLabel, S]}>Notes</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.railBtn} onPress={() => setSaved(s => !s)}>
-          <Ionicons name={saved ? "bookmark" : "bookmark-outline"} size={26}
-            color={saved ? "#FFD60A" : "#fff"} />
-          <Text style={styles.railLabel}>Save</Text>
+        <TouchableOpacity onPress={() => setSaved(v => !v)} style={styles.actionBtn}>
+          <Ionicons
+            name={saved ? "bookmark" : "bookmark-outline"}
+            size={30}
+            color={saved ? "#1a5ff5" : "#fff"}
+          />
+          <Text style={[styles.actionLabel, S]}>Save</Text>
         </TouchableOpacity>
+      </View>
 
-        <TouchableOpacity style={styles.railBtn}>
-          <Ionicons name="paper-plane-outline" size={26} color="#fff" />
-          <Text style={styles.railLabel}>Share</Text>
-        </TouchableOpacity>
-      </Animated.View>
+      {/* ── bottom content ── */}
+      <View style={styles.bottomContent} pointerEvents="box-none">
 
-      {/* ── BOTTOM PANEL — BlurView ── */}
-      <Animated.View style={[styles.bottomPanel, { opacity: overlayOpacity }]}>
-        <BlurView intensity={65} tint="dark" style={StyleSheet.absoluteFill} />
-
-        {/* Category-coloured accent line */}
-        <View style={[styles.panelAccent, { backgroundColor: accent }]} />
-
-        <View style={styles.panelBody}>
-
-          {/* Instructor */}
-          <View style={styles.instructorRow}>
-            {item.instructorAvatar ? (
-              <Image source={{ uri: item.instructorAvatar }} style={styles.miniAvatar} />
+        <View style={styles.instructorRow}>
+          {/* avatar — blue background */}
+          <View style={styles.avatarWrap}>
+            {item.educatorAvatar ? (
+              <Image source={{ uri: item.educatorAvatar }} style={styles.avatarImg} />
             ) : (
-              <View style={[styles.miniAvatarFallback, { backgroundColor: accent }]}>
-                <Ionicons name="person" size={10} color="#fff" />
+              <View style={styles.avatarFallback}>
+                <Ionicons name="person" size={24} color="#fff" />
               </View>
             )}
-            <Text style={styles.instructorName} numberOfLines={1}>
-              {item.instructor ?? item.username ?? "Instructor"}
-            </Text>
-            {item.username && (
-              <Text style={styles.instructorHandle}>@{item.username}</Text>
+
+            {/* follow badge — disappears after tap */}
+            {!followed && (
+              <TouchableOpacity
+                onPress={() => setFollowed(true)}
+                style={styles.followBadge}
+              >
+                <Ionicons name="add" size={9} color="#fff" />
+              </TouchableOpacity>
             )}
           </View>
 
-          {/* Title */}
-          <Text style={styles.videoTitle} numberOfLines={2}>{item.title}</Text>
-
-          {/* Tags */}
-          {tags.length > 0 && (
-            <View style={styles.tagsRow}>
-              {tags.slice(0, 4).map((tag, i) => (
-                <View key={i} style={styles.tag}>
-                  <Text style={styles.tagText}>{tag}</Text>
-                </View>
-              ))}
-            </View>
-          )}
-
-          {/* CTA */}
-          <View style={styles.ctaRow}>
-            <TouchableOpacity
-              style={[styles.ctaBtn, { backgroundColor: accent }]}
-              onPress={() => navigation.navigate("CourseDetail", {
-                courseId:    item.courseId,
-                courseTitle: item.courseTitle ?? item.title,
-              })}
-            >
-              <Ionicons name="rocket-outline" size={13} color="#fff" />
-              <Text style={styles.ctaBtnText}>
-                {(item.watchedPercent ?? 0) > 0 ? "Continue" : "Start Course"}
+          {/* name + cred — only from API, no hardcoded fallback */}
+          <View style={{ flex: 1 }}>
+            {!!item.educatorName && (
+              <Text style={[styles.instructorName, S]}>
+                {item.educatorName}
               </Text>
-            </TouchableOpacity>
-
-            {item.duration && (
-              <View style={styles.durationBadge}>
-                <Ionicons name="time-outline" size={11} color={PALETTE.textMuted} />
-                <Text style={styles.durationText}>{item.duration}</Text>
-              </View>
+            )}
+            {!!item.educatorCred && (
+              <Text style={[styles.instructorCred, S]}>
+                {item.educatorCred}
+              </Text>
             )}
           </View>
         </View>
-      </Animated.View>
+
+        {/* title */}
+        <Text style={[styles.videoTitle, S]} numberOfLines={2}>
+          {item.title}
+        </Text>
+
+        {/* progress bar — always blue */}
+        <View style={styles.progTrack}>
+          <View style={[styles.progFill, {
+            width: `${Math.round(progress * 100)}%`,
+          }]} />
+        </View>
+
+      </View>
+
+      <NotesModal
+        visible={showNotes}
+        onClose={() => setShowNotes(false)}
+        videoTitle={item.title}
+        videoId={item.id}
+      />
     </View>
   );
 }
 
-// ─────────────────────────────────────────────
-//  DURATION FILTER HELPERS
-// ─────────────────────────────────────────────
-function parseDurationToSeconds(duration) {
-  if (duration == null) return null;
-  if (typeof duration === "number") return duration;
-  const str = String(duration).trim();
-  const iso  = str.match(/^PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+(?:\.\d+)?)S)?$/i);
-  if (iso) {
-    return (parseInt(iso[1] ?? 0) * 3600)
-         + (parseInt(iso[2] ?? 0) * 60)
-         + parseFloat(iso[3]  ?? 0);
-  }
-  const parts = str.split(":").map(Number);
-  if (parts.some(isNaN)) return null;
-  if (parts.length === 2) return parts[0] * 60  + parts[1];
-  if (parts.length === 3) return parts[0] * 3600 + parts[1] * 60 + parts[2];
-  return null;
-}
-
-function isAllowedDuration(video) {
-  const raw  = video.durationSeconds ?? video.duration;
-  const secs = parseDurationToSeconds(raw);
-  if (secs === null) return true;
-  return secs >= 30 && secs <= 300;
-}
-
-// ─────────────────────────────────────────────
-//  FEED SCREEN
-// ─────────────────────────────────────────────
-export default function Reels({ navigation }) {
+// ── Reels ─────────────────────────────────────────────────────────────────────
+export default function Reels() {
   const [videos,      setVideos]      = useState([]);
   const [loading,     setLoading]     = useState(true);
   const [activeIndex, setActiveIndex] = useState(0);
@@ -358,10 +369,9 @@ export default function Reels({ navigation }) {
     (async () => {
       try {
         const res = await api.get("/videos/feed");
-        const all = res?.data?.videos ?? [];
-        setVideos(all.filter(isAllowedDuration));
-      } catch (e) {
-        console.log("Feed error:", e?.message);
+        setVideos(res?.data?.videos ?? []);
+      } catch (err) {
+        console.log("Failed to load videos:", err?.message);
       } finally {
         setLoading(false);
       }
@@ -371,16 +381,13 @@ export default function Reels({ navigation }) {
   const onViewableItemsChanged = useRef(({ viewableItems }) => {
     if (viewableItems.length > 0) setActiveIndex(viewableItems[0].index);
   });
-  const viewabilityConfig = useRef({ itemVisiblePercentThreshold: 75 });
+
+  const viewabilityConfig = useRef({ itemVisiblePercentThreshold: 90 });
 
   if (loading) {
     return (
-      <View style={styles.loadingScreen}>
-        <View style={styles.loadingIcon}>
-          <Ionicons name="school-outline" size={32} color={PALETTE.blue} />
-        </View>
-        <ActivityIndicator size="small" color={PALETTE.blue} style={{ marginTop: 20 }} />
-        <Text style={styles.loadingLabel}>Preparing your feed…</Text>
+      <View style={styles.loader}>
+        <ActivityIndicator size="large" color="#1a5ff5" />
       </View>
     );
   }
@@ -388,151 +395,171 @@ export default function Reels({ navigation }) {
   return (
     <FlatList
       data={videos}
-      keyExtractor={item => String(item.id)}
+      keyExtractor={item => item.id}
       pagingEnabled
-      snapToInterval={SCREEN_H}
+      snapToInterval={height}
       snapToAlignment="start"
       decelerationRate="fast"
       showsVerticalScrollIndicator={false}
       onViewableItemsChanged={onViewableItemsChanged.current}
       viewabilityConfig={viewabilityConfig.current}
       renderItem={({ item, index }) => (
-        <VideoItem
-          item={item}
-          isActive={index === activeIndex}
-          navigation={navigation}
-        />
+        <VideoItem item={item} isActive={index === activeIndex} />
       )}
     />
   );
 }
 
-// ─────────────────────────────────────────────
-//  STYLES
-// ─────────────────────────────────────────────
+// ── styles ────────────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
-
-  loadingScreen: {
-    flex: 1, backgroundColor: PALETTE.bg,
-    alignItems: "center", justifyContent: "center",
+  loader: {
+    flex: 1, backgroundColor: "#0a0a14",
+    justifyContent: "center", alignItems: "center",
   },
-  loadingIcon: {
-    width: 72, height: 72, borderRadius: 36,
-    backgroundColor: PALETTE.blueGlow,
-    alignItems: "center", justifyContent: "center",
-    borderWidth: 1, borderColor: PALETTE.blue + "44",
+  videoContainer: {
+    height, width,
+    overflow: "hidden",
+    backgroundColor: "#000",
   },
-  loadingLabel: { color: PALETTE.textMuted, fontSize: 13, marginTop: 12, letterSpacing: 0.3 },
 
-  container: { height: SCREEN_H, width: SCREEN_W, backgroundColor: PALETTE.bg },
-
-  vignetteTop:    { position: "absolute", top: 0,    left: 0, right: 0, height: 180, backgroundColor: "transparent" },
-  vignetteBottom: { position: "absolute", bottom: 0, left: 0, right: 0, height: 420, backgroundColor: "transparent" },
-
+  // play/pause
   pauseOverlay: {
     ...StyleSheet.absoluteFillObject,
-    alignItems: "center", justifyContent: "center",
+    justifyContent: "center", alignItems: "center",
+    zIndex: 30,
   },
   pauseCircle: {
-    width: 68, height: 68, borderRadius: 34,
-    backgroundColor: "rgba(0,0,0,0.5)", borderWidth: 1.5,
-    alignItems: "center", justifyContent: "center",
+    width: 86, height: 86, borderRadius: 43,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    borderWidth: 2, borderColor: "rgba(255,255,255,0.3)",
+    justifyContent: "center", alignItems: "center",
   },
 
-  bookmarkBurst: {
-    ...StyleSheet.absoluteFillObject,
-    alignItems: "center", justifyContent: "center",
-  },
-
-  // TOP BAR
+  // top bar
   topBar: {
-    position: "absolute", top: 52, left: 16, right: 16,
-    flexDirection: "row", justifyContent: "space-between", alignItems: "center",
+    position: "absolute",
+    top: 52, left: 0, right: 0,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    zIndex: 10,
   },
-  categoryChip: {
-    flexDirection: "row", alignItems: "center", gap: 6,
-    paddingHorizontal: 12, paddingVertical: 5,
-    borderRadius: 20, borderWidth: 1,
+  pill: {
+    flexDirection: "row", alignItems: "center", gap: 5,
+    borderWidth: 1, borderRadius: 20,
+    paddingVertical: 5, paddingHorizontal: 12,
   },
-  categoryDot:      { width: 6, height: 6, borderRadius: 3 },
-  categoryChipText: { fontSize: 12, fontWeight: "700", letterSpacing: 0.4 },
+  dot: { width: 6, height: 6, borderRadius: 3 },
+  pillText: { fontSize: 11, fontWeight: "700", letterSpacing: 0.3 },
 
-  topRight:    { flexDirection: "row", alignItems: "center", gap: 8 },
-  levelPill:   { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20, borderWidth: 1 },
-  levelPillText: { fontSize: 11, fontWeight: "700" },
-  lessonCounter: {
-    flexDirection: "row", alignItems: "baseline",
-    backgroundColor: "rgba(0,0,0,0.45)",
-    paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20, gap: 2,
+  // actions
+  actions: {
+    position: "absolute",
+    right: 16, bottom: 170,
+    alignItems: "center", gap: 26, zIndex: 10,
   },
-  lessonCounterCurrent: { fontSize: 13, fontWeight: "800", color: "#fff" },
-  lessonCounterSep:     { fontSize: 11, color: PALETTE.textMuted },
-  lessonCounterTotal:   { fontSize: 11, color: PALETTE.textMuted, fontWeight: "600" },
+  actionBtn: { alignItems: "center", gap: 4 },
+  actionCount: { color: "#fff", fontSize: 13, fontWeight: "700" },
+  actionLabel: { color: "#fff", fontSize: 12, fontWeight: "600" },
 
-  // CHAPTER DOTS
-  chapterDotsWrap: {
-    position: "absolute", left: 14,
-    top: SCREEN_H * 0.3, bottom: TAB_BAR_H + 200,
-    justifyContent: "center",
+  // bottom content
+  bottomContent: {
+    position: "absolute",
+    bottom: 0, left: 0, right: 0,
+    paddingHorizontal: 18,
+    paddingTop: 20,
+    paddingBottom: 96,
+    zIndex: 10,
   },
-  chapterDots: { alignItems: "center", gap: 6 },
-  chapterDot:  { width: 4, height: 4, borderRadius: 2, backgroundColor: "rgba(255,255,255,0.2)" },
-
-  // ACTION RAIL
-  actionRail: {
-    position: "absolute", right: 12,
-    bottom: TAB_BAR_H + 20,
-    alignItems: "center", gap: 22,
+  instructorRow: {
+    flexDirection: "row", alignItems: "center",
+    gap: 12, marginBottom: 12,
   },
-  railBtn:   { alignItems: "center", gap: 3 },
-  railLabel: { fontSize: 11, color: "#fff", fontWeight: "600" },
-
-  // BOTTOM PANEL
-  bottomPanel: {
-    position: "absolute", bottom: TAB_BAR_H,
-    left: 0, right: 0,
-    borderTopLeftRadius: 22, borderTopRightRadius: 22,
-    overflow: "hidden",
-    borderTopWidth: 0.75, borderColor: PALETTE.border,
+  avatarWrap: { position: "relative", width: 50, height: 50 },
+  avatarImg: {
+    width: 50, height: 50, borderRadius: 25,
+    borderWidth: 2.5, borderColor: "#4d8aff",
   },
-  panelAccent: {
-    position: "absolute", top: 0, left: 0, right: 0,
-    height: 3, zIndex: 2,
+  avatarFallback: {
+    width: 50, height: 50, borderRadius: 25,
+    backgroundColor: "#bfdbfe",         
+    borderWidth: 2, borderColor: "#93c5fd",
+    justifyContent: "center", alignItems: "center",
   },
-  panelBody: { padding: 16, paddingTop: 20, zIndex: 1 },
-
-  instructorRow: { flexDirection: "row", alignItems: "center", gap: 7, marginBottom: 6 },
-  miniAvatar:    { width: 24, height: 24, borderRadius: 12 },
-  miniAvatarFallback: {
-    width: 24, height: 24, borderRadius: 12,
-    alignItems: "center", justifyContent: "center",
+  followBadge: {
+    position: "absolute", bottom: -2, right: -2,
+    width: 20, height: 20, borderRadius: 10,
+    backgroundColor: "#1a5ff5",          // ✅ same blue as avatar
+    justifyContent: "center", alignItems: "center",
+    borderWidth: 2, borderColor: "#fff",
   },
-  instructorName:   { fontSize: 12, color: PALETTE.textPrimary, fontWeight: "600" },
-  instructorHandle: { fontSize: 11, color: PALETTE.textMuted, marginLeft: 2 },
-
+  instructorName: {
+    color: "#fff", fontSize: 16, fontWeight: "800", marginBottom: 2,
+  },
+  instructorCred: {
+    color: "rgba(255,255,255,0.6)", fontSize: 13,
+  },
   videoTitle: {
-    fontSize: 16, fontWeight: "800", color: PALETTE.textPrimary,
-    lineHeight: 22, marginBottom: 10, letterSpacing: 0.1,
+    color: "#fff", fontSize: 20, fontWeight: "800",
+    lineHeight: 28, marginBottom: 16,
+  },
+  progTrack: {
+    height: 3,
+    backgroundColor: "rgba(255,255,255,0.2)",
+    borderRadius: 2, overflow: "hidden",
+  },
+  progFill: {
+    height: "100%", borderRadius: 2,
+    backgroundColor: "#1a5ff5",          // ✅ always blue
   },
 
-  tagsRow: { flexDirection: "row", flexWrap: "wrap", gap: 6, marginBottom: 12 },
-  tag: {
-    backgroundColor: PALETTE.surfaceLight,
-    paddingHorizontal: 10, paddingVertical: 3,
-    borderRadius: 20, borderWidth: 1, borderColor: PALETTE.border,
+  // notes modal
+  modalBackdrop: { flex: 1, justifyContent: "flex-end" },
+  modalDismiss: { flex: 1, backgroundColor: "rgba(0,0,0,0.4)" },
+  modalSheet: {
+    backgroundColor: "#0f1623",
+    borderTopLeftRadius: 24, borderTopRightRadius: 24,
+    paddingBottom: Platform.OS === "ios" ? 36 : 24,
+    maxHeight: height * 0.75,
+    borderTopWidth: 1, borderColor: "rgba(26,95,245,0.3)",
   },
-  tagText: { fontSize: 11, color: PALETTE.textMuted, fontWeight: "600" },
-
-  ctaRow: { flexDirection: "row", alignItems: "center", gap: 10 },
-  ctaBtn: {
-    flexDirection: "row", alignItems: "center", gap: 6,
-    paddingHorizontal: 18, paddingVertical: 9, borderRadius: 20,
+  modalHeader: {
+    alignItems: "center",
+    paddingTop: 12, paddingBottom: 16, paddingHorizontal: 20,
+    borderBottomWidth: 0.5, borderColor: "rgba(255,255,255,0.08)",
   },
-  ctaBtnText: { fontSize: 13, fontWeight: "700", color: "#fff" },
-  durationBadge: {
-    flexDirection: "row", alignItems: "center", gap: 4,
-    backgroundColor: PALETTE.surfaceLight,
-    paddingHorizontal: 10, paddingVertical: 6, borderRadius: 20,
+  modalHandle: {
+    width: 36, height: 4, borderRadius: 2,
+    backgroundColor: "rgba(255,255,255,0.2)", marginBottom: 14,
   },
-  durationText: { fontSize: 11, color: PALETTE.textMuted, fontWeight: "600" },
+  modalTitle: { color: "#fff", fontSize: 16, fontWeight: "700", marginBottom: 4 },
+  modalSub: { color: "rgba(255,255,255,0.4)", fontSize: 12, textAlign: "center" },
+  inputRow: {
+    flexDirection: "row", alignItems: "flex-end", gap: 10,
+    paddingHorizontal: 16, paddingVertical: 14,
+    borderBottomWidth: 0.5, borderColor: "rgba(255,255,255,0.08)",
+  },
+  noteInput: {
+    flex: 1,
+    backgroundColor: "rgba(255,255,255,0.07)",
+    borderWidth: 1, borderColor: "rgba(26,95,245,0.4)",
+    borderRadius: 12, paddingHorizontal: 14, paddingVertical: 10,
+    color: "#fff", fontSize: 14, maxHeight: 100,
+  },
+  addBtn: {
+    width: 42, height: 42, borderRadius: 21,
+    backgroundColor: "#1a5ff5",
+    justifyContent: "center", alignItems: "center",
+  },
+  emptyNotes: { alignItems: "center", paddingVertical: 40, gap: 12 },
+  emptyText: { color: "rgba(255,255,255,0.3)", fontSize: 13, textAlign: "center" },
+  notesList: { paddingHorizontal: 16, paddingTop: 12 },
+  noteCard: {
+    flexDirection: "row", alignItems: "flex-start",
+    backgroundColor: "rgba(255,255,255,0.05)",
+    borderWidth: 0.5, borderColor: "rgba(26,95,245,0.2)",
+    borderRadius: 12, padding: 12, marginBottom: 10, gap: 10,
+  },
+  noteText: { flex: 1, color: "rgba(255,255,255,0.85)", fontSize: 14, lineHeight: 20 },
 });
