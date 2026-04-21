@@ -68,7 +68,7 @@ function CourseIcon({ iconLib, icon, iconColor, size = 38 }) {
   return <Ionicons name={icon} size={size} color={iconColor} />;
 }
 
-export default function CoursesScreen({ navigation }) {
+export default function CoursesStack({ navigation }) {
   const [search, setSearch] = useState("");
   const [focused, setFocused] = useState(false);
 

@@ -2,10 +2,15 @@ import React from "react";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import ProfileScreen from "../screens/ProfileScreen";
 import EditProfileScreen from "../screens/EditProfileScreen";
+import SubscriptionScreen from "../screens/SubscriptionScreen";
+import PaymentScreen from "../screens/paymentscreen";
+import CardScreen from "../screens/cardscreen";
+import ContactSupportScreen from "../screens/ContactSupportScreen";
+import AboutAppScreen from "../screens/AboutAppScreen";
 import LearningProfileScreen from "../screens/learningProfileScreen";
 
-
 const Stack = createNativeStackNavigator();
+
 export default function ProfileStack({ signOut }) {
   return (
     <Stack.Navigator>
@@ -21,11 +26,33 @@ export default function ProfileStack({ signOut }) {
         options={{ headerShown: false }}
       />
       <Stack.Screen
+        name="Subscription"
+        component={SubscriptionScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
         name="LearningProfileScreen"
         component={LearningProfileScreen}
         options={{ headerShown: false }}
       />
-      
+      <Stack.Screen
+  name="Payment"
+  component={PaymentScreen}
+  options={{ headerShown: false }}
+/>
+      <Stack.Screen
+        name="Card"
+        component={CardScreen}
+        name="ContactSupport"
+        component={ContactSupportScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="AboutApp"
+        component={AboutAppScreen}
+        options={{ headerShown: false }}
+      />
     </Stack.Navigator>
+    
   );
 }

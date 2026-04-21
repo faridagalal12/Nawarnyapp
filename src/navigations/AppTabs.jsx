@@ -2,7 +2,7 @@ import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import HomeScreen from "../screens/HomeScreen";
 import ProfileScreen from "../screens/ProfileScreen";
 import GWelcomeScreen from "../screens/Gamification/GWelcomeScreen";
-import CoursesScreen from "../screens/CourseScreen";
+import CoursesStack from './CoursesStack';
 import { Entypo, FontAwesome, Ionicons } from "@expo/vector-icons";
 import { TouchableOpacity } from "react-native";
 import AddPostScreen from "../screens/AddPosts/AddPostScreen";
@@ -30,7 +30,7 @@ export default function MyTabs({ signOut }) {
       />
       <Tab.Screen
         name="Courses"
-        component={CoursesScreen}
+        component={CoursesStack}
         options={{
           headerShown: false,
           tabBarIcon: ({ color, size }) => (

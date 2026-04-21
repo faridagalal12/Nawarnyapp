@@ -46,7 +46,7 @@ export default function ProfileScreen({ signOut, navigation }) {
       icon: "lock-closed-outline",
       title: "Subscription",
       subtitle: "Manage your plan",
-      onPress: () => comingSoon("Subscription"),
+      onPress: () => navigation.navigate("Subscription"),
     },
     {
       icon: "shield-checkmark-outline",
@@ -72,7 +72,7 @@ export default function ProfileScreen({ signOut, navigation }) {
     {
       icon: "heart-outline",
       title: "About App",
-      onPress: () => comingSoon("About App"),
+      onPress: () => navigation.navigate("AboutApp"),
     },
   ];
 
