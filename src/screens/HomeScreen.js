@@ -8,7 +8,7 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import Reels from "../components/Reels";
 
-export default function HomeScreen() {
+export default function HomeScreen({navigation}) {
   const [activeTab, setActiveTab] = useState("forYou");
 
   return (
@@ -40,7 +40,9 @@ export default function HomeScreen() {
         </TouchableOpacity>
 
         {/* SEARCH ICON */}
+        <TouchableOpacity onPress={() => navigation.navigate("Search")}>
         <Ionicons name="search-outline" size={22} color="#fff" />
+        </TouchableOpacity>
 
       </View>
 

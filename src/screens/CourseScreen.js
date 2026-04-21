@@ -68,13 +68,20 @@ function CourseIcon({ iconLib, icon, iconColor, size = 38 }) {
   return <Ionicons name={icon} size={size} color={iconColor} />;
 }
 
-export default function CoursesScreen() {
+export default function CoursesStack({ navigation }) {
   const [search, setSearch] = useState("");
   const [focused, setFocused] = useState(false);
 
   const filtered = courses.filter((c) =>
     c.title.toLowerCase().includes(search.toLowerCase())
   );
+
+  const handleSearchSubmit = () => {
+    if (search.trim()) {
+      navigation.navigate("CoursesSearch", { query: search });
+    }
+  };
+
 
   return (
     <View style={styles.container}>
@@ -110,7 +117,10 @@ export default function CoursesScreen() {
               onChangeText={setSearch}
               onFocus={() => setFocused(true)}
               onBlur={() => setFocused(false)}
+              onSubmitEditing={handleSearchSubmit}
+              returnKeyType="search"
             />
+
             {search.length > 0 && (
               <TouchableOpacity onPress={() => setSearch("")}>
                 <Ionicons name="close-circle" size={18} color="#aaa" />
