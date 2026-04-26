@@ -4,6 +4,7 @@ import {
   SafeAreaView, StatusBar, TextInput, Alert, ScrollView,
 } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
+import api from '../services/api';
 
 const BLUE = '#0066FF';
 
@@ -32,14 +33,20 @@ export default function CardScreen({ navigation, route }) {
     expiry.length === 5 &&
     cvv.length >= 3;
 
-  const handlePay = () => {
+  const handlePay = async () => {
     if (!isValid) {
       Alert.alert('Invalid Details', 'Please fill in all card details correctly.');
       return;
     }
-    Alert.alert('Payment Successful 🎉', `You are now subscribed to the ${plan} plan!`, [
-      { text: 'Done', onPress: () => navigation.popToTop() },
-    ]);
+    try {
+      const planId = plan.toLowerCase();
+      await api.post('/subscriptions/subscribe', { plan: planId });
+      Alert.alert('Payment Successful 🎉', `You are now subscribed to the ${plan} plan!`, [
+        { text: 'Done', onPress: () => navigation.popToTop() },
+      ]);
+    } catch (err) {
+      Alert.alert('Error', 'Payment failed. Please try again.');
+    }
   };
 
   const getCardBrand = () => {

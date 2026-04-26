@@ -59,10 +59,12 @@ function NotesModal({ visible, onClose, videoTitle, videoId }) {
 
   useEffect(() => {
     if (!visible) return;
+    console.log("NotesModal videoId:", videoId);
     (async () => {
       setLoading(true);
       try {
         const res = await api.get(`/videos/${videoId}/notes`);
+        console.log("Notes response:", JSON.stringify(res?.data));
         setNotes(res?.data?.notes ?? []);
       } catch {
         setNotes([]);
@@ -75,13 +77,14 @@ function NotesModal({ visible, onClose, videoTitle, videoId }) {
   const addNote = async () => {
     const text = input.trim();
     if (!text) return;
-    const newNote = { id: Date.now().toString(), text };
-    setNotes(prev => [newNote, ...prev]);
     setInput("");
     try {
       await api.post(`/videos/${videoId}/notes`, { text });
-    } catch {
-      setNotes(prev => prev.filter(n => n.id !== newNote.id));
+      api.post("/learning-profile/award-xp", { action: "ADD_NOTE" }).catch(() => {});
+      const res = await api.get(`/videos/${videoId}/notes`);
+      setNotes(res?.data?.notes ?? []);
+    } catch (err) {
+      console.log("Add note error:", err?.response?.data ?? err?.message);
     }
   };
 
@@ -202,6 +205,11 @@ function VideoItem({ item, isActive }) {
     const willPause = !paused;
     setPaused(willPause);
     setIsPlaying(!willPause);
+    
+    // Award XP when user actively watches
+    if (willPause === false) {
+      api.post("/learning-profile/award-xp", { action: "WATCH_VIDEO" }).catch(() => {});
+    }
 
     iconOpacity.stopAnimation();
     iconScale.stopAnimation();
@@ -224,6 +232,7 @@ function VideoItem({ item, isActive }) {
     setLikes(n => n + (next ? 1 : -1));
     try {
       await api.post(`/videos/${item.id}/like`);
+      if (next) api.post("/learning-profile/award-xp", { action: "LIKE_VIDEO" }).catch(() => {});
     } catch {
       setLiked(!next);
       setLikes(n => n + (next ? -1 : 1));
@@ -359,17 +368,30 @@ function VideoItem({ item, isActive }) {
   );
 }
 
+// ── helpers ───────────────────────────────────────────────────────────────────
+function shuffle(array) {
+  const arr = [...array];
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
 // ── Reels ─────────────────────────────────────────────────────────────────────
 export default function Reels() {
-  const [videos,      setVideos]      = useState([]);
-  const [loading,     setLoading]     = useState(true);
-  const [activeIndex, setActiveIndex] = useState(0);
+  const [originalVideos, setOriginalVideos] = useState([]);
+  const [videos,         setVideos]         = useState([]);
+  const [loading,        setLoading]        = useState(true);
+  const [activeIndex,    setActiveIndex]    = useState(0);
 
   useEffect(() => {
     (async () => {
       try {
-        const res = await api.get("/videos/feed");
-        setVideos(res?.data?.videos ?? []);
+        const res = await api.get("/videos/feed?limit=50");
+        const fetched = res?.data?.videos ?? [];
+        setOriginalVideos(fetched);
+        setVideos(shuffle(fetched));
       } catch (err) {
         console.log("Failed to load videos:", err?.message);
       } finally {
@@ -384,6 +406,11 @@ export default function Reels() {
 
   const viewabilityConfig = useRef({ itemVisiblePercentThreshold: 90 });
 
+  const handleEndReached = () => {
+    if (originalVideos.length === 0) return;
+    setVideos(prev => [...prev, ...shuffle(originalVideos)]);
+  };
+
   if (loading) {
     return (
       <View style={styles.loader}>
@@ -395,7 +422,7 @@ export default function Reels() {
   return (
     <FlatList
       data={videos}
-      keyExtractor={item => item.id}
+      keyExtractor={(item, index) => `${item.id}-${index}`}
       pagingEnabled
       snapToInterval={height}
       snapToAlignment="start"
@@ -403,6 +430,8 @@ export default function Reels() {
       showsVerticalScrollIndicator={false}
       onViewableItemsChanged={onViewableItemsChanged.current}
       viewabilityConfig={viewabilityConfig.current}
+      onEndReached={handleEndReached}
+      onEndReachedThreshold={0.5}
       renderItem={({ item, index }) => (
         <VideoItem item={item} isActive={index === activeIndex} />
       )}

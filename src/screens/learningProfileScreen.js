@@ -1,6 +1,4 @@
-// src/screens/learningProfileScreen.js
-
-import React, { useState } from "react";
+import React, { useState, useCallback } from "react";
 import {
   View,
   Text,
@@ -10,85 +8,19 @@ import {
   SafeAreaView,
   StatusBar,
   Modal,
+  ActivityIndicator,
 } from "react-native";
 import Ionicons from "@expo/vector-icons/Ionicons";
-
-// ─── Mock Data (replace with real API calls) ──────────────────────────────────
-const USER = {
-  name: "Jana Al-Rashidi",
-  level: 12,
-  levelTitle: "Knowledge Seeker",
-  xp: 3420,
-  xpToNext: 4000,
-  totalXP: 18420,
-  streak: 14,
-  enrolledCourses: 8,
-  rank: 14,
-  rankDelta: +3,
-};
+import { useFocusEffect } from "@react-navigation/native";
+import api from "../services/api";
 
 const WEEK_DAYS = ["M", "T", "W", "T", "F", "S", "S"];
-const STREAK_DONE = [true, true, true, true, true, false, false];
-
-// All icons are Ionicons names + a color. This removes dependency on the
-// device's emoji font, which was rendering as "?" on iOS 26.3.
-const ONGOING_COURSES = [
-  { id: 1, title: "Python for Data Science",   lessons: 14, total: 22, pct: 64, color: "#3B6CF8", icon: "code-slash" },
-  { id: 2, title: "UX Design Fundamentals",    lessons: 6,  total: 18, pct: 33, color: "#8B5CF6", icon: "color-palette" },
-  { id: 3, title: "Digital Marketing Mastery", lessons: 9,  total: 12, pct: 75, color: "#EC4899", icon: "megaphone" },
-];
-
-const SAVED_COURSES = [
-  { id: 1, title: "Machine Learning A–Z",  tag: "AI",        tagColor: "#3B6CF8" },
-  { id: 2, title: "Growth Hacking 101",    tag: "Marketing", tagColor: "#F59E0B" },
-  { id: 3, title: "React Native Bootcamp", tag: "Dev",       tagColor: "#10B981" },
-];
-
-const BADGES = [
-  { id: 1, icon: "flame",          label: "7-Day Streak",  color: "#F97316", earned: true  },
-  { id: 2, icon: "flash",          label: "Speed Learner", color: "#F59E0B", earned: true  },
-  { id: 3, icon: "trophy",         label: "Top 10",        color: "#EAB308", earned: true  },
-  { id: 4, icon: "locate",         label: "Goal Setter",   color: "#10B981", earned: true  },
-  { id: 5, icon: "book",           label: "Bookworm",      color: "#3B6CF8", earned: false },
-  { id: 6, icon: "star",           label: "All-Star",      color: "#F59E0B", earned: false },
-  { id: 7, icon: "diamond",        label: "Diamond",       color: "#06B6D4", earned: false },
-  { id: 8, icon: "rocket",         label: "Rocket",        color: "#8B5CF6", earned: false },
-];
-
-const GOALS = [
-  { id: 1, icon: "book-outline",     label: "Lessons / Week",  current: 4,  target: 5  },
-  { id: 2, icon: "time-outline",     label: "Daily Minutes",   current: 22, target: 30 },
-  { id: 3, icon: "school-outline",   label: "Courses / Month", current: 1,  target: 2  },
-  { id: 4, icon: "play-outline",     label: "Videos / Week",   current: 9,  target: 10 },
-];
-
-const COMPLETED_COURSES = [
-  { id: 1, title: "JavaScript Essentials", date: "Mar 2026", icon: "logo-javascript" },
-  { id: 2, title: "Public Speaking Pro",   date: "Feb 2026", icon: "mic" },
-  { id: 3, title: "Excel for Business",    date: "Jan 2026", icon: "stats-chart" },
-];
-
-const LEADERBOARD = [
-  { rank: 1,         name: "Layla K.",  xp: 5820,         initial: "L" },
-  { rank: 2,         name: "Yousef M.", xp: 5410,         initial: "Y" },
-  { rank: 3,         name: "Sara T.",   xp: 4990,         initial: "S" },
-  { rank: USER.rank, name: "You",       xp: USER.totalXP, initial: "U", isUser: true },
-];
 
 // ─── Shared helpers ───────────────────────────────────────────────────────────
-
-// SectionTitle now accepts an Ionicons name instead of an inline emoji.
 function SectionTitle({ title, icon, iconColor = "#0066FF" }) {
   return (
     <View style={styles.sectionTitleRow}>
-      {icon ? (
-        <Ionicons
-          name={icon}
-          size={16}
-          color={iconColor}
-          style={{ marginRight: 6 }}
-        />
-      ) : null}
+      {icon ? <Ionicons name={icon} size={16} color={iconColor} style={{ marginRight: 6 }} /> : null}
       <Text style={styles.sectionTitle}>{title}</Text>
     </View>
   );
@@ -101,53 +33,41 @@ function Card({ children, style }) {
 function ProgressBar({ pct, color = "#0066FF", height = 6 }) {
   return (
     <View style={[styles.progressTrack, { height }]}>
-      <View
-        style={[
-          styles.progressFill,
-          { width: `${Math.min(pct, 100)}%`, backgroundColor: color, height },
-        ]}
-      />
+      <View style={[styles.progressFill, { width: `${Math.min(pct, 100)}%`, backgroundColor: color, height }]} />
     </View>
   );
 }
 
 // ─── Section components ───────────────────────────────────────────────────────
-
-function Header() {
-  const xpPct = Math.round((USER.xp / USER.xpToNext) * 100);
-  const rankArrow = USER.rankDelta > 0 ? "▲" : USER.rankDelta < 0 ? "▼" : "–";
+function Header({ stats }) {
+  if (!stats) return null;
+  const xpPct = stats.xpToNext > 0
+    ? Math.round((stats.xp / (stats.xp + stats.xpToNext)) * 100)
+    : 100;
+  const rankArrow = stats.rankDelta > 0 ? "▲" : stats.rankDelta < 0 ? "▼" : "–";
 
   return (
     <View style={styles.header}>
-      <Text style={styles.headerLevel}>Lv.{USER.level} · {USER.levelTitle}</Text>
-
+      <Text style={styles.headerLevel}>Lv.{stats.level} · {stats.levelTitle}</Text>
       <View style={styles.pillRow}>
         {[
-          { label: "Courses",  value: String(USER.enrolledCourses) },
-          { label: "Streak",   value: `${USER.streak}`, iconAfter: "flame", iconColor: "#F97316" },
-          { label: "Total XP", value: USER.totalXP.toLocaleString() },
-          { label: "Rank",     value: `#${USER.rank} ${rankArrow}` },
+          { label: "Courses",  value: String(stats.enrolledCourses) },
+          { label: "Streak",   value: `${stats.streak}`, iconAfter: "flame", iconColor: "#F97316" },
+          { label: "Total XP", value: stats.totalXP.toLocaleString() },
+          { label: "Rank",     value: stats.rank > 0 ? `#${stats.rank} ${rankArrow}` : "—" },
         ].map((s) => (
           <View key={s.label} style={styles.pill}>
             <View style={styles.pillValueRow}>
               <Text style={styles.pillValue}>{s.value}</Text>
-              {s.iconAfter ? (
-                <Ionicons
-                  name={s.iconAfter}
-                  size={12}
-                  color={s.iconColor}
-                  style={{ marginLeft: 4 }}
-                />
-              ) : null}
+              {s.iconAfter ? <Ionicons name={s.iconAfter} size={12} color={s.iconColor} style={{ marginLeft: 4 }} /> : null}
             </View>
             <Text style={styles.pillLabel}>{s.label}</Text>
           </View>
         ))}
       </View>
-
       <View style={styles.xpRow}>
-        <Text style={styles.xpText}>{USER.xp.toLocaleString()} XP</Text>
-        <Text style={styles.xpText}>{USER.xpToNext.toLocaleString()} XP → Lv.{USER.level + 1}</Text>
+        <Text style={styles.xpText}>{stats.xp.toLocaleString()} XP</Text>
+        <Text style={styles.xpText}>{stats.xpToNext.toLocaleString()} XP → Lv.{stats.level + 1}</Text>
       </View>
       <View style={styles.xpTrack}>
         <View style={[styles.xpFill, { width: `${xpPct}%` }]} />
@@ -156,27 +76,24 @@ function Header() {
   );
 }
 
-function WeekStreak() {
+function WeekStreak({ streakData }) {
+  if (!streakData) return null;
+  const weekStreak = streakData.weekStreak ?? [false, false, false, false, false, false, false];
+  const todayIndex = (new Date().getDay() + 6) % 7;
+
   return (
     <Card>
       <SectionTitle title="Weekly Streak" icon="calendar" />
       <View style={styles.weekRow}>
         {WEEK_DAYS.map((d, i) => {
-          const done = STREAK_DONE[i];
-          const isToday = i === 4;
+          const done = weekStreak[i];
+          const isToday = i === todayIndex;
           return (
             <View key={i} style={styles.dayCol}>
-              <View
-                style={[
-                  styles.dayDot,
-                  { backgroundColor: done ? (isToday ? "#F97316" : "#0066FF") : "#E8EEFF" },
-                ]}
-              >
+              <View style={[styles.dayDot, { backgroundColor: done ? (isToday ? "#F97316" : "#0066FF") : "#E8EEFF" }]}>
                 {done && <Ionicons name="checkmark" size={14} color="#fff" />}
               </View>
-              <Text style={[styles.dayLabel, isToday && { color: "#F97316", fontWeight: "700" }]}>
-                {d}
-              </Text>
+              <Text style={[styles.dayLabel, isToday && { color: "#F97316", fontWeight: "700" }]}>{d}</Text>
             </View>
           );
         })}
@@ -185,7 +102,8 @@ function WeekStreak() {
   );
 }
 
-function LearningGoals({ onEdit }) {
+function LearningGoals({ goals, onEdit }) {
+  if (!goals) return null;
   return (
     <Card>
       <View style={styles.cardHeader}>
@@ -195,15 +113,14 @@ function LearningGoals({ onEdit }) {
         </TouchableOpacity>
       </View>
       <View style={styles.goalsGrid}>
-        {GOALS.map((g) => {
-          const pct = Math.round((g.current / g.target) * 100);
+        {goals.map((g) => {
+          const pct = g.target > 0 ? Math.round((g.current / g.target) * 100) : 0;
           return (
             <View key={g.id} style={styles.goalCell}>
               <Ionicons name={g.icon} size={20} color="#0066FF" />
               <Text style={styles.goalLabel}>{g.label}</Text>
               <Text style={styles.goalValue}>
-                {g.current}
-                <Text style={styles.goalTarget}>/{g.target}</Text>
+                {g.current}<Text style={styles.goalTarget}>/{g.target}</Text>
               </Text>
               <ProgressBar pct={pct} color={pct >= 100 ? "#10B981" : "#0066FF"} height={5} />
             </View>
@@ -214,73 +131,18 @@ function LearningGoals({ onEdit }) {
   );
 }
 
-function OngoingCourses() {
-  return (
-    <Card>
-      <SectionTitle title="Ongoing Courses" icon="play-circle" />
-      {ONGOING_COURSES.map((c, idx) => (
-        <View
-          key={c.id}
-          style={[styles.courseRow, idx < ONGOING_COURSES.length - 1 && styles.courseRowBorder]}
-        >
-          <View style={[styles.courseIcon, { backgroundColor: c.color + "22" }]}>
-            <Ionicons name={c.icon} size={20} color={c.color} />
-          </View>
-          <View style={styles.courseInfo}>
-            <Text style={styles.courseTitle} numberOfLines={1}>{c.title}</Text>
-            <View style={styles.courseBarRow}>
-              <View style={{ flex: 1 }}>
-                <ProgressBar pct={c.pct} color={c.color} />
-              </View>
-              <Text style={[styles.coursePct, { color: c.color }]}>{c.pct}%</Text>
-            </View>
-            <Text style={styles.courseLessons}>{c.lessons}/{c.total} lessons</Text>
-          </View>
-        </View>
-      ))}
-    </Card>
-  );
-}
-
-function SavedCourses() {
-  return (
-    <Card>
-      <SectionTitle title="Saved Courses" icon="bookmark" />
-      {SAVED_COURSES.map((c) => (
-        <View key={c.id} style={styles.savedRow}>
-          <Text style={styles.savedTitle} numberOfLines={1}>{c.title}</Text>
-          <View style={[styles.tag, { backgroundColor: c.tagColor + "18" }]}>
-            <Text style={[styles.tagText, { color: c.tagColor }]}>{c.tag}</Text>
-          </View>
-        </View>
-      ))}
-    </Card>
-  );
-}
-
-function Badges() {
+function Badges({ badges }) {
+  if (!badges) return null;
   return (
     <Card>
       <SectionTitle title="Badges" icon="medal" iconColor="#F59E0B" />
       <View style={styles.badgesGrid}>
-        {BADGES.map((b) => (
+        {badges.map((b) => (
           <View key={b.id} style={styles.badgeCell}>
-            <View
-              style={[
-                styles.badgeCircle,
-                b.earned && styles.badgeCircleEarned,
-                b.earned && { borderColor: b.color },
-              ]}
-            >
-              <Ionicons
-                name={b.earned ? b.icon : "lock-closed"}
-                size={22}
-                color={b.earned ? b.color : "#94A3B8"}
-              />
+            <View style={[styles.badgeCircle, b.earned && styles.badgeCircleEarned, b.earned && { borderColor: b.color }]}>
+              <Ionicons name={b.earned ? b.icon : "lock-closed"} size={22} color={b.earned ? b.color : "#94A3B8"} />
             </View>
-            <Text style={[styles.badgeLabel, !b.earned && { color: "#94A3B8" }]}>
-              {b.label}
-            </Text>
+            <Text style={[styles.badgeLabel, !b.earned && { color: "#94A3B8" }]}>{b.label}</Text>
           </View>
         ))}
       </View>
@@ -288,26 +150,19 @@ function Badges() {
   );
 }
 
-function CompletedCourses() {
+function CompletedCourses({ courses }) {
+  if (!courses || courses.length === 0) return null;
   return (
     <Card>
       <SectionTitle title="Completed Courses" icon="checkmark-circle" iconColor="#10B981" />
-      {COMPLETED_COURSES.map((c) => (
+      {courses.map((c) => (
         <View key={c.id} style={styles.completedRow}>
           <View style={styles.completedIconWrap}>
-            <Ionicons name={c.icon} size={20} color="#10B981" />
+            <Ionicons name={c.icon ?? "school"} size={20} color="#10B981" />
           </View>
           <View style={styles.completedInfo}>
-            <Text
-              style={styles.completedTitle}
-              numberOfLines={2}
-              ellipsizeMode="tail"
-            >
-              {c.title}
-            </Text>
-            <Text style={styles.completedDate} numberOfLines={1}>
-              Completed {c.date}
-            </Text>
+            <Text style={styles.completedTitle} numberOfLines={2}>{c.title}</Text>
+            <Text style={styles.completedDate}>Completed {c.date}</Text>
           </View>
           <TouchableOpacity style={styles.certButton}>
             <Ionicons name="ribbon" size={13} color="#fff" style={{ marginRight: 4 }} />
@@ -319,9 +174,10 @@ function CompletedCourses() {
   );
 }
 
-function LeaderboardCard() {
-  const rankArrow = USER.rankDelta > 0 ? "▲" : USER.rankDelta < 0 ? "▼" : "–";
-  const rankColor = USER.rankDelta > 0 ? "#10B981" : USER.rankDelta < 0 ? "#EF4444" : "#fff";
+function LeaderboardCard({ leaderboard, stats }) {
+  if (!leaderboard || !stats) return null;
+  const rankArrow = stats.rankDelta > 0 ? "▲" : stats.rankDelta < 0 ? "▼" : "–";
+  const rankColor = stats.rankDelta > 0 ? "#10B981" : stats.rankDelta < 0 ? "#EF4444" : "#fff";
 
   return (
     <Card>
@@ -329,28 +185,20 @@ function LeaderboardCard() {
       <View style={styles.rankBanner}>
         <View>
           <Text style={styles.rankBannerSub}>Your rank this week</Text>
-          <Text style={styles.rankBannerNum}>#{USER.rank}</Text>
+          <Text style={styles.rankBannerNum}>{stats.rank > 0 ? `#${stats.rank}` : "—"}</Text>
         </View>
         <View style={{ alignItems: "flex-end" }}>
-          <Text style={[styles.rankDelta, { color: rankColor }]}>
-            {rankArrow} {Math.abs(USER.rankDelta)}
-          </Text>
+          <Text style={[styles.rankDelta, { color: rankColor }]}>{rankArrow} {Math.abs(stats.rankDelta)}</Text>
           <Text style={styles.rankBannerSub}>vs last week</Text>
         </View>
       </View>
-
-      {LEADERBOARD.map((row) => (
+      {leaderboard.map((row) => (
         <View key={row.rank} style={[styles.lbRow, row.isUser && styles.lbRowUser]}>
-          <Text style={[styles.lbRank, row.rank <= 3 && { color: "#F59E0B" }]}>
-            #{row.rank}
-          </Text>
+          <Text style={[styles.lbRank, row.rank <= 3 && { color: "#F59E0B" }]}>#{row.rank}</Text>
           <View style={styles.lbAvatarCircle}>
             <Text style={styles.lbAvatarText}>{row.initial}</Text>
           </View>
-          <Text
-            style={[styles.lbName, row.isUser && { fontWeight: "700", color: "#0066FF" }]}
-            numberOfLines={1}
-          >
+          <Text style={[styles.lbName, row.isUser && { fontWeight: "700", color: "#0066FF" }]} numberOfLines={1}>
             {row.name}
           </Text>
           <Text style={styles.lbXP}>{row.xp.toLocaleString()} XP</Text>
@@ -360,7 +208,30 @@ function LeaderboardCard() {
   );
 }
 
-function EditGoalsModal({ visible, onClose }) {
+function EditGoalsModal({ visible, onClose, goals, onSave }) {
+  const [targets, setTargets] = useState({});
+
+  React.useEffect(() => {
+    if (goals) {
+      setTargets({
+        lessonsPerWeek:  goals[0]?.target ?? 5,
+        dailyMinutes:    goals[1]?.target ?? 30,
+        coursesPerMonth: goals[2]?.target ?? 2,
+        videosPerWeek:   goals[3]?.target ?? 10,
+      });
+    }
+  }, [goals]);
+
+  const handleSave = async () => {
+    try {
+      await api.put("/learning-profile/goals", targets);
+      onSave();
+      onClose();
+    } catch (err) {
+      console.log("Failed to save goals:", err?.message);
+    }
+  };
+
   return (
     <Modal visible={visible} transparent animationType="slide">
       <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={onClose}>
@@ -369,20 +240,36 @@ function EditGoalsModal({ visible, onClose }) {
             <Ionicons name="locate" size={18} color="#10B981" style={{ marginRight: 6 }} />
             <Text style={styles.modalTitle}>Edit Learning Goals</Text>
           </View>
-          {GOALS.map((g) => (
-            <View key={g.id} style={styles.modalGoalRow}>
-              <Ionicons name={g.icon} size={20} color="#0066FF" style={{ width: 28 }} />
-              <View style={{ flex: 1 }}>
-                <Text style={styles.modalGoalLabel}>{g.label}</Text>
-                <Text style={styles.modalGoalTarget}>Target: {g.target}</Text>
+          {goals?.map((g, i) => {
+            const keys = ["lessonsPerWeek", "dailyMinutes", "coursesPerMonth", "videosPerWeek"];
+            const key = keys[i];
+            return (
+              <View key={g.id} style={styles.modalGoalRow}>
+                <Ionicons name={g.icon} size={20} color="#0066FF" style={{ width: 28 }} />
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.modalGoalLabel}>{g.label}</Text>
+                  <Text style={styles.modalGoalTarget}>Current target: {targets[key]}</Text>
+                </View>
+                <View style={styles.modalGoalBtnRow}>
+                  <TouchableOpacity
+                    onPress={() => setTargets(t => ({ ...t, [key]: Math.max(1, (t[key] ?? 1) - 1) }))}
+                    style={styles.modalGoalBtn}
+                  >
+                    <Ionicons name="remove" size={16} color="#0066FF" />
+                  </TouchableOpacity>
+                  <Text style={styles.modalGoalBadgeText}>{targets[key]}</Text>
+                  <TouchableOpacity
+                    onPress={() => setTargets(t => ({ ...t, [key]: (t[key] ?? 1) + 1 }))}
+                    style={styles.modalGoalBtn}
+                  >
+                    <Ionicons name="add" size={16} color="#0066FF" />
+                  </TouchableOpacity>
+                </View>
               </View>
-              <View style={styles.modalGoalBadge}>
-                <Text style={styles.modalGoalBadgeText}>{g.current}/{g.target}</Text>
-              </View>
-            </View>
-          ))}
-          <TouchableOpacity style={styles.modalSaveBtn} onPress={onClose}>
-            <Text style={styles.modalSaveBtnText}>Done</Text>
+            );
+          })}
+          <TouchableOpacity style={styles.modalSaveBtn} onPress={handleSave}>
+            <Text style={styles.modalSaveBtnText}>Save Goals</Text>
           </TouchableOpacity>
         </View>
       </TouchableOpacity>
@@ -391,14 +278,45 @@ function EditGoalsModal({ visible, onClose }) {
 }
 
 // ─── Main Screen ──────────────────────────────────────────────────────────────
-
 export default function LearningProfileScreen({ navigation }) {
+  const [stats,       setStats]       = useState(null);
+  const [streakData,  setStreakData]  = useState(null);
+  const [goals,       setGoals]       = useState(null);
+  const [badges,      setBadges]      = useState(null);
+  const [completed,   setCompleted]   = useState(null);
+  const [leaderboard, setLeaderboard] = useState(null);
+  const [loading,     setLoading]     = useState(true);
   const [editGoalsVisible, setEditGoalsVisible] = useState(false);
+
+  const fetchAll = useCallback(async () => {
+    setLoading(true);
+    try {
+      const [statsRes, streakRes, goalsRes, badgesRes, completedRes, lbRes] = await Promise.all([
+        api.get("/learning-profile/stats"),
+        api.get("/learning-profile/streak"),
+        api.get("/learning-profile/goals"),
+        api.get("/learning-profile/badges"),
+        api.get("/learning-profile/completed-courses"),
+        api.get("/learning-profile/leaderboard"),
+      ]);
+      setStats(statsRes?.data);
+      setStreakData(streakRes?.data);
+      setGoals(goalsRes?.data);
+      setBadges(badgesRes?.data);
+      setCompleted(completedRes?.data);
+      setLeaderboard(lbRes?.data);
+    } catch (err) {
+      console.log("Failed to load learning profile:", err?.message);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useFocusEffect(useCallback(() => { fetchAll(); }, [fetchAll]));
 
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor="#0066FF" />
-
       <View style={styles.navBar}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
           <Ionicons name="chevron-back" size={24} color="#fff" />
@@ -407,29 +325,39 @@ export default function LearningProfileScreen({ navigation }) {
         <View style={{ width: 40 }} />
       </View>
 
-      <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
-        <Header />
-        <View style={styles.body}>
-          <WeekStreak />
-          <LearningGoals onEdit={() => setEditGoalsVisible(true)} />
-          <OngoingCourses />
-          <SavedCourses />
-          <Badges />
-          <CompletedCourses />
-          <LeaderboardCard />
+      {loading ? (
+        <View style={styles.loaderContainer}>
+          <ActivityIndicator size="large" color="#0066FF" />
         </View>
-      </ScrollView>
+      ) : (
+        <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+          <Header stats={stats} />
+          <View style={styles.body}>
+            <WeekStreak streakData={streakData} />
+            <LearningGoals goals={goals} onEdit={() => setEditGoalsVisible(true)} />
+            <Badges badges={badges} />
+            <CompletedCourses courses={completed} />
+            <LeaderboardCard leaderboard={leaderboard} stats={stats} />
+          </View>
+        </ScrollView>
+      )}
 
-      <EditGoalsModal visible={editGoalsVisible} onClose={() => setEditGoalsVisible(false)} />
+      <EditGoalsModal
+        visible={editGoalsVisible}
+        onClose={() => setEditGoalsVisible(false)}
+        goals={goals}
+        onSave={fetchAll}
+      />
     </SafeAreaView>
   );
 }
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
-  container:    { flex: 1, backgroundColor: "#F1F5F9" },
-  scroll:       { paddingBottom: 32 },
-  body:         { padding: 16, gap: 16 },
+  container:      { flex: 1, backgroundColor: "#F1F5F9" },
+  scroll:         { paddingBottom: 32 },
+  body:           { padding: 16, gap: 16 },
+  loaderContainer:{ flex: 1, justifyContent: "center", alignItems: "center" },
 
   navBar: {
     backgroundColor: "#0066FF",
@@ -439,8 +367,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 12,
   },
-  backBtn:   { padding: 8 },
-  navTitle:  { color: "#fff", fontSize: 17, fontWeight: "700" },
+  backBtn:  { padding: 8 },
+  navTitle: { color: "#fff", fontSize: 17, fontWeight: "700" },
 
   header: {
     backgroundColor: "#0066FF",
@@ -496,33 +424,12 @@ const styles = StyleSheet.create({
   goalValue: { fontSize: 14, fontWeight: "700", color: "#1E293B" },
   goalTarget:{ fontWeight: "400", color: "#94A3B8" },
 
-  courseRow:       { flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 10 },
-  courseRowBorder: { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: "#EEF2FF" },
-  courseIcon:      { width: 44, height: 44, borderRadius: 10, alignItems: "center", justifyContent: "center" },
-  courseInfo:      { flex: 1, minWidth: 0 },
-  courseTitle:     { fontSize: 13, fontWeight: "600", color: "#1E293B", marginBottom: 6 },
-  courseBarRow:    { flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 3 },
-  coursePct:       { fontSize: 12, fontWeight: "700" },
-  courseLessons:   { fontSize: 11, color: "#94A3B8" },
-
-  savedRow:  { flexDirection: "row", alignItems: "center", justifyContent: "space-between", backgroundColor: "#F8FAFF", borderRadius: 12, padding: 12, marginBottom: 8 },
-  savedTitle:{ fontSize: 13, fontWeight: "600", color: "#1E293B", flex: 1, marginRight: 8 },
-  tag:       { borderRadius: 99, paddingVertical: 3, paddingHorizontal: 10, flexShrink: 0 },
-  tagText:   { fontSize: 11, fontWeight: "700" },
-
   badgesGrid:        { flexDirection: "row", flexWrap: "wrap", gap: 10 },
   badgeCell:         { width: "22%", alignItems: "center", gap: 6 },
   badgeCircle:       { width: 52, height: 52, borderRadius: 26, backgroundColor: "#F1F5F9", borderWidth: 2, borderColor: "#E2E8F0", alignItems: "center", justifyContent: "center" },
   badgeCircleEarned: { backgroundColor: "#FEF9C3" },
   badgeLabel:        { fontSize: 10, color: "#64748B", textAlign: "center", lineHeight: 13 },
 
-  // Completed courses — the row that was breaking.
-  //   • completedIconWrap has a fixed width so it can't balloon if a glyph
-  //     renders as two tofu boxes.
-  //   • completedInfo gets `flex:1` AND `minWidth:0`, which lets its text
-  //     shrink/wrap normally instead of defaulting to its content width.
-  //   • certButton has `flexShrink:0` so it never steals space from the title.
-  //   • title uses numberOfLines={2} + ellipsize to guarantee a sane shape.
   completedRow:      { flexDirection: "row", alignItems: "center", gap: 10, backgroundColor: "#F0FDF4", borderRadius: 12, padding: 12, marginBottom: 8 },
   completedIconWrap: { width: 36, height: 36, borderRadius: 18, backgroundColor: "#D1FAE5", alignItems: "center", justifyContent: "center", flexShrink: 0 },
   completedInfo:     { flex: 1, minWidth: 0 },
@@ -550,8 +457,9 @@ const styles = StyleSheet.create({
   modalGoalRow:       { flexDirection: "row", alignItems: "center", gap: 12, marginBottom: 16 },
   modalGoalLabel:     { fontSize: 13, color: "#64748B" },
   modalGoalTarget:    { fontSize: 12, color: "#94A3B8", marginTop: 2 },
-  modalGoalBadge:     { backgroundColor: "#E8EEFF", borderRadius: 99, paddingVertical: 4, paddingHorizontal: 12 },
-  modalGoalBadgeText: { color: "#0066FF", fontSize: 12, fontWeight: "700" },
+  modalGoalBtnRow:    { flexDirection: "row", alignItems: "center", gap: 8 },
+  modalGoalBtn:       { backgroundColor: "#E8EEFF", borderRadius: 99, width: 28, height: 28, alignItems: "center", justifyContent: "center" },
+  modalGoalBadgeText: { color: "#0066FF", fontSize: 14, fontWeight: "700", minWidth: 24, textAlign: "center" },
   modalSaveBtn:       { backgroundColor: "#0066FF", borderRadius: 14, padding: 14, alignItems: "center", marginTop: 8 },
   modalSaveBtnText:   { color: "#fff", fontSize: 15, fontWeight: "700" },
 });
