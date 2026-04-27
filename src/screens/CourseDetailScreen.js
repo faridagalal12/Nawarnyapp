@@ -29,8 +29,7 @@ export default function CourseDetailScreen({ route, navigation }) {
 
   const handleEnroll = () => {
     // TODO: call enrollment API via services/api.js
-    // For the mockup flow, we jump straight to the completion state.
-    navigation.navigate('CourseCompletion', { course });
+    navigation.navigate('Payment', { course });
   };
 
   return (
