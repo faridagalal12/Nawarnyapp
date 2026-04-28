@@ -188,8 +188,8 @@ function LeaderboardCard({ leaderboard, stats }) {
           <Text style={styles.rankBannerNum}>{stats.rank > 0 ? `#${stats.rank}` : "—"}</Text>
         </View>
         <View style={{ alignItems: "flex-end" }}>
-          <Text style={[styles.rankDelta, { color: rankColor }]}>{rankArrow} {Math.abs(stats.rankDelta)}</Text>
-          <Text style={styles.rankBannerSub}>vs last week</Text>
+<Text style={[styles.rankDelta, { color: rankColor }]}>{stats.rankDelta === 0 ? "\u2013" : `${rankArrow} ${Math.abs(stats.rankDelta)}`}</Text>     
+   <Text style={styles.rankBannerSub}>vs last week</Text>
         </View>
       </View>
       {leaderboard.map((row) => (

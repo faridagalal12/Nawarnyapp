@@ -1,6 +1,6 @@
-import React, { useRef, useState, useEffect } from "react";
-import {
-  View,
+import React, { useRef, useState, useEffect, useCallback } from "react";
+import { useFocusEffect } from "@react-navigation/native";
+import {  View,
   FlatList,
   Dimensions,
   StyleSheet,
@@ -384,6 +384,14 @@ export default function Reels() {
   const [videos,         setVideos]         = useState([]);
   const [loading,        setLoading]        = useState(true);
   const [activeIndex,    setActiveIndex]    = useState(0);
+  const [screenFocused,  setScreenFocused]  = useState(true);
+
+  useFocusEffect(
+    useCallback(() => {
+      setScreenFocused(true);
+      return () => setScreenFocused(false);
+    }, [])
+  );
 
   useEffect(() => {
     (async () => {
@@ -433,7 +441,7 @@ export default function Reels() {
       onEndReached={handleEndReached}
       onEndReachedThreshold={0.5}
       renderItem={({ item, index }) => (
-        <VideoItem item={item} isActive={index === activeIndex} />
+        <VideoItem item={item} isActive={index === activeIndex && screenFocused} />
       )}
     />
   );
