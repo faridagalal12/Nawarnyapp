@@ -7,7 +7,7 @@ import { Entypo, FontAwesome, Ionicons } from "@expo/vector-icons";
 import { TouchableOpacity } from "react-native";
 import AddPostScreen from "../screens/AddPosts/AddPostScreen";
 import ProfileStack from "./ProfileStack";
-
+import HomeStack from "./HomeStack";
 
 const Tab = createBottomTabNavigator();
 
@@ -20,7 +20,7 @@ export default function MyTabs({ signOut }) {
     >
       <Tab.Screen
         name="Home"
-        component={HomeScreen}
+        component={HomeStack}
         options={{
           headerShown: false,
           tabBarIcon: ({ color, size }) => (
