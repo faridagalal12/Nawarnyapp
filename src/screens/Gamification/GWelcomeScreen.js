@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 import {
   View,
   Text,
@@ -146,7 +146,7 @@ export default function GWelcomeScreen() {
 
               {/* CTA button */}
               <TouchableOpacity style={styles.ctaBtn} activeOpacity={0.85}>
-                <Text style={styles.ctaBtnText}>Check it out now</Text>
+                <Text style={styles.ctaBtnText}>Start</Text>
               </TouchableOpacity>
             </View>
 
