@@ -48,7 +48,7 @@ export default function HomeScreen({navigation}) {
 
       {/* REELS */}
       <View style={styles.reelsContainer}>
-        <Reels />
+        <Reels navigation={navigation} />
       </View>
 
     </View>

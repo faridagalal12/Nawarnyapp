@@ -148,16 +148,16 @@ export default function App() {
       let pendingVerificationEmail;
 
       try {
-        userToken = await SecureStore.deleteItemAsync(TOKEN_KEY);
+        userToken = await SecureStore.getItemAsync(TOKEN_KEY);
         console.log("====================================");
         console.log(userToken);
         console.log("====================================");
-        const userEmail = await SecureStore.deleteItemAsync(USER_EMAIL_KEY);
-        pendingVerificationEmail = await SecureStore.deleteItemAsync(
+        const userEmail = await SecureStore.getItemAsync(USER_EMAIL_KEY);
+        pendingVerificationEmail = await SecureStore.getItemAsync(
           PENDING_VERIFY_EMAIL_KEY,
         );
         if (userEmail) {
-          const storedQuizCompleted = await SecureStore.deleteItemAsync(
+          const storedQuizCompleted = await SecureStore.getItemAsync(
             getQuizCompletedKey(userEmail),
           );
           quizCompleted = storedQuizCompleted === "true";
@@ -173,6 +173,7 @@ export default function App() {
       setAuthToken(userToken);
       if (userToken) {
         await refreshProfile();
+        api.post("/learning-profile/award-xp", { action: "DAILY_LOGIN" }).catch(() => {});
       }
     };
 
