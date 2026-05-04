@@ -13,6 +13,7 @@ import SearchScreen from "./src/screens/SearchScreen";
 import VideoPlayerScreen from "./src/screens/VideoPlayerScreen";
 import CoursesSearchScreen from "./src/screens/CoursesSearchScreen";
 
+
 import * as SecureStore from "expo-secure-store";
 import MyTabs from "./src/navigations/AppTabs";
 import api, { setAuthToken } from "./src/services/api";
@@ -148,16 +149,16 @@ export default function App() {
       let pendingVerificationEmail;
 
       try {
-        userToken = await SecureStore.getItemAsync(TOKEN_KEY);
+        userToken = await SecureStore.deleteItemAsync(TOKEN_KEY);
         console.log("====================================");
         console.log(userToken);
         console.log("====================================");
-        const userEmail = await SecureStore.getItemAsync(USER_EMAIL_KEY);
-        pendingVerificationEmail = await SecureStore.getItemAsync(
+        const userEmail = await SecureStore.deleteItemAsync(USER_EMAIL_KEY);
+        pendingVerificationEmail = await SecureStore.deleteItemAsync(
           PENDING_VERIFY_EMAIL_KEY,
         );
         if (userEmail) {
-          const storedQuizCompleted = await SecureStore.getItemAsync(
+          const storedQuizCompleted = await SecureStore.deleteItemAsync(
             getQuizCompletedKey(userEmail),
           );
           quizCompleted = storedQuizCompleted === "true";

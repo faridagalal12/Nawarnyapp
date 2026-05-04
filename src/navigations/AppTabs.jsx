@@ -9,6 +9,7 @@ import AddPostScreen from "../screens/AddPosts/AddPostScreen";
 import ProfileStack from "./ProfileStack";
 
 
+
 const Tab = createBottomTabNavigator();
 
 export default function MyTabs({ signOut }) {
