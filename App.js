@@ -157,7 +157,7 @@ export default function App() {
           PENDING_VERIFY_EMAIL_KEY,
         );
         if (userEmail) {
-          const storedQuizCompleted = await SecureStore.getItemAsync(
+          const storedQuizCompleted = await SecureStore.getItemItemAsync(
             getQuizCompletedKey(userEmail),
           );
           quizCompleted = storedQuizCompleted === "true";

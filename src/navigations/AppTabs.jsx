@@ -1,8 +1,8 @@
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import HomeScreen from "../screens/HomeScreen";
 import ProfileScreen from "../screens/ProfileScreen";
-import GWelcomeScreen from "../screens/Gamification/GWelcomeScreen";
 import CoursesStack from './CoursesStack';
+import ChallengeStack from './ChallengeStack';
 import { Entypo, FontAwesome, Ionicons } from "@expo/vector-icons";
 import { TouchableOpacity } from "react-native";
 import AddPostScreen from "../screens/AddPosts/AddPostScreen";
@@ -71,7 +71,7 @@ export default function MyTabs({ signOut }) {
       />
       <Tab.Screen
         name="Challenge"
-        component={GWelcomeScreen}
+        component={ChallengeStack}
         options={{
           headerShown: false,
           tabBarIcon: ({ color, size }) => (
