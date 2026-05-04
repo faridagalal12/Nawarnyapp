@@ -33,8 +33,8 @@ export default function ProfileScreen({ signOut, navigation }) {
     {
       icon: "person-outline",
       title: "My Learning Profile",
-      subtitle: "Monitor your progress",
-      onPress: () => navigation.navigate("LearningProfileScreen"),
+      subtitle: "Make changes to your account",
+      onPress: () => navigation.navigate("LearningProfile"),
     },
     {
       icon: "bookmark-outline",
