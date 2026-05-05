@@ -1,3 +1,4 @@
+// src/screens/HomeScreen.js
 import React, { useState } from "react";
 import {
   StyleSheet,
@@ -8,7 +9,7 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import Reels from "../components/Reels";
 
-export default function HomeScreen({navigation}) {
+export default function HomeScreen({ navigation }) {
   const [activeTab, setActiveTab] = useState("forYou");
 
   return (
@@ -17,38 +18,29 @@ export default function HomeScreen({navigation}) {
       {/* TOP BAR */}
       <View style={styles.topBar}>
 
-        {/* FOLLOWING TAB */}
         <TouchableOpacity onPress={() => setActiveTab("following")}>
-          <Text style={[
-            styles.tabText,
-            activeTab === "following" && styles.activeTabText
-          ]}>
+          <Text style={[styles.tabText, activeTab === "following" && styles.activeTabText]}>
             Following
           </Text>
           {activeTab === "following" && <View style={styles.underline} />}
         </TouchableOpacity>
 
-        {/* FOR YOU TAB */}
         <TouchableOpacity onPress={() => setActiveTab("forYou")}>
-          <Text style={[
-            styles.tabText,
-            activeTab === "forYou" && styles.activeTabText
-          ]}>
+          <Text style={[styles.tabText, activeTab === "forYou" && styles.activeTabText]}>
             For You
           </Text>
           {activeTab === "forYou" && <View style={styles.underline} />}
         </TouchableOpacity>
 
-        {/* SEARCH ICON */}
         <TouchableOpacity onPress={() => navigation.navigate("Search")}>
-        <Ionicons name="search-outline" size={22} color="#fff" />
+          <Ionicons name="search-outline" size={22} color="#fff" />
         </TouchableOpacity>
 
       </View>
 
-      {/* REELS */}
+      {/* REELS — navigation passed so creator profile is tappable */}
       <View style={styles.reelsContainer}>
-        <Reels />
+        <Reels navigation={navigation} />
       </View>
 
     </View>
@@ -69,9 +61,7 @@ const styles = StyleSheet.create({
     paddingTop: 100,
     paddingBottom: 10,
     position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
+    top: 0, left: 0, right: 0,
     zIndex: 10,
   },
   tabText: {

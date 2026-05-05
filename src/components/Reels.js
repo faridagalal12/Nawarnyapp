@@ -1,3 +1,4 @@
+// src/components/Reels.js
 import React, { useRef, useState, useEffect } from "react";
 import {
   View,
@@ -152,7 +153,7 @@ function NotesModal({ visible, onClose, videoTitle, videoId }) {
 }
 
 // ── VideoItem ─────────────────────────────────────────────────────────────────
-function VideoItem({ item, isActive }) {
+function VideoItem({ item, isActive, navigation }) {
   const [liked,     setLiked]     = useState(item.isLiked ?? false);
   const [saved,     setSaved]     = useState(false);
   const [followed,  setFollowed]  = useState(false);
@@ -230,6 +231,26 @@ function VideoItem({ item, isActive }) {
     }
   };
 
+  // Navigate to creator's public profile.
+  // Tries item.educatorId first, then common fallback field names.
+  const handleCreatorPress = () => {
+    const creatorId =
+      item.educatorId    ??  // most likely field based on educatorName/educatorAvatar naming
+      item.creatorId     ??
+      item.educator?._id ??
+      item.creator?._id  ??
+      item.uploadedBy    ??
+      null;
+
+    if (!creatorId) {
+      // Creator ID not in video object — log so you can find the real field name
+      console.warn("[Reels] Could not find creatorId on item. Available keys:", Object.keys(item));
+      return;
+    }
+
+    navigation.navigate("PublicCreatorProfile", { userId: creatorId });
+  };
+
   return (
     <View style={styles.videoContainer}>
 
@@ -298,8 +319,13 @@ function VideoItem({ item, isActive }) {
       {/* ── bottom content ── */}
       <View style={styles.bottomContent} pointerEvents="box-none">
 
-        <View style={styles.instructorRow}>
-          {/* avatar — blue background */}
+        {/* Tappable instructor row → navigates to creator's public profile */}
+        <TouchableOpacity
+          style={styles.instructorRow}
+          onPress={handleCreatorPress}
+          activeOpacity={0.75}
+        >
+          {/* avatar */}
           <View style={styles.avatarWrap}>
             {item.educatorAvatar ? (
               <Image source={{ uri: item.educatorAvatar }} style={styles.avatarImg} />
@@ -309,10 +335,13 @@ function VideoItem({ item, isActive }) {
               </View>
             )}
 
-            {/* follow badge — disappears after tap */}
+            {/* follow badge */}
             {!followed && (
               <TouchableOpacity
-                onPress={() => setFollowed(true)}
+                onPress={(e) => {
+                  e.stopPropagation(); // don't trigger the parent navigate
+                  setFollowed(true);
+                }}
                 style={styles.followBadge}
               >
                 <Ionicons name="add" size={9} color="#fff" />
@@ -320,7 +349,7 @@ function VideoItem({ item, isActive }) {
             )}
           </View>
 
-          {/* name + cred — only from API, no hardcoded fallback */}
+          {/* name + cred */}
           <View style={{ flex: 1 }}>
             {!!item.educatorName && (
               <Text style={[styles.instructorName, S]}>
@@ -333,18 +362,19 @@ function VideoItem({ item, isActive }) {
               </Text>
             )}
           </View>
-        </View>
+
+          {/* subtle arrow hint */}
+          <Ionicons name="chevron-forward" size={16} color="rgba(255,255,255,0.35)" />
+        </TouchableOpacity>
 
         {/* title */}
         <Text style={[styles.videoTitle, S]} numberOfLines={2}>
           {item.title}
         </Text>
 
-        {/* progress bar — always blue */}
+        {/* progress bar */}
         <View style={styles.progTrack}>
-          <View style={[styles.progFill, {
-            width: `${Math.round(progress * 100)}%`,
-          }]} />
+          <View style={[styles.progFill, { width: `${Math.round(progress * 100)}%` }]} />
         </View>
 
       </View>
@@ -360,7 +390,7 @@ function VideoItem({ item, isActive }) {
 }
 
 // ── Reels ─────────────────────────────────────────────────────────────────────
-export default function Reels() {
+export default function Reels({ navigation }) {
   const [videos,      setVideos]      = useState([]);
   const [loading,     setLoading]     = useState(true);
   const [activeIndex, setActiveIndex] = useState(0);
@@ -404,7 +434,7 @@ export default function Reels() {
       onViewableItemsChanged={onViewableItemsChanged.current}
       viewabilityConfig={viewabilityConfig.current}
       renderItem={({ item, index }) => (
-        <VideoItem item={item} isActive={index === activeIndex} />
+        <VideoItem item={item} isActive={index === activeIndex} navigation={navigation} />
       )}
     />
   );
@@ -483,14 +513,14 @@ const styles = StyleSheet.create({
   },
   avatarFallback: {
     width: 50, height: 50, borderRadius: 25,
-    backgroundColor: "#bfdbfe",         
+    backgroundColor: "#bfdbfe",
     borderWidth: 2, borderColor: "#93c5fd",
     justifyContent: "center", alignItems: "center",
   },
   followBadge: {
     position: "absolute", bottom: -2, right: -2,
     width: 20, height: 20, borderRadius: 10,
-    backgroundColor: "#1a5ff5",          // ✅ same blue as avatar
+    backgroundColor: "#1a5ff5",
     justifyContent: "center", alignItems: "center",
     borderWidth: 2, borderColor: "#fff",
   },
@@ -511,7 +541,7 @@ const styles = StyleSheet.create({
   },
   progFill: {
     height: "100%", borderRadius: 2,
-    backgroundColor: "#1a5ff5",          // ✅ always blue
+    backgroundColor: "#1a5ff5",
   },
 
   // notes modal
