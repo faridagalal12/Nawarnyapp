@@ -337,7 +337,13 @@ function VideoItem({ item, isActive, navigation }) {
           </TouchableOpacity>
 
           {/* name + cred — only from API, no hardcoded fallback */}
-          <View style={{ flex: 1 }}>
+          <TouchableOpacity
+            style={{ flex: 1 }}
+            onPress={() => {
+              const creatorId = item.creator?.id ?? item.creator?._id;
+              if (creatorId) navigation.navigate("PublicProfile", { creatorId });
+            }}
+          >
             {!!(item.educatorName ?? item.creator?.name) && (
               <Text style={[styles.instructorName, S]}>
                 {item.educatorName ?? item.creator?.name}
@@ -348,7 +354,7 @@ function VideoItem({ item, isActive, navigation }) {
                 {item.educatorCred ?? (item.creator?.username ? `@${item.creator.username}` : null)}
               </Text>
             )}
-          </View>
+          </TouchableOpacity>
         </View>
 
         {/* title */}

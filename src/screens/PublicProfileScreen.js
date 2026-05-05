@@ -18,6 +18,7 @@ function VideoThumb({ item, onPress }) {
       ) : (
         <View style={[styles.thumbImg, styles.thumbPlaceholder]}>
           <Ionicons name="videocam" size={24} color="#94A3B8" />
+          <Text style={styles.thumbTitle} numberOfLines={2}>{item.title}</Text>
         </View>
       )}
       <View style={styles.thumbOverlay}>
@@ -194,8 +195,8 @@ const styles = StyleSheet.create({
 
   thumb:        { width: THUMB_SIZE, height: THUMB_SIZE, borderRadius: 10, overflow: "hidden", backgroundColor: "#E2E8F0" },
   thumbImg:     { width: "100%", height: "100%" },
-  thumbPlaceholder: { alignItems: "center", justifyContent: "center" },
-  thumbOverlay: {
+thumbPlaceholder: { alignItems: "center", justifyContent: "center", padding: 6, gap: 4 },
+  thumbTitle: { fontSize: 10, color: "#64748B", textAlign: "center", fontWeight: "600" },  thumbOverlay: {
     position: "absolute", bottom: 4, left: 4,
     flexDirection: "row", alignItems: "center", gap: 3,
   },
