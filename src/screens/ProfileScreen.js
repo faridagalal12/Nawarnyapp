@@ -61,9 +61,20 @@ export default function ProfileScreen({ signOut, navigation }) {
             api.get("/users/profile/editable"),
             api.get("/creator/status"),
             api.get("/downloads/videos"),
+            
+            
           ]);
 
           const profile = profileRes?.data ?? {};
+
+          console.log(profile)
+          await api.get(`/creator/${profileRes?.data._id}/videos`).then(response=>{
+
+            // console.log(response.data);
+            
+            setDownloadedVideos(response.data);
+
+          });
           setUserName(profile.name ?? "");
           setUsername(profile.username ? `@${profile.username}` : profile.email ?? "");
           setBio(profile.bio ?? "");
@@ -75,7 +86,6 @@ export default function ProfileScreen({ signOut, navigation }) {
           setIsCreator(creatorApproved);
           setAppStatus(creatorData?.application?.status ?? "none");
           setIsAdmin(creatorData?.role === "admin");
-          setDownloadedVideos(downloadsRes?.data ?? []);
 
           if (creatorApproved) {
             const coursesRes = await api.get("/creator/my-courses");
@@ -121,7 +131,7 @@ export default function ProfileScreen({ signOut, navigation }) {
   };
 
   const renderTabContent = () => {
-    if (!isCreator) {
+    
       if (activeTab === 0) {
         return downloadedVideos.length === 0 ? (
           <View style={styles.emptyState}>
@@ -160,7 +170,7 @@ export default function ProfileScreen({ signOut, navigation }) {
           <Text style={styles.emptySubtitle}>Courses you save will appear here.</Text>
         </View>
       );
-    }
+    
 
     if (activeTab === 0) {
       return (
