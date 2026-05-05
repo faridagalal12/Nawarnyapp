@@ -1,5 +1,5 @@
-// src/components/Reels.js
-import React, { useRef, useState, useEffect } from "react";
+import React, { useRef, useState, useEffect, useCallback } from "react";
+import { useFocusEffect } from "@react-navigation/native";
 import {
   View,
   FlatList,
@@ -204,6 +204,10 @@ function VideoItem({ item, isActive, navigation }) {
     setPaused(willPause);
     setIsPlaying(!willPause);
 
+    if (willPause === false) {
+      api.post("/learning-profile/award-xp", { action: "WATCH_VIDEO" }).catch(() => {});
+    }
+
     iconOpacity.stopAnimation();
     iconScale.stopAnimation();
     iconOpacity.setValue(0);
@@ -231,24 +235,10 @@ function VideoItem({ item, isActive, navigation }) {
     }
   };
 
-  // Navigate to creator's public profile.
-  // Tries item.educatorId first, then common fallback field names.
   const handleCreatorPress = () => {
-    const creatorId =
-      item.educatorId    ??  // most likely field based on educatorName/educatorAvatar naming
-      item.creatorId     ??
-      item.educator?._id ??
-      item.creator?._id  ??
-      item.uploadedBy    ??
-      null;
-
-    if (!creatorId) {
-      // Creator ID not in video object — log so you can find the real field name
-      console.warn("[Reels] Could not find creatorId on item. Available keys:", Object.keys(item));
-      return;
+    if (item.creator?._id && navigation) {
+      navigation.navigate("PublicProfile", { userId: item.creator._id });
     }
-
-    navigation.navigate("PublicCreatorProfile", { userId: creatorId });
   };
 
   return (
@@ -319,23 +309,17 @@ function VideoItem({ item, isActive, navigation }) {
       {/* ── bottom content ── */}
       <View style={styles.bottomContent} pointerEvents="box-none">
 
-        {/* Tappable instructor row → navigates to creator's public profile */}
-        <TouchableOpacity
-          style={styles.instructorRow}
-          onPress={handleCreatorPress}
-          activeOpacity={0.75}
-        >
-          {/* avatar */}
+        {/* tapping avatar or name navigates to public profile */}
+        <TouchableOpacity style={styles.instructorRow} onPress={handleCreatorPress}>
           <View style={styles.avatarWrap}>
-            {item.educatorAvatar ? (
-              <Image source={{ uri: item.educatorAvatar }} style={styles.avatarImg} />
+            {item.creator?.avatarUrl ? (
+              <Image source={{ uri: item.creator.avatarUrl }} style={styles.avatarImg} />
             ) : (
               <View style={styles.avatarFallback}>
                 <Ionicons name="person" size={24} color="#fff" />
               </View>
             )}
 
-            {/* follow badge */}
             {!followed && (
               <TouchableOpacity
                 onPress={(e) => {
@@ -349,22 +333,18 @@ function VideoItem({ item, isActive, navigation }) {
             )}
           </View>
 
-          {/* name + cred */}
           <View style={{ flex: 1 }}>
-            {!!item.educatorName && (
+            {!!item.creator?.name && (
               <Text style={[styles.instructorName, S]}>
-                {item.educatorName}
+                {item.creator.name}
               </Text>
             )}
-            {!!item.educatorCred && (
+            {!!item.creator?.username && (
               <Text style={[styles.instructorCred, S]}>
-                {item.educatorCred}
+                @{item.creator.username}
               </Text>
             )}
           </View>
-
-          {/* subtle arrow hint */}
-          <Ionicons name="chevron-forward" size={16} color="rgba(255,255,255,0.35)" />
         </TouchableOpacity>
 
         {/* title */}
@@ -391,9 +371,18 @@ function VideoItem({ item, isActive, navigation }) {
 
 // ── Reels ─────────────────────────────────────────────────────────────────────
 export default function Reels({ navigation }) {
-  const [videos,      setVideos]      = useState([]);
-  const [loading,     setLoading]     = useState(true);
-  const [activeIndex, setActiveIndex] = useState(0);
+  const [originalVideos, setOriginalVideos] = useState([]);
+  const [videos,         setVideos]         = useState([]);
+  const [loading,        setLoading]        = useState(true);
+  const [activeIndex,    setActiveIndex]    = useState(0);
+  const [screenFocused,  setScreenFocused]  = useState(true);
+
+  useFocusEffect(
+    useCallback(() => {
+      setScreenFocused(true);
+      return () => setScreenFocused(false);
+    }, [])
+  );
 
   useEffect(() => {
     (async () => {
@@ -434,7 +423,11 @@ export default function Reels({ navigation }) {
       onViewableItemsChanged={onViewableItemsChanged.current}
       viewabilityConfig={viewabilityConfig.current}
       renderItem={({ item, index }) => (
-        <VideoItem item={item} isActive={index === activeIndex} navigation={navigation} />
+        <VideoItem
+          item={item}
+          isActive={index === activeIndex && screenFocused}
+          navigation={navigation}
+        />
       )}
     />
   );

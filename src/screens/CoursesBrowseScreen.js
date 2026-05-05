@@ -1,6 +1,6 @@
 // src/screens/CoursesBrowseScreen.js
 // Step 01 — Browse Catalog
-// Matches the HTML mockup: greeting, search, chips, featured card, popular list.
+// Matches the HTML mockup: greeting, search, chips, featured card, popular list, trending creators.
 // Wire with the CoursesStack navigator (see src/navigations/CoursesStack.js).
 
 import React, { useState } from 'react';
@@ -38,11 +38,24 @@ const COURSES = [
     thumbBg: colors.thumbAmber, emoji: '💼' },
 ];
 
+// --- Trending creators — replace with api.getTrendingCreators() from services/api.js
+const CREATORS = [
+  { id: 'cr1', name: 'Sara Khalil',  specialty: 'UI/UX Design',  followers: '12.4K', initial: 'S', bg: '#F472B6' },
+  { id: 'cr2', name: 'Omar Fathi',   specialty: 'Python & ML',   followers: '8.9K',  initial: 'O', bg: '#34D399' },
+  { id: 'cr3', name: 'Nour Adel',    specialty: 'Data Analysis', followers: '6.2K',  initial: 'N', bg: '#60A5FA' },
+  { id: 'cr4', name: 'Laila Hassan', specialty: 'Business',      followers: '5.7K',  initial: 'L', bg: '#FBBF24' },
+  { id: 'cr5', name: 'Karim Yusuf',  specialty: 'Languages',     followers: '4.3K',  initial: 'K', bg: '#A78BFA' },
+];
+
 export default function CoursesBrowseScreen({ navigation }) {
   const [activeCat, setActiveCat] = useState('All');
   const [query, setQuery] = useState('');
+  const [following, setFollowing] = useState({});
 
   const openCourse = (course) => navigation.navigate('CourseDetail', { course });
+  const openCreator = (creator) => navigation.navigate('CreatorProfile', { creator });
+  const toggleFollow = (id) =>
+    setFollowing((prev) => ({ ...prev, [id]: !prev[id] }));
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
@@ -139,6 +152,49 @@ export default function CoursesBrowseScreen({ navigation }) {
             <Ionicons name="chevron-forward" size={18} color={colors.ink4} />
           </Pressable>
         ))}
+
+        {/* Trending creators */}
+        <View style={[styles.sectionRow, styles.sectionRowSpaced]}>
+          <Text style={styles.sectionTitle}>Trending creators</Text>
+          <Text style={styles.sectionMore}>See all</Text>
+        </View>
+
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.creatorsRow}
+        >
+          {CREATORS.map((creator) => {
+            const isFollowing = !!following[creator.id];
+            return (
+              <Pressable
+                key={creator.id}
+                style={styles.creatorCard}
+                onPress={() => openCreator(creator)}
+                android_ripple={{ color: colors.surface3 }}
+              >
+                <View style={[styles.creatorAvatar, { backgroundColor: creator.bg }]}>
+                  <Text style={styles.creatorInitial}>{creator.initial}</Text>
+                </View>
+                <Text style={styles.creatorName} numberOfLines={1}>{creator.name}</Text>
+                <Text style={styles.creatorSpecialty} numberOfLines={1}>{creator.specialty}</Text>
+                <View style={styles.creatorFollowers}>
+                  <Feather name="users" size={10} color={colors.ink3} />
+                  <Text style={styles.creatorFollowersText}>{creator.followers}</Text>
+                </View>
+                <Pressable
+                  style={[styles.followBtn, isFollowing && styles.followBtnActive]}
+                  onPress={() => toggleFollow(creator.id)}
+                  hitSlop={6}
+                >
+                  <Text style={[styles.followBtnText, isFollowing && styles.followBtnTextActive]}>
+                    {isFollowing ? 'Following' : 'Follow'}
+                  </Text>
+                </Pressable>
+              </Pressable>
+            );
+          })}
+        </ScrollView>
       </ScrollView>
     </SafeAreaView>
   );
@@ -209,6 +265,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
     marginBottom: spacing.md,
   },
+  sectionRowSpaced: { marginTop: spacing.lg },
   sectionTitle: { ...typography.title, color: colors.ink, fontSize: 15 },
   sectionMore: { fontSize: 12, color: colors.primary700, fontWeight: '600' },
 
@@ -230,4 +287,41 @@ const styles = StyleSheet.create({
   cardRow3: { flexDirection: 'row', gap: 8, marginTop: 6 },
   cardRate: { fontSize: 10, color: colors.primary700, fontWeight: '600' },
   cardMuted: { fontSize: 10, color: colors.ink3 },
+
+  // Trending creators
+  creatorsRow: { gap: spacing.sm, paddingRight: spacing.xl, paddingBottom: 4 },
+  creatorCard: {
+    width: 130,
+    padding: spacing.md,
+    backgroundColor: colors.surface,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.line,
+    alignItems: 'center',
+    marginRight: spacing.sm,
+  },
+  creatorAvatar: {
+    width: 56, height: 56, borderRadius: 28,
+    alignItems: 'center', justifyContent: 'center',
+    marginBottom: spacing.sm,
+  },
+  creatorInitial: { fontSize: 22, fontWeight: '700', color: '#FFFFFF' },
+  creatorName: {
+    fontSize: 12, fontWeight: '600', color: colors.ink, textAlign: 'center',
+  },
+  creatorSpecialty: {
+    fontSize: 10, color: colors.ink3, marginTop: 2, textAlign: 'center',
+  },
+  creatorFollowers: {
+    flexDirection: 'row', alignItems: 'center', gap: 4,
+    marginTop: 6, marginBottom: spacing.sm,
+  },
+  creatorFollowersText: { fontSize: 10, color: colors.ink3, fontWeight: '500' },
+  followBtn: {
+    paddingHorizontal: spacing.md, paddingVertical: 5,
+    backgroundColor: colors.ink, borderRadius: radius.pill,
+  },
+  followBtnActive: { backgroundColor: colors.surface3 },
+  followBtnText: { fontSize: 10, color: '#FFFFFF', fontWeight: '600' },
+  followBtnTextActive: { color: colors.ink },
 });

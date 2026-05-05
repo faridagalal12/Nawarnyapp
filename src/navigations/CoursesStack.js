@@ -17,6 +17,10 @@ import CoursesBrowseScreen    from '../screens/CoursesBrowseScreen';
 import CourseDetailScreen     from '../screens/CourseDetailScreen';
 import CourseCompletionScreen from '../screens/CourseCompletionScreen';
 import CertificateScreen      from '../screens/CertificateScreen';
+import PaymentScreen          from '../screens/PaymentScreen';
+import CourseContentScreen    from '../screens/CourseContentScreen';
+import CreatorProfileScreen from '../screens/CreatorProfileScreen';
+
 
 const Stack = createNativeStackNavigator();
 
@@ -32,10 +36,17 @@ export default function CoursesStack() {
     >
       <Stack.Screen name="CoursesBrowse"    component={CoursesBrowseScreen} />
       <Stack.Screen name="CourseDetail"     component={CourseDetailScreen} />
+      <Stack.Screen name="Payment"          component={PaymentScreen} />
+      <Stack.Screen name="CourseContent" component={CourseContentScreen} />
       <Stack.Screen name="CourseCompletion" component={CourseCompletionScreen}
         options={{ animation: 'fade' }} />
       <Stack.Screen name="Certificate"      component={CertificateScreen}
         options={{ animation: 'slide_from_bottom' }} />
+        <Stack.Screen
+  name="CreatorProfile"
+  component={CreatorProfileScreen}
+  options={{ headerShown: false }}
+/>
     </Stack.Navigator>
   );
 }

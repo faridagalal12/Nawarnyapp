@@ -7,19 +7,22 @@ import React, {
   useMemo,
 } from "react";
 import * as SecureStore from "expo-secure-store";
+import { setAuthToken } from "../services/api";
 
 const AuthContext = createContext();
 
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(null); // null = not checked, {} = logged in
+  const [user, setUser] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
 
   // Load stored session on mount
   useEffect(() => {
     const bootstrapAsync = async () => {
       try {
+        const storedToken = await SecureStore.getItemAsync("token");
         const storedUser = await SecureStore.getItemAsync("user");
-        if (storedUser) {
+        if (storedToken && storedUser) {
+          setAuthToken(storedToken); // attach token to all future requests
           setUser(JSON.parse(storedUser));
         }
       } catch (e) {
@@ -28,31 +31,27 @@ export function AuthProvider({ children }) {
         setIsLoading(false);
       }
     };
-
     bootstrapAsync();
   }, []);
 
-  const signIn = async (email, password) => {
-    // ── MOCK LOGIC ── (replace later with real API)
-    if (email === "test@example.com" && password === "123456") {
-      const mockUser = { email, id: "mock-123", name: "Test User" };
-      await SecureStore.setItemAsync("user", JSON.stringify(mockUser));
-      setUser(mockUser);
+  // Called from LoginScreen with real token from API
+  const signIn = async (token, email) => {
+    try {
+      await SecureStore.setItemAsync("token", token);
+      await SecureStore.setItemAsync("user", JSON.stringify({ email, token }));
+      setAuthToken(token); // attach token to all future api requests
+      setUser({ email, token });
       return { success: true };
+    } catch (e) {
+      console.log("signIn error", e);
+      return { success: false, error: e.message };
     }
-    return { success: false, error: "Invalid credentials" };
-  };
-
-  const signUp = async (email, password, name) => {
-    // ── MOCK SIGNUP ── (later → real API + email verification)
-    const mockUser = { email, id: "mock-" + Date.now(), name };
-    await SecureStore.setItemAsync("user", JSON.stringify(mockUser));
-    setUser(mockUser);
-    return { success: true };
   };
 
   const signOut = async () => {
+    await SecureStore.deleteItemAsync("token");
     await SecureStore.deleteItemAsync("user");
+    setAuthToken(null);
     setUser(null);
   };
 
@@ -61,7 +60,6 @@ export function AuthProvider({ children }) {
       user,
       isLoading,
       signIn,
-      signUp,
       signOut,
       isAuthenticated: !!user,
     }),
