@@ -60,12 +60,10 @@ function NotesModal({ visible, onClose, videoTitle, videoId }) {
 
   useEffect(() => {
     if (!visible) return;
-    console.log("NotesModal videoId:", videoId);
     (async () => {
       setLoading(true);
       try {
         const res = await api.get(`/videos/${videoId}/notes`);
-        console.log("Notes response:", JSON.stringify(res?.data));
         setNotes(res?.data?.notes ?? []);
       } catch {
         setNotes([]);
@@ -78,14 +76,13 @@ function NotesModal({ visible, onClose, videoTitle, videoId }) {
   const addNote = async () => {
     const text = input.trim();
     if (!text) return;
+    const newNote = { id: Date.now().toString(), text };
+    setNotes(prev => [newNote, ...prev]);
     setInput("");
     try {
       await api.post(`/videos/${videoId}/notes`, { text });
-      api.post("/learning-profile/award-xp", { action: "ADD_NOTE" }).catch(() => {});
-      const res = await api.get(`/videos/${videoId}/notes`);
-      setNotes(res?.data?.notes ?? []);
-    } catch (err) {
-      console.log("Add note error:", err?.response?.data ?? err?.message);
+    } catch {
+      setNotes(prev => prev.filter(n => n.id !== newNote.id));
     }
   };
 
@@ -232,7 +229,6 @@ function VideoItem({ item, isActive, navigation }) {
     setLikes(n => n + (next ? 1 : -1));
     try {
       await api.post(`/videos/${item.id}/like`);
-      if (next) api.post("/learning-profile/award-xp", { action: "LIKE_VIDEO" }).catch(() => {});
     } catch {
       setLiked(!next);
       setLikes(n => n + (next ? -1 : 1));
@@ -326,7 +322,10 @@ function VideoItem({ item, isActive, navigation }) {
 
             {!followed && (
               <TouchableOpacity
-                onPress={() => setFollowed(true)}
+                onPress={(e) => {
+                  e.stopPropagation(); // don't trigger the parent navigate
+                  setFollowed(true);
+                }}
                 style={styles.followBadge}
               >
                 <Ionicons name="add" size={9} color="#fff" />
@@ -355,9 +354,7 @@ function VideoItem({ item, isActive, navigation }) {
 
         {/* progress bar */}
         <View style={styles.progTrack}>
-          <View style={[styles.progFill, {
-            width: `${Math.round(progress * 100)}%`,
-          }]} />
+          <View style={[styles.progFill, { width: `${Math.round(progress * 100)}%` }]} />
         </View>
 
       </View>
@@ -370,16 +367,6 @@ function VideoItem({ item, isActive, navigation }) {
       />
     </View>
   );
-}
-
-// ── helpers ───────────────────────────────────────────────────────────────────
-function shuffle(array) {
-  const arr = [...array];
-  for (let i = arr.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [arr[i], arr[j]] = [arr[j], arr[i]];
-  }
-  return arr;
 }
 
 // ── Reels ─────────────────────────────────────────────────────────────────────
@@ -400,10 +387,8 @@ export default function Reels({ navigation }) {
   useEffect(() => {
     (async () => {
       try {
-        const res = await api.get("/videos/feed?limit=50");
-        const fetched = res?.data?.videos ?? [];
-        setOriginalVideos(fetched);
-        setVideos(shuffle(fetched));
+        const res = await api.get("/videos/feed");
+        setVideos(res?.data?.videos ?? []);
       } catch (err) {
         console.log("Failed to load videos:", err?.message);
       } finally {
@@ -418,11 +403,6 @@ export default function Reels({ navigation }) {
 
   const viewabilityConfig = useRef({ itemVisiblePercentThreshold: 90 });
 
-  const handleEndReached = () => {
-    if (originalVideos.length === 0) return;
-    setVideos(prev => [...prev, ...shuffle(originalVideos)]);
-  };
-
   if (loading) {
     return (
       <View style={styles.loader}>
@@ -434,7 +414,7 @@ export default function Reels({ navigation }) {
   return (
     <FlatList
       data={videos}
-      keyExtractor={(item, index) => `${item.id}-${index}`}
+      keyExtractor={item => item.id}
       pagingEnabled
       snapToInterval={height}
       snapToAlignment="start"
@@ -442,8 +422,6 @@ export default function Reels({ navigation }) {
       showsVerticalScrollIndicator={false}
       onViewableItemsChanged={onViewableItemsChanged.current}
       viewabilityConfig={viewabilityConfig.current}
-      onEndReached={handleEndReached}
-      onEndReachedThreshold={0.5}
       renderItem={({ item, index }) => (
         <VideoItem
           item={item}

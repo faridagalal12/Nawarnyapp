@@ -8,6 +8,7 @@ import ProfileStack from "./ProfileStack";
 import HomeStack from "./HomeStack";
 
 
+
 const Tab = createBottomTabNavigator();
 
 export default function MyTabs({ signOut }) {

@@ -12,6 +12,8 @@ import QuizScreen from "./src/screens/QuizScreen";
 import SearchScreen from "./src/screens/SearchScreen";
 import VideoPlayerScreen from "./src/screens/VideoPlayerScreen";
 import CoursesSearchScreen from "./src/screens/CoursesSearchScreen";
+// import PublicCreatorProfileScreen from "./src/screens/PublicCreatorProfileScreen";
+// import { CreatorProvider } from "./src/context/CreatorContext";
 
 import * as SecureStore from "expo-secure-store";
 import MyTabs from "./src/navigations/AppTabs";
@@ -59,12 +61,10 @@ export default function App() {
 
   const extractQuizCompleted = profile => {
     if (!profile || typeof profile !== "object") return null;
-    if (typeof profile.quizCompleted === "boolean")
-      return profile.quizCompleted;
+    if (typeof profile.quizCompleted === "boolean") return profile.quizCompleted;
     if (profile.quizCompleted === "true") return true;
     if (profile.quizCompleted === "false") return false;
-    if (typeof profile.quiz_completed === "boolean")
-      return profile.quiz_completed;
+    if (typeof profile.quiz_completed === "boolean") return profile.quiz_completed;
     if (profile.quiz_completed === "true") return true;
     if (profile.quiz_completed === "false") return false;
     return null;
@@ -78,8 +78,7 @@ export default function App() {
     if (typeof profile.isVerified === "boolean") return profile.isVerified;
     if (profile.isVerified === "true") return true;
     if (profile.isVerified === "false") return false;
-    if (typeof profile.emailVerified === "boolean")
-      return profile.emailVerified;
+    if (typeof profile.emailVerified === "boolean") return profile.emailVerified;
     if (profile.emailVerified === "true") return true;
     if (profile.emailVerified === "false") return false;
     if (typeof profile.is_verified === "boolean") return profile.is_verified;
@@ -104,10 +103,7 @@ export default function App() {
         (await SecureStore.getItemAsync(USER_EMAIL_KEY)) || profileEmail;
 
       if (profileEmail && profileEmail !== storedEmail) {
-        await SecureStore.setItemAsync(
-          USER_EMAIL_KEY,
-          profileEmail.toLowerCase(),
-        );
+        await SecureStore.setItemAsync(USER_EMAIL_KEY, profileEmail.toLowerCase());
       }
 
       if (quizCompleted !== null) {
@@ -148,21 +144,19 @@ export default function App() {
       let pendingVerificationEmail;
 
       try {
+        // FIX: was deleteItemAsync — that wiped tokens on every cold start
         userToken = await SecureStore.getItemAsync(TOKEN_KEY);
-        console.log("====================================");
-        console.log(userToken);
-        console.log("====================================");
         const userEmail = await SecureStore.getItemAsync(USER_EMAIL_KEY);
-        pendingVerificationEmail = await SecureStore.getItemAsync(
-          PENDING_VERIFY_EMAIL_KEY,
-        );
+        pendingVerificationEmail = await SecureStore.getItemAsync(PENDING_VERIFY_EMAIL_KEY);
         if (userEmail) {
           const storedQuizCompleted = await SecureStore.getItemAsync(
             getQuizCompletedKey(userEmail),
           );
           quizCompleted = storedQuizCompleted === "true";
         }
-      } catch (e) {}
+      } catch (e) {
+        console.warn("SecureStore bootstrap error:", e);
+      }
 
       dispatch({ type: "RESTORE_TOKEN", token: userToken });
       dispatch({ type: "SET_QUIZ_COMPLETED", value: quizCompleted });
@@ -185,7 +179,7 @@ export default function App() {
       signIn: async (token, email) => {
         const normalizedEmail = (email || "").toLowerCase();
         await SecureStore.setItemAsync(TOKEN_KEY, token);
-        await SecureStore.setItemAsync("userEmail", normalizedEmail);
+        await SecureStore.setItemAsync(USER_EMAIL_KEY, normalizedEmail);
         setAuthToken(token);
         dispatch({ type: "SIGN_IN", token });
         await refreshProfile();
@@ -215,14 +209,8 @@ export default function App() {
       setPendingVerificationEmail: async email => {
         const normalizedEmail = (email || "").toLowerCase();
         if (normalizedEmail) {
-          await SecureStore.setItemAsync(
-            PENDING_VERIFY_EMAIL_KEY,
-            normalizedEmail,
-          );
-          dispatch({
-            type: "SET_PENDING_VERIFY_EMAIL",
-            value: normalizedEmail,
-          });
+          await SecureStore.setItemAsync(PENDING_VERIFY_EMAIL_KEY, normalizedEmail);
+          dispatch({ type: "SET_PENDING_VERIFY_EMAIL", value: normalizedEmail });
         }
       },
       completeVerification: async () => {
@@ -240,12 +228,8 @@ export default function App() {
     [refreshProfile],
   );
 
-  // ✅ Stable callback using dispatch directly — no stale closure possible
   const handleQuizCompleted = React.useCallback(async () => {
-    // 1. Update state immediately so navigation can switch right away
     dispatch({ type: "SET_QUIZ_COMPLETED", value: true });
-
-    // 2. Persist to SecureStore (do not block UI)
     try {
       const userEmail = await SecureStore.getItemAsync(USER_EMAIL_KEY);
       if (userEmail) {
@@ -269,22 +253,102 @@ export default function App() {
 
   return (
     <AuthContext.Provider value={authContext}>
-      <NavigationContainer ref={navigationRef}>
-        <Stack.Navigator
-          key={
-            state.userToken == null
-              ? state.pendingVerificationEmail
-                ? "auth-verify-pending"
-                : "auth"
-              : !state.isVerified
-                ? "verify"
-                : !state.quizCompleted
-                  ? "quiz"
-                  : "app"
-          }
-        >
-          {state.userToken == null ? (
-            state.pendingVerificationEmail ? (
+      {/* FIX: CreatorProvider was imported but not used — now wraps NavigationContainer */}
+      {/* <CreatorProvider> */}
+        <NavigationContainer ref={navigationRef}>
+          <Stack.Navigator
+            key={
+              state.userToken == null
+                ? state.pendingVerificationEmail
+                  ? "auth-verify-pending"
+                  : "auth"
+                : !state.isVerified
+                  ? "verify"
+                  : !state.quizCompleted
+                    ? "quiz"
+                    : "app"
+            }
+          >
+            {state.userToken == null ? (
+              state.pendingVerificationEmail ? (
+                <Stack.Screen
+                  name="Verify"
+                  children={() => (
+                    <VerifyScreen
+                      signIn={authContext.signIn}
+                      pendingEmail={state.pendingVerificationEmail}
+                      onVerified={async ({ hasToken } = {}) => {
+                        await authContext.completeVerification();
+                        if (hasToken) await authContext.refreshProfile();
+                      }}
+                    />
+                  )}
+                  options={{
+                    title: "Verify Account",
+                    headerBackVisible: false,
+                    gestureEnabled: false,
+                  }}
+                />
+              ) : (
+                <>
+                  <Stack.Screen
+                    name="Welcome"
+                    component={WelcomeScreen}
+                    options={{
+                      title: "",
+                      animationTypeForReplace: state.isSignout ? "pop" : "push",
+                    }}
+                  />
+                  <Stack.Screen
+                    name="Login"
+                    children={() => <LoginScreen signIn={authContext.signIn} />}
+                    options={{
+                      title: "Sign in",
+                      animationTypeForReplace: state.isSignout ? "pop" : "push",
+                    }}
+                  />
+                  <Stack.Screen
+                    name="SignUp"
+                    children={() => (
+                      <SignUpScreen
+                        setPendingVerificationEmail={
+                          authContext.setPendingVerificationEmail
+                        }
+                      />
+                    )}
+                    options={{
+                      title: "Sign up",
+                      animationTypeForReplace: state.isSignout ? "pop" : "push",
+                    }}
+                  />
+                  <Stack.Screen
+                    name="ForgotPassword"
+                    component={ForgetPassword}
+                    options={{
+                      title: "Forgot Password",
+                      animationTypeForReplace: state.isSignout ? "pop" : "push",
+                    }}
+                  />
+                  <Stack.Screen
+                    name="Verify"
+                    children={() => (
+                      <VerifyScreen
+                        signIn={authContext.signIn}
+                        pendingEmail={state.pendingVerificationEmail}
+                        onVerified={async ({ hasToken } = {}) => {
+                          await authContext.completeVerification();
+                          if (hasToken) await authContext.refreshProfile();
+                        }}
+                      />
+                    )}
+                    options={{
+                      title: "Verify Account",
+                      animationTypeForReplace: state.isSignout ? "pop" : "push",
+                    }}
+                  />
+                </>
+              )
+            ) : !state.isVerified ? (
               <Stack.Screen
                 name="Verify"
                 children={() => (
@@ -303,100 +367,7 @@ export default function App() {
                   gestureEnabled: false,
                 }}
               />
-            ) : (
-              <>
-                <Stack.Screen
-                  name="Welcome"
-                  component={WelcomeScreen}
-                  options={{
-                    title: "",
-                    animationTypeForReplace: state.isSignout ? "pop" : "push",
-                  }}
-                />
-                <Stack.Screen
-                  name="Login"
-                  children={() => <LoginScreen signIn={authContext.signIn} />}
-                  options={{
-                    title: "Sign in",
-                    animationTypeForReplace: state.isSignout ? "pop" : "push",
-                  }}
-                />
-                <Stack.Screen
-                  name="SignUp"
-                  children={() => (
-                    <SignUpScreen
-                      setPendingVerificationEmail={
-                        authContext.setPendingVerificationEmail
-                      }
-                    />
-                  )}
-                  options={{
-                    title: "Sign up",
-                    animationTypeForReplace: state.isSignout ? "pop" : "push",
-                  }}
-                />
-                <Stack.Screen
-                  name="ForgotPassword"
-                  component={ForgetPassword}
-                  options={{
-                    title: "Forgot Password",
-                    animationTypeForReplace: state.isSignout ? "pop" : "push",
-                  }}
-                />
-                <Stack.Screen
-                  name="Verify"
-                  children={() => (
-                    <VerifyScreen
-                      signIn={authContext.signIn}
-                      pendingEmail={state.pendingVerificationEmail}
-                      onVerified={async ({ hasToken } = {}) => {
-                        await authContext.completeVerification();
-                        if (hasToken) await authContext.refreshProfile();
-                      }}
-                    />
-                  )}
-                  options={{
-                    title: "Verify Account",
-                    animationTypeForReplace: state.isSignout ? "pop" : "push",
-                  }}
-                />
-              </>
-            )
-          ) : !state.isVerified ? (
-            <Stack.Screen
-              name="Verify"
-              children={() => (
-                <VerifyScreen
-                  signIn={authContext.signIn}
-                  pendingEmail={state.pendingVerificationEmail}
-                  onVerified={async ({ hasToken } = {}) => {
-                    await authContext.completeVerification();
-                    if (hasToken) await authContext.refreshProfile();
-                  }}
-                />
-              )}
-              options={{
-                title: "Verify Account",
-                headerBackVisible: false,
-                gestureEnabled: false,
-              }}
-            />
-          ) : !state.quizCompleted ? (
-            <Stack.Screen
-              name="Quiz"
-              // ✅ Pass the stable handleQuizCompleted that calls dispatch directly
-              children={() => (
-                <QuizScreen onQuizCompleted={handleQuizCompleted} />
-              )}
-              options={{ headerShown: false }}
-            />
-          ) : (
-                        <>
-              <Stack.Screen
-                name="Tabs"
-                children={() => <MyTabs signOut={authContext.signOut} />}
-                options={{ headerShown: false }}
-              />
+            ) : !state.quizCompleted ? (
               <Stack.Screen
                 name="Quiz"
                 children={() => (
@@ -404,28 +375,46 @@ export default function App() {
                 )}
                 options={{ headerShown: false }}
               />
-              <Stack.Screen
-                name="Search"
-                component={SearchScreen}
-                options={{ headerShown: false }}
-              />
-              <Stack.Screen
-                name="VideoPlayer"
-                component={VideoPlayerScreen}
-                options={{ headerShown: false }}
-              />
-              <Stack.Screen
-                name="CoursesSearch"
-                component={CoursesSearchScreen}
-                options={{ headerShown: false }}
-/>
-
-            </>
-
-
-          )}
-        </Stack.Navigator>
-      </NavigationContainer>
+            ) : (
+              <>
+                <Stack.Screen
+                  name="Tabs"
+                  children={() => <MyTabs signOut={authContext.signOut} />}
+                  options={{ headerShown: false }}
+                />
+                <Stack.Screen
+                  name="Quiz"
+                  children={() => (
+                    <QuizScreen onQuizCompleted={handleQuizCompleted} />
+                  )}
+                  options={{ headerShown: false }}
+                />
+                <Stack.Screen
+                  name="Search"
+                  component={SearchScreen}
+                  options={{ headerShown: false }}
+                />
+                <Stack.Screen
+                  name="VideoPlayer"
+                  component={VideoPlayerScreen}
+                  options={{ headerShown: false }}
+                />
+                <Stack.Screen
+                  name="CoursesSearch"
+                  component={CoursesSearchScreen}
+                  options={{ headerShown: false }}
+                />
+               
+                {/* <Stack.Screen
+                  name="PublicCreatorProfile"
+                  component={PublicCreatorProfileScreen}
+                  options={{ headerShown: false }}
+                /> */}
+              </>
+            )}
+          </Stack.Navigator>
+        </NavigationContainer>
+      {/* </CreatorProvider> */}
     </AuthContext.Provider>
   );
 }

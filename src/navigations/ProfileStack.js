@@ -2,13 +2,14 @@ import React from "react";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import ProfileScreen from "../screens/ProfileScreen";
 import EditProfileScreen from "../screens/EditProfileScreen";
-import LearningProfileScreen from "../screens/learningProfileScreen";
 import SubscriptionScreen from "../screens/SubscriptionScreen";
 import PaymentScreen from "../screens/PaymentScreen";
 import CardScreen from "../screens/cardscreen";
 import ContactSupportScreen from "../screens/ContactSupportScreen";
 import AboutAppScreen from "../screens/AboutAppScreen";
-
+import LearningProfileScreen from "../screens/learningProfileScreen";
+import CreatorDashboardScreen from "../screens/CreatorDashboard";
+import ManageCoursesScreen from "../screens/ManageCoursesScreen";
 const Stack = createNativeStackNavigator();
 
 export default function ProfileStack({ signOut }) {
@@ -27,13 +28,13 @@ export default function ProfileStack({ signOut }) {
         options={{ headerShown: false }}
       />
       <Stack.Screen
-        name="LearningProfile"
-        component={LearningProfileScreen}
+        name="Subscription"
+        component={SubscriptionScreen}
         options={{ headerShown: false }}
       />
       <Stack.Screen
-        name="Subscription"
-        component={SubscriptionScreen}
+        name="LearningProfileScreen"
+        component={LearningProfileScreen}
         options={{ headerShown: false }}
       />
       <Stack.Screen
@@ -54,6 +55,18 @@ export default function ProfileStack({ signOut }) {
       <Stack.Screen
         name="AboutApp"
         component={AboutAppScreen}
+        options={{ headerShown: false }}
+      />
+      {/* ── Creator screens ── */}
+      <Stack.Screen
+        name="CreatorDashboard"
+        component={CreatorDashboardScreen}
+        options={{ headerShown: false }}
+      />
+      {/* Replace ManageCourses with your real screen when ready */}
+      <Stack.Screen
+        name="ManageCourses"
+        component={ManageCoursesScreen}
         options={{ headerShown: false }}
       />
     </Stack.Navigator>
