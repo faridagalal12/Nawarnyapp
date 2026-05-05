@@ -167,6 +167,7 @@ export default function App() {
       setAuthToken(userToken);
       if (userToken) {
         await refreshProfile();
+        api.post("/learning-profile/award-xp", { action: "DAILY_LOGIN" }).catch(() => {});
       }
     };
 

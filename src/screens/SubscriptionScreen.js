@@ -4,6 +4,7 @@ import {
   ScrollView, SafeAreaView, StatusBar,
 } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
+import api from '../services/api';
 
 const BLUE = '#0066FF';
 
@@ -49,6 +50,15 @@ const plans = [
 
 export default function SubscriptionScreen({ navigation }) {
   const [selected, setSelected] = useState('starter');
+  const [currentPlan, setCurrentPlan] = useState(null);
+
+  React.useEffect(() => {
+    api.get('/subscriptions/current').then(res => {
+      const plan = res?.data?.plan ?? 'basic';
+      setCurrentPlan(plan);
+      setSelected(plan);
+    }).catch(() => {});
+  }, []);
 
   const handleChoose = (plan) => {
     if (plan.isFree) {
@@ -89,6 +99,11 @@ export default function SubscriptionScreen({ navigation }) {
               {plan.popular && (
                 <View style={styles.badge}>
                   <Text style={styles.badgeText}>MOST POPULAR</Text>
+                </View>
+              )}
+              {currentPlan === plan.id && (
+                <View style={[styles.badge, { backgroundColor: '#E8FFE8' }]}>
+                  <Text style={[styles.badgeText, { color: '#10B981' }]}>CURRENT PLAN</Text>
                 </View>
               )}
 
