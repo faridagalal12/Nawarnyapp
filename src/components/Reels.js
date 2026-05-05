@@ -155,8 +155,8 @@ function NotesModal({ visible, onClose, videoTitle, videoId }) {
 }
 
 // ── VideoItem ─────────────────────────────────────────────────────────────────
-function VideoItem({ item, isActive }) {
-  const [liked,     setLiked]     = useState(item.isLiked ?? false);
+function VideoItem({ item, isActive, navigation }) {
+    const [liked,     setLiked]     = useState(item.isLiked ?? false);
   const [saved,     setSaved]     = useState(false);
   const [followed,  setFollowed]  = useState(false);
   const [likes,     setLikes]     = useState(item.likesCount ?? 0);
@@ -305,11 +305,18 @@ function VideoItem({ item, isActive }) {
       </View>
 
       {/* ── bottom content ── */}
-      <View style={styles.bottomContent} pointerEvents="box-none">
-
+<View style={styles.bottomContent} pointerEvents="box-none" collapsable={false}>
         <View style={styles.instructorRow}>
           {/* avatar — blue background */}
-          <View style={styles.avatarWrap}>
+          <TouchableOpacity
+            style={styles.avatarWrap}
+            onPress={() => {
+              const creatorId = item.creator?.id ?? item.creator?._id;
+              if (creatorId) {
+                navigation.navigate("PublicProfile", { creatorId });
+              }
+            }}
+          >
             {item.educatorAvatar ? (
               <Image source={{ uri: item.educatorAvatar }} style={styles.avatarImg} />
             ) : (
@@ -327,18 +334,18 @@ function VideoItem({ item, isActive }) {
                 <Ionicons name="add" size={9} color="#fff" />
               </TouchableOpacity>
             )}
-          </View>
+          </TouchableOpacity>
 
           {/* name + cred — only from API, no hardcoded fallback */}
           <View style={{ flex: 1 }}>
-            {!!item.educatorName && (
+            {!!(item.educatorName ?? item.creator?.name) && (
               <Text style={[styles.instructorName, S]}>
-                {item.educatorName}
+                {item.educatorName ?? item.creator?.name}
               </Text>
             )}
-            {!!item.educatorCred && (
+            {!!(item.educatorCred ?? item.creator?.username) && (
               <Text style={[styles.instructorCred, S]}>
-                {item.educatorCred}
+                {item.educatorCred ?? (item.creator?.username ? `@${item.creator.username}` : null)}
               </Text>
             )}
           </View>
@@ -379,8 +386,8 @@ function shuffle(array) {
 }
 
 // ── Reels ─────────────────────────────────────────────────────────────────────
-export default function Reels() {
-  const [originalVideos, setOriginalVideos] = useState([]);
+export default function Reels({ navigation }) {
+    const [originalVideos, setOriginalVideos] = useState([]);
   const [videos,         setVideos]         = useState([]);
   const [loading,        setLoading]        = useState(true);
   const [activeIndex,    setActiveIndex]    = useState(0);
@@ -441,7 +448,7 @@ export default function Reels() {
       onEndReached={handleEndReached}
       onEndReachedThreshold={0.5}
       renderItem={({ item, index }) => (
-        <VideoItem item={item} isActive={index === activeIndex && screenFocused} />
+        <VideoItem item={item} isActive={index === activeIndex && screenFocused} navigation={navigation} />
       )}
     />
   );

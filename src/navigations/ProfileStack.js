@@ -8,6 +8,9 @@ import PaymentScreen from "../screens/paymentscreen";
 import CardScreen from "../screens/cardscreen";
 import ContactSupportScreen from "../screens/ContactSupportScreen";
 import AboutAppScreen from "../screens/AboutAppScreen";
+import CreatorApplicationScreen from "../screens/CreatorApplicationScreen";
+import AdminScreen from "../screens/AdminScreen";
+import PublicProfileScreen from "../screens/PublicProfileScreen";
 
 const Stack = createNativeStackNavigator();
 
@@ -54,6 +57,21 @@ export default function ProfileStack({ signOut }) {
       <Stack.Screen
         name="AboutApp"
         component={AboutAppScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="CreatorApplication"
+        component={CreatorApplicationScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="Admin"
+        component={AdminScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="PublicProfile"
+        component={PublicProfileScreen}
         options={{ headerShown: false }}
       />
     </Stack.Navigator>
