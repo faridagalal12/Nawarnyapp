@@ -444,6 +444,14 @@ export default function GMissionScreen({ navigation, route }) {
 
   const handleLeaderboardPress = () => {
     triggerHaptic('selection');
+    navigation.navigate('MissionLeaderboard', {
+      category,
+      levels: mission.levels.map((missionLevel) => missionLevel.title),
+      currentLevel: level.id,
+      nextLevel: Math.min(level.id + 1, mission.levels.length),
+      totalPoints,
+      earnedBadges,
+    });
   };
 
   const buttonLabel = checked
