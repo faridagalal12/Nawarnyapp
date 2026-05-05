@@ -128,7 +128,7 @@ export default function ProfileScreen({ signOut, navigation }) {
             <View style={styles.emptyIconBox}>
               <Ionicons name="download-outline" size={26} color="#2F54EB" />
             </View>
-            <Text style={styles.emptyTitle}>No downloaded videos yet</Text>
+            <Text style={styles.emptyTitle}>No uploaded videos yet</Text>
             <Text style={styles.emptySubtitle}>Videos you download from the feed will appear here.</Text>
           </View>
         ) : (
