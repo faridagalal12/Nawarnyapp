@@ -12,8 +12,8 @@ import QuizScreen from "./src/screens/QuizScreen";
 import SearchScreen from "./src/screens/SearchScreen";
 import VideoPlayerScreen from "./src/screens/VideoPlayerScreen";
 import CoursesSearchScreen from "./src/screens/CoursesSearchScreen";
-import PublicCreatorProfileScreen from "./src/screens/PublicCreatorProfileScreen";
-import { CreatorProvider } from "./src/context/CreatorContext";
+// import PublicCreatorProfileScreen from "./src/screens/PublicCreatorProfileScreen";
+// import { CreatorProvider } from "./src/context/CreatorContext";
 
 import * as SecureStore from "expo-secure-store";
 import MyTabs from "./src/navigations/AppTabs";
@@ -254,7 +254,7 @@ export default function App() {
   return (
     <AuthContext.Provider value={authContext}>
       {/* FIX: CreatorProvider was imported but not used — now wraps NavigationContainer */}
-      <CreatorProvider>
+      {/* <CreatorProvider> */}
         <NavigationContainer ref={navigationRef}>
           <Stack.Navigator
             key={
@@ -404,17 +404,17 @@ export default function App() {
                   component={CoursesSearchScreen}
                   options={{ headerShown: false }}
                 />
-                {/* NEW: public creator profile — navigable from Reels + Search */}
-                <Stack.Screen
+               
+                {/* <Stack.Screen
                   name="PublicCreatorProfile"
                   component={PublicCreatorProfileScreen}
                   options={{ headerShown: false }}
-                />
+                /> */}
               </>
             )}
           </Stack.Navigator>
         </NavigationContainer>
-      </CreatorProvider>
+      {/* </CreatorProvider> */}
     </AuthContext.Provider>
   );
 }

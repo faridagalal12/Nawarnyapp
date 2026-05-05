@@ -32,7 +32,7 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 import * as ImagePicker from "expo-image-picker";
 import * as DocumentPicker from "expo-document-picker";
 import api from "../services/api";
-import { useCreator } from "../context/CreatorContext";
+// import { useCreator } from "../context/CreatorContext";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const TAB_WIDTH = (SCREEN_WIDTH - 32) / 2;
@@ -564,7 +564,7 @@ function CreatorCourseCard({ item }) {
 // ─────────────────────────────────────────────────────────────────────────────
 export default function ProfileScreen({ signOut, navigation }) {
   // Pull creator state from global context
-  const { isCreator, setCreatorProfile, creatorProfile, clearCreator } = useCreator();
+  // const { isCreator, setCreatorProfile, creatorProfile, clearCreator } = useCreator();
 
   const [userName, setUserName]       = useState("Jana Al-Sayed");
   const [username, setUsername]       = useState("@jana.learns");
@@ -582,6 +582,7 @@ export default function ProfileScreen({ signOut, navigation }) {
   const [toastMsg, setToastMsg]       = useState(null);
   const [uploading, setUploading]     = useState(false);
 
+  const isCreator = false;
   const [stats, setStats] = useState({
     s1: { value: "0", label: "Videos" },
     s2: { value: "34", label: "Saved" },
