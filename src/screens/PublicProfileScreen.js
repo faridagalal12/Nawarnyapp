@@ -130,8 +130,8 @@ export default function PublicProfileScreen({ route, navigation }) {
         )}
         columnWrapperStyle={styles.row}
         contentContainerStyle={styles.grid}
-        renderItem={({ item }) => (
-          <VideoThumb item={item} onPress={() => {}} />
+       renderItem={({ item }) => (
+          <VideoThumb item={item} onPress={(video) => navigation.navigate("VideoPlayer", { video })} />
         )}
         ListEmptyComponent={() => (
           <View style={styles.empty}>
