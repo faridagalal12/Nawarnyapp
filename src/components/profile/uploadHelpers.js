@@ -2,6 +2,8 @@ import { Alert } from "react-native";
 import * as ImagePicker from "expo-image-picker";
 import * as DocumentPicker from "expo-document-picker";
 import api from "../../services/api";
+import { uploadVideoToSupabase } from "../../services/supabase";
+import { uploadCourseToSupabase } from "../../services/supabase";   
 
 export async function pickAndUploadVideo(onSuccess, onError) {
   try {
