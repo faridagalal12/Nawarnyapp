@@ -10,6 +10,8 @@ import AboutAppScreen from "../screens/AboutAppScreen";
 import CreatorApplicationScreen from "../screens/CreatorApplicationScreen";
 import AdminScreen from "../screens/AdminScreen";
 import PublicProfileScreen from "../screens/PublicProfileScreen";
+import UploadCourseScreen from "../screens/AddPosts/UploadCourseScreen";
+import EditCourseScreen from "../screens/AddPosts/EditCourseScreen";
 
 const Stack = createNativeStackNavigator();
 
@@ -60,15 +62,26 @@ export default function ProfileStack({ signOut }) {
         options={{ headerShown: false }}
       />
       <Stack.Screen
+  name="UploadCourse"
+  component={UploadCourseScreen}
+  options={{ headerShown: false }}
+/>
+      <Stack.Screen
         name="Admin"
         component={AdminScreen}
         options={{ headerShown: false }}
       />
+      <Stack.Screen
+  name="EditCourse"
+  component={EditCourseScreen}
+  options={{ headerShown: false }}
+/>
       <Stack.Screen
         name="PublicProfile"
         component={PublicProfileScreen}
         options={{ headerShown: false }}
       />
     </Stack.Navigator>
+    
   );
 }

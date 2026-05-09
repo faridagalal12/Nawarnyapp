@@ -35,8 +35,7 @@ export default function HamburgerMenu({
   ];
 
   const creatorDashboardItems = [
-    { icon: "cloud-upload-outline", title: "Upload Video", subtitle: "Share a new short lesson", onPress: () => { onClose(); setTimeout(onUploadVideo, 300); } },
-    { icon: "book-outline", title: "Upload Course", subtitle: "Publish a new course", onPress: () => { onClose(); setTimeout(onUploadCourse, 300); } },
+    { icon: "book-outline", title: "Upload Course", subtitle: "Publish a new course", onPress: () => { onClose(); setTimeout(() => navigation.navigate("UploadCourse"), 300); } },
   ];
 
   const moreItems = [

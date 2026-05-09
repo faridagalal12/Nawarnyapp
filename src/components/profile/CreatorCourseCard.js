@@ -1,10 +1,13 @@
 import React from "react";
-import { View, Text, StyleSheet } from "react-native";
+import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import Ionicons from "@expo/vector-icons/Ionicons";
 
-export default function CreatorCourseCard({ item }) {
+export default function CreatorCourseCard({ item, navigation }) {
   return (
-    <View style={styles.courseCard}>
+    <TouchableOpacity
+      style={styles.card}
+      onPress={() => navigation.navigate("EditCourse", { course: item })}
+    >
       <View style={styles.courseIconBox}>
         <Ionicons name="book-outline" size={22} color="#4F8EF7" />
       </View>
@@ -16,12 +19,12 @@ export default function CreatorCourseCard({ item }) {
         <Text style={styles.courseMeta}>{item.enrolledCount ?? 0} students enrolled</Text>
       </View>
       <Ionicons name="chevron-forward" size={18} color="#bbb" />
-    </View>
+    </TouchableOpacity>
   );
 }
 
 const styles = StyleSheet.create({
-  courseCard: {
+  card: {
     flexDirection: "row", alignItems: "center", backgroundColor: "#fff",
     borderRadius: 14, padding: 12, marginBottom: 8,
     shadowColor: "#000", shadowOffset: { width: 0, height: 1 },

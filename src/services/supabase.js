@@ -8,17 +8,43 @@ export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 export async function uploadVideoToSupabase(fileUri, fileName) {
   const response = await fetch(fileUri);
   const blob = await response.blob();
-
   const filePath = `${Date.now()}_${fileName}`;
 
   const { data, error } = await supabase.storage
     .from("videos")
     .upload(filePath, blob, {
-      contentType: "video/mp4",
-      upsert: false,
+      contentType: blob.type || "application/octet-stream",
+      upsert: true,
     });
 
-  if (error) throw error;
+  if (error) {
+    console.log("Supabase upload error:", JSON.stringify(error));
+    throw new Error(error.message);
+  }
+
+  const { data: urlData } = supabase.storage
+    .from("videos")
+    .getPublicUrl(filePath);
+
+  return urlData.publicUrl;
+}
+
+export async function uploadCourseToSupabase(fileUri, fileName) {
+  const response = await fetch(fileUri);
+  const blob = await response.blob();
+  const filePath = `courses/${Date.now()}_${fileName}`;
+
+  const { data, error } = await supabase.storage
+    .from("videos")
+    .upload(filePath, blob, {
+      contentType: blob.type || "application/octet-stream",
+      upsert: true,
+    });
+
+  if (error) {
+    console.log("Supabase course upload error:", JSON.stringify(error));
+    throw new Error(error.message);
+  }
 
   const { data: urlData } = supabase.storage
     .from("videos")
