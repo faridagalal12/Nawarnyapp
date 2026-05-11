@@ -9,7 +9,6 @@ import * as ImagePicker from "expo-image-picker";
 import { useNavigation } from "@react-navigation/native";
 import { uploadVideoToSupabase } from "../../services/supabase";
 import api from "../../services/api";
-import * as DocumentPicker from "expo-document-picker";
 
 const CATEGORIES = ["Science", "Technology", "Business", "Mathematics", "History", "Personal Development", "Physics", "Chemistry", "Design"];
 
@@ -25,20 +24,28 @@ export default function UploadVideoScreen() {
   const [progress,    setProgress]    = useState("");
 
   const pickVideo = async () => {
-  try {
-    const result = await DocumentPicker.getDocumentAsync({
-      type: "*/*",
-      copyToCacheDirectory: true,
-    });
-    if (result.canceled) return;
-    const asset = result.assets[0];
-    setVideoUri(asset.uri);
-    setVideoName(asset.name ?? `video_${Date.now()}.mp4`);
-    if (!title) setTitle(asset.name?.replace(/\.[^/.]+$/, "") ?? "");
-  } catch (err) {
-    Alert.alert("Error", "Could not pick file.");
-  }
-};
+    try {
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== "granted") {
+        Alert.alert("Permission needed", "Please allow access to your media library.");
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Videos,
+        allowsEditing: false,
+        quality: 1,
+      });
+
+      if (result.canceled) return;
+      const asset = result.assets[0];
+      setVideoUri(asset.uri);
+      setVideoName(asset.fileName ?? `video_${Date.now()}.mp4`);
+      if (!title) setTitle(asset.fileName?.replace(/\.[^/.]+$/, "") ?? "");
+    } catch (err) {
+      Alert.alert("Error", "Could not pick video.");
+    }
+  };
 
   const handleUpload = async () => {
     if (!videoUri)      { Alert.alert("No video", "Please pick a video first."); return; }
