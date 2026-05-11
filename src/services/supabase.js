@@ -30,7 +30,7 @@ const filePath = `${uniqueId}.mp4`;
       .from("videos")  // ← correct bucket
       .upload(filePath, blob, {
         contentType: "video/mp4",
-        upsert: true,
+        upsert: false,
       });
 
     if (error) {
@@ -75,7 +75,7 @@ export async function uploadCourseToSupabase(fileUri, fileName) {
       .from("courses")  // ← course bucket stays as courses
       .upload(filePath, blob, {
         contentType: mimeType,
-        upsert: true,
+        upsert: false,
       });
 
     if (error) {
