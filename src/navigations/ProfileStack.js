@@ -4,7 +4,7 @@ import ProfileScreen from "../screens/ProfileScreen";
 import EditProfileScreen from "../screens/EditProfileScreen";
 import LearningProfileScreen from "../screens/learningProfileScreen";
 import SubscriptionScreen from "../screens/SubscriptionScreen";
-import CardScreen from "../screens/cardscreen";
+import cardscreen from "../screens/cardscreen";
 import ContactSupportScreen from "../screens/ContactSupportScreen";
 import AboutAppScreen from "../screens/AboutAppScreen";
 import CreatorApplicationScreen from "../screens/CreatorApplicationScreen";
@@ -43,7 +43,7 @@ export default function ProfileStack({ signOut }) {
     
       <Stack.Screen
         name="Card"
-        component={CardScreen}
+        component={cardscreen}
         options={{ headerShown: false }}
       />
       <Stack.Screen
