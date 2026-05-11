@@ -178,10 +178,20 @@ function VideoItem({ item, isActive, navigation }) {
       }
     : null;
 
-  const player = useVideoPlayer(videoSource, p => {
-    p.loop  = true;
-    p.muted = false;
-  });
+  const player = useVideoPlayer(
+    item.videoUrl
+      ? {
+          uri: item.videoUrl,
+          headers: {
+            Range: "bytes=0-",
+          },
+        }
+      : null,
+    p => {
+      p.loop = true;
+      p.muted = false;
+    }
+  );
 
   useEffect(() => {
     if (isActive && !paused) {

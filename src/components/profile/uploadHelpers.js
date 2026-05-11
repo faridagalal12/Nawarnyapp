@@ -15,15 +15,16 @@ export async function pickAndUploadVideo(onSuccess, onError) {
     }
 
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Videos,
-      allowsEditing: false,
+      mediaTypes: ["videos"],
+      allowsEditing: true,
+      videoExportPreset: ImagePicker.VideoExportPreset.MediumQuality,
       quality: 1,
     });
 
     if (result.canceled) return;
     const asset = result.assets[0];
-const rawName = asset.fileName ?? `video_${Date.now()}.mp4`;
-const fileName = rawName.replace(/\.(mov|MOV|m4v|M4V)$/, ".mp4");
+    const rawName = asset.fileName ?? `video_${Date.now()}.mp4`;
+    const fileName = rawName.replace(/\.(mov|MOV|m4v|M4V)$/, ".mp4");
     Alert.alert("Upload video", `Ready to upload "${fileName}"?`, [
       { text: "Cancel", style: "cancel" },
       {
