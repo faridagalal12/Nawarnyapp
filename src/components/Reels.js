@@ -171,22 +171,8 @@ function VideoItem({ item, isActive, navigation }) {
   const cat  = getCat(item.subject ?? item.category);
   const diff = getDiff(item.difficulty);
 
- const videoSource = item.videoUrl
-    ? {
-        uri: item.videoUrl,
-        headers: { "Content-Type": "video/quicktime" },
-      }
-    : null;
-
-  const player = useVideoPlayer(
-    item.videoUrl
-      ? {
-          uri: item.videoUrl,
-          headers: {
-            Range: "bytes=0-",
-          },
-        }
-      : null,
+ const player = useVideoPlayer(
+    item.videoUrl ? { uri: item.videoUrl } : null,
     p => {
       p.loop = true;
       p.muted = false;
@@ -428,15 +414,7 @@ export default function Reels({ navigation }) {
       try {
         const res = await api.get("/videos/feed?limit=50");
         const fetched = res?.data?.videos ?? [];
-const fixed = fetched.map(v => ({
-  ...v,
-  videoUrl: v.videoUrl?.includes(".MOV") || v.videoUrl?.includes(".mov")
-    ? v.videoUrl.replace(
-        "/object/public/",
-        "/object/public/"
-      ) + "?t=" + Date.now()
-    : v.videoUrl,
-}));
+const fixed = fetched.map(v => ({ ...v }));
 setOriginalVideos(fixed);
 setVideos(shuffle(fixed));
       } catch (err) {
