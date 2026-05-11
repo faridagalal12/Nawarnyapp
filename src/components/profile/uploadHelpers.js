@@ -22,8 +22,8 @@ export async function pickAndUploadVideo(onSuccess, onError) {
 
     if (result.canceled) return;
     const asset = result.assets[0];
-    const fileName = asset.fileName ?? `video_${Date.now()}.mp4`;
-
+const rawName = asset.fileName ?? `video_${Date.now()}.mp4`;
+const fileName = rawName.replace(/\.(mov|MOV|m4v|M4V)$/, ".mp4");
     Alert.alert("Upload video", `Ready to upload "${fileName}"?`, [
       { text: "Cancel", style: "cancel" },
       {

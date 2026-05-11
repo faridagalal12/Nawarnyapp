@@ -23,9 +23,8 @@ export async function uploadVideoToSupabase(fileUri, fileName) {
       throw new Error("File is empty or could not be read");
     }
 
-    const ext = fileName.split(".").pop() ?? "mp4";
     const filePath = `${Date.now()}_${fileName}`;
-    const mimeType = blob.type || `video/${ext}`;
+    const mimeType = "video/mp4";
 
     const { data, error } = await supabase.storage
       .from("videos")

@@ -171,7 +171,14 @@ function VideoItem({ item, isActive, navigation }) {
   const cat  = getCat(item.subject ?? item.category);
   const diff = getDiff(item.difficulty);
 
-  const player = useVideoPlayer(item.videoUrl, p => {
+ const videoSource = item.videoUrl
+    ? {
+        uri: item.videoUrl,
+        headers: { "Content-Type": "video/quicktime" },
+      }
+    : null;
+
+  const player = useVideoPlayer(videoSource, p => {
     p.loop  = true;
     p.muted = false;
   });
@@ -411,8 +418,17 @@ export default function Reels({ navigation }) {
       try {
         const res = await api.get("/videos/feed?limit=50");
         const fetched = res?.data?.videos ?? [];
-        setOriginalVideos(fetched);
-        setVideos(shuffle(fetched));
+const fixed = fetched.map(v => ({
+  ...v,
+  videoUrl: v.videoUrl?.includes(".MOV") || v.videoUrl?.includes(".mov")
+    ? v.videoUrl.replace(
+        "/object/public/",
+        "/object/public/"
+      ) + "?t=" + Date.now()
+    : v.videoUrl,
+}));
+setOriginalVideos(fixed);
+setVideos(shuffle(fixed));
       } catch (err) {
         console.log("Failed to load videos:", err?.message);
       } finally {
