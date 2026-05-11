@@ -73,7 +73,9 @@ export default function SearchScreen({ navigation }) {
   );
 
   const renderUser = ({ item }) => (
-    <TouchableOpacity style={styles.resultItem}>
+    <TouchableOpacity 
+      style={styles.resultItem}
+onPress={() => navigation.navigate("PublicProfile", { creatorId: item.objectID })}>
       <View style={styles.avatarPlaceholder}>
         <Ionicons name="person" size={24} color="#fff" />
       </View>
@@ -85,7 +87,10 @@ export default function SearchScreen({ navigation }) {
   );
 
   const renderCourse = ({ item }) => (
-    <TouchableOpacity style={styles.resultItem}>
+    <TouchableOpacity 
+      style={styles.resultItem}
+      onPress={() => navigation.navigate("CourseDetail", { courseId: item._id })}
+    >
       <View style={styles.courseThumb}>
         <Ionicons name="book" size={24} color="#0066FF" />
       </View>
