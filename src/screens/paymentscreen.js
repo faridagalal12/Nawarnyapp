@@ -8,14 +8,33 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 const BLUE = '#0066FF';
 
 const methods = [
-  { id: 'card', icon: 'card-outline', label: 'Credit / Debit Card' },
-  { id: 'apple', icon: 'logo-apple', label: 'Apple Pay' },
-  { id: 'paypal', icon: 'logo-paypal', label: 'PayPal' },
+  { id: 'card',   icon: 'card-outline',  label: 'Credit / Debit Card' },
+  { id: 'apple',  icon: 'logo-apple',    label: 'Apple Pay' },
+  { id: 'paypal', icon: 'logo-paypal',   label: 'PayPal' },
 ];
 
 export default function PaymentScreen({ navigation, route }) {
-  const { plan, price } = route.params;
+  const { course, plan, price } = route.params;
+
+  // Support both course-based and plan-based navigation
+  const displayTitle = course?.title ?? `${plan} Plan`;
+  const displayPrice = course?.price ? `EGP ${course.price}` : price;
+
   const [selected, setSelected] = useState('card');
+
+  const handleConfirm = () => {
+    if (selected === 'card') {
+      navigation.navigate('Card', { course, plan, price });
+    } else {
+      // Simulate successful payment then go to completion
+      Alert.alert('Payment Successful 🎉', `You enrolled in ${displayTitle}!`, [
+        {
+          text: 'OK',
+          onPress: () => navigation.navigate('CourseCompletion', { course }),
+        },
+      ]);
+    }
+  };
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -34,8 +53,8 @@ export default function PaymentScreen({ navigation, route }) {
         <View style={styles.summary}>
           <Text style={styles.summaryLabel}>Order Summary</Text>
           <View style={styles.summaryRow}>
-            <Text style={styles.summaryPlan}>{plan} Plan</Text>
-            <Text style={styles.summaryPrice}>{price}/mo</Text>
+            <Text style={styles.summaryPlan} numberOfLines={1}>{displayTitle}</Text>
+            <Text style={styles.summaryPrice}>{displayPrice}</Text>
           </View>
         </View>
 
@@ -57,16 +76,7 @@ export default function PaymentScreen({ navigation, route }) {
           </TouchableOpacity>
         ))}
 
-        <TouchableOpacity
-          style={styles.payBtn}
-         onPress={() => {
-  if (selected === 'card') {
-    navigation.navigate('Card', { plan, price });
-  } else {
-    Alert.alert('Success', `You subscribed to ${plan}!`);
-  }
-}}
-        >
+        <TouchableOpacity style={styles.payBtn} onPress={handleConfirm}>
           <Text style={styles.payText}>Confirm & Pay</Text>
         </TouchableOpacity>
 
@@ -98,8 +108,8 @@ const styles = StyleSheet.create({
     borderWidth: 1, borderColor: '#eee',
   },
   summaryLabel: { fontSize: 13, color: '#999', marginBottom: 8 },
-  summaryRow: { flexDirection: 'row', justifyContent: 'space-between' },
-  summaryPlan: { fontSize: 17, fontWeight: '600', color: '#111' },
+  summaryRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  summaryPlan:  { fontSize: 17, fontWeight: '600', color: '#111', flex: 1, marginRight: 8 },
   summaryPrice: { fontSize: 17, fontWeight: '700', color: BLUE },
   sectionTitle: { fontSize: 15, fontWeight: '600', color: '#333', marginBottom: 12 },
   method: {

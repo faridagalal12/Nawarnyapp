@@ -1,9 +1,3 @@
-// src/screens/CourseDetailScreen.js
-// Step 02 — Course Detail
-// Receives the course object via route.params.course.
-// Tapping "Enroll now" simulates course completion and jumps to CourseCompletion.
-// In production, replace that onPress with a call to your enrollment API.
-
 import React, { useState } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, Pressable, StatusBar,
@@ -24,13 +18,20 @@ export default function CourseDetailScreen({ route, navigation }) {
   const course = route?.params?.course ?? {
     title: 'Intro to UI/UX Design',
     instructor: 'Sara Khalil',
+    price: 0,
   };
   const [tab, setTab] = useState('Curriculum');
 
   const handleEnroll = () => {
-    // TODO: call enrollment API via services/api.js
-    // For the mockup flow, we jump straight to the completion state.
-    navigation.navigate('CourseCompletion', { course });
+    const price = course.price ?? 0;
+
+    if (price === 0) {
+      // Free course — go straight to completion
+      navigation.navigate('CourseCompletion', { course });
+    } else {
+      // Paid course — go to payment first
+      navigation.navigate('Payment', { course });
+    }
   };
 
   return (
@@ -121,11 +122,21 @@ export default function CourseDetailScreen({ route, navigation }) {
       {/* Sticky enroll bar */}
       <View style={styles.enrollBar}>
         <View style={{ flex: 1 }}>
-          <Text style={styles.priceStrike}>EGP 499</Text>
-          <Text style={styles.priceFree}>Free</Text>
+          {(course.price ?? 0) === 0 ? (
+            <Text style={styles.priceFree}>Free</Text>
+          ) : (
+            <>
+              <Text style={styles.priceStrike}>
+                EGP {course.originalPrice ?? course.price}
+              </Text>
+              <Text style={styles.priceAmount}>EGP {course.price}</Text>
+            </>
+          )}
         </View>
         <Pressable style={styles.enrollBtn} onPress={handleEnroll}>
-          <Text style={styles.enrollText}>Enroll now →</Text>
+          <Text style={styles.enrollText}>
+            {(course.price ?? 0) === 0 ? 'Enroll now →' : 'Buy now →'}
+          </Text>
         </Pressable>
       </View>
     </SafeAreaView>
@@ -139,7 +150,6 @@ const styles = StyleSheet.create({
   hero: {
     height: 220,
     backgroundColor: '#BE185D',
-    // gradient-ish fallback — use expo-linear-gradient for a real gradient
     justifyContent: 'center', alignItems: 'center',
     position: 'relative',
   },
@@ -211,7 +221,8 @@ const styles = StyleSheet.create({
   priceStrike: {
     fontSize: 10, color: colors.ink3, textDecorationLine: 'line-through',
   },
-  priceFree: { fontSize: 18, fontWeight: '700', color: colors.success },
+  priceFree:   { fontSize: 18, fontWeight: '700', color: colors.success },
+  priceAmount: { fontSize: 18, fontWeight: '700', color: colors.ink },
   enrollBtn: {
     backgroundColor: colors.primary,
     paddingHorizontal: spacing.xl, paddingVertical: 12,
