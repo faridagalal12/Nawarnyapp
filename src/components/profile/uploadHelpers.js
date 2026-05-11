@@ -31,8 +31,9 @@ export async function pickAndUploadVideo(onSuccess, onError) {
         onPress: async () => {
           try {
             // Step 2 — upload file to Supabase storage
-            const videoUrl = await uploadVideoToSupabase(asset.uri, fileName);
-
+console.log("Uploading to Supabase:", asset.uri, fileName);
+const videoUrl = await uploadVideoToSupabase(asset.uri, fileName);
+console.log("Supabase URL:", videoUrl);
             // Step 3 — save metadata to MongoDB
             await api.post("/videos/upload", {
               title: fileName.replace(/\.[^/.]+$/, ""),

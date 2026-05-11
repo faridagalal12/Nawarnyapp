@@ -57,43 +57,56 @@ export default function ProfileScreen({ signOut, navigation }) {
       setLoading(true);
       const fetchAll = async () => {
         try {
-          const [profileRes, creatorRes, downloadsRes] = await Promise.all([
-            api.get("/users/profile/editable"),
+          const [profileRes, creatorRes] = await Promise.all([
+            api.get("/users/me/profile/editable"),
             api.get("/creator/status"),
-            api.get("/downloads/videos"),
-            
-            
           ]);
 
           const profile = profileRes?.data ?? {};
+          const creatorData = creatorRes?.data;
+          const creatorApproved = creatorData?.role === "creator";
 
-          console.log(profile)
-          await api.get(`/creator/${profileRes?.data._id}/videos`).then(response=>{
-
-            // console.log(response.data);
-            
-            setDownloadedVideos(response.data);
-
-          });
           setUserName(profile.name ?? "");
           setUsername(profile.username ? `@${profile.username}` : profile.email ?? "");
           setBio(profile.bio ?? "");
           setBioExpanded(false);
           setAvatar(profile.avatarUrl ?? null);
-
-          const creatorData = creatorRes?.data;
-          const creatorApproved = creatorData?.role === "creator";
           setIsCreator(creatorApproved);
           setAppStatus(creatorData?.application?.status ?? "none");
           setIsAdmin(creatorData?.role === "admin");
 
           if (creatorApproved) {
-            const coursesRes = await api.get("/creator/my-courses");
-            setCreatorCourses(coursesRes?.data ?? []);
+            // fetch creator's own videos
+            try {
+              const videosRes = await api.get(`/creator/${profile._id}/videos`);
+              setDownloadedVideos(videosRes?.data ?? []);
+            } catch {
+              setDownloadedVideos([]);
+            }
+            // fetch creator's courses
+            try {
+              const coursesRes = await api.get("/creator/my-courses");
+              setCreatorCourses(coursesRes?.data ?? []);
+            } catch {
+              setCreatorCourses([]);
+            }
+          } else {
+            // fetch regular user downloads
+            try {
+              const downloadsRes = await api.get("/downloads/videos");
+              setDownloadedVideos(downloadsRes?.data ?? []);
+            } catch {
+              setDownloadedVideos([]);
+            }
           }
 
-          const statsRes = await api.get("/learning-profile/stats");
-          setLevel(statsRes?.data?.level ?? 1);
+          // fetch level — skip if endpoint doesn't exist
+          try {
+            const statsRes = await api.get("/learning-profile/stats");
+            setLevel(statsRes?.data?.level ?? 1);
+          } catch {
+            setLevel(1);
+          }
 
         } catch (err) {
           console.log("Profile fetch error:", err?.message);

@@ -12,6 +12,7 @@ import AdminScreen from "../screens/AdminScreen";
 import PublicProfileScreen from "../screens/PublicProfileScreen";
 import UploadCourseScreen from "../screens/AddPosts/UploadCourseScreen";
 import EditCourseScreen from "../screens/AddPosts/EditCourseScreen";
+import CreatorDashboardScreen from "../screens/CreatorDashboardScreen";
 
 const Stack = createNativeStackNavigator();
 
@@ -66,6 +67,11 @@ export default function ProfileStack({ signOut }) {
   component={UploadCourseScreen}
   options={{ headerShown: false }}
 />
+      <Stack.Screen
+        name="CreatorDashboard"
+        component={CreatorDashboardScreen}
+        options={{ headerShown: false }}
+      />
       <Stack.Screen
         name="Admin"
         component={AdminScreen}

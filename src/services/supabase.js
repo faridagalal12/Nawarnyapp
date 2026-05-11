@@ -10,10 +10,16 @@ export async function uploadVideoToSupabase(fileUri, fileName) {
   const blob = await response.blob();
   const filePath = `${Date.now()}_${fileName}`;
 
-  const { data, error } = await supabase.storage
+  const contentType = blob.type && blob.type !== "application/octet-stream" 
+    ? blob.type 
+    : fileName.endsWith(".mov") || fileName.endsWith(".MOV") 
+      ? "video/quicktime" 
+      : "video/mp4";
+
+const { data, error } = await supabase.storage
     .from("videos")
     .upload(filePath, blob, {
-      contentType: blob.type || "application/octet-stream",
+      contentType,
       upsert: true,
     });
 
@@ -34,10 +40,16 @@ export async function uploadCourseToSupabase(fileUri, fileName) {
   const blob = await response.blob();
   const filePath = `courses/${Date.now()}_${fileName}`;
 
-  const { data, error } = await supabase.storage
+  const contentType = blob.type && blob.type !== "application/octet-stream"
+    ? blob.type
+    : fileName.endsWith(".mov") || fileName.endsWith(".MOV")
+      ? "video/quicktime"
+      : "video/mp4";
+
+const { data, error } = await supabase.storage
     .from("videos")
     .upload(filePath, blob, {
-      contentType: blob.type || "application/octet-stream",
+      contentType,
       upsert: true,
     });
 
