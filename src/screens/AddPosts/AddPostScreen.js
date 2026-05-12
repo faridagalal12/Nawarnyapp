@@ -97,7 +97,10 @@ export default function AddPostScreen() {
       setIsRecording(false);
     }
   };
-
+const handleUploadPress = () => {
+    console.log("upload pressed");
+    navigation.navigate("UploadVideo");
+  };
   const handlePickFromGallery = async () => {
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!permission.granted) {
@@ -202,7 +205,7 @@ export default function AddPostScreen() {
             <View style={styles.shutterInner} />
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.uploadButton}>
+          <TouchableOpacity style={styles.uploadButton} onPress={handleUploadPress}>
             <MaterialIcons name="cloud-upload" size={22} color="#fff" />
           </TouchableOpacity>
         </View>

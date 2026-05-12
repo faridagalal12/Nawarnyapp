@@ -1,5 +1,5 @@
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
-import HomeScreen from "../screens/HomeScreen";
+import HomeStack from "../screens/HomeStack";
 import ProfileScreen from "../screens/ProfileScreen";
 import GWelcomeScreen from "../screens/Gamification/GWelcomeScreen";
 import CoursesStack from './CoursesStack';
@@ -20,7 +20,7 @@ export default function MyTabs({ signOut }) {
     >
       <Tab.Screen
         name="Home"
-        component={HomeScreen}
+        component={HomeStack}
         options={{
           headerShown: false,
           tabBarIcon: ({ color, size }) => (

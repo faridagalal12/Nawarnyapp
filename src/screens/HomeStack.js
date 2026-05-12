@@ -1,56 +1,36 @@
 import React, { useState } from "react";
-import {
-  StyleSheet,
-  Text,
-  View,
-  TouchableOpacity,
-} from "react-native";
+import { StyleSheet, Text, View, TouchableOpacity } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import Reels from "../components/Reels";
 
-export default function HomeScreen({navigation}) {
+export default function HomeScreen({ navigation }) {
   const [activeTab, setActiveTab] = useState("forYou");
 
   return (
     <View style={styles.container}>
-
-      {/* TOP BAR */}
       <View style={styles.topBar}>
-
-        {/* FOLLOWING TAB */}
         <TouchableOpacity onPress={() => setActiveTab("following")}>
-          <Text style={[
-            styles.tabText,
-            activeTab === "following" && styles.activeTabText
-          ]}>
+          <Text style={[styles.tabText, activeTab === "following" && styles.activeTabText]}>
             Following
           </Text>
           {activeTab === "following" && <View style={styles.underline} />}
         </TouchableOpacity>
 
-        {/* FOR YOU TAB */}
         <TouchableOpacity onPress={() => setActiveTab("forYou")}>
-          <Text style={[
-            styles.tabText,
-            activeTab === "forYou" && styles.activeTabText
-          ]}>
+          <Text style={[styles.tabText, activeTab === "forYou" && styles.activeTabText]}>
             For You
           </Text>
           {activeTab === "forYou" && <View style={styles.underline} />}
         </TouchableOpacity>
 
-        {/* SEARCH ICON */}
         <TouchableOpacity onPress={() => navigation.navigate("Search")}>
-        <Ionicons name="search-outline" size={22} color="#fff" />
+          <Ionicons name="search-outline" size={22} color="#fff" />
         </TouchableOpacity>
-
       </View>
 
-      {/* REELS */}
       <View style={styles.reelsContainer}>
-        <Reels />
+        <Reels navigation={navigation} />
       </View>
-
     </View>
   );
 }

@@ -1,76 +1,65 @@
 // src/screens/CoursesBrowseScreen.js
-// Step 01 — Browse Catalog
-// Matches the HTML mockup: greeting, search, chips, featured card, popular list.
-// Wire with the CoursesStack navigator (see src/navigations/CoursesStack.js).
-
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TextInput,
-  Pressable, StatusBar,
+  Pressable, StatusBar, Image, ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons, Feather } from '@expo/vector-icons';
-import { colors, spacing, radius, typography, shadow } from '../constants/theme';
+import api from '../services/api';
 
-// --- Mock data — replace with api.getCourses() from services/api.js
-const CATEGORIES = ['All', 'Design', 'Coding', 'Business', 'Languages'];
-
-const FEATURED = {
-  id: 'feat-1',
-  title: 'UI/UX Design Fundamentals',
-  instructor: 'Sara Khalil',
-  duration: '6 weeks',
-  tag: 'FEATURED',
-};
-
-const COURSES = [
-  { id: 'c1', title: 'Intro to UI/UX Design', instructor: 'Sara Khalil',
-    rating: 4.8, duration: '6h 20m', lessons: 12,
-    thumbBg: colors.thumbPink, emoji: '🎨' },
-  { id: 'c2', title: 'Python for Beginners', instructor: 'Omar Fathi',
-    rating: 4.9, duration: '8h 10m', lessons: 24,
-    thumbBg: colors.thumbGreen, emoji: '</>' },
-  { id: 'c3', title: 'Data Analysis with Excel', instructor: 'Nour Adel',
-    rating: 4.7, duration: '4h 30m', lessons: 10,
-    thumbBg: colors.thumbBlue, emoji: '📊' },
-  { id: 'c4', title: 'Business Fundamentals', instructor: 'Laila Hassan',
-    rating: 4.6, duration: '5h 00m', lessons: 14,
-    thumbBg: colors.thumbAmber, emoji: '💼' },
-];
+const CATEGORIES = ['All', 'Design', 'Technology', 'Business', 'Science', 'Mathematics'];
 
 export default function CoursesBrowseScreen({ navigation }) {
   const [activeCat, setActiveCat] = useState('All');
   const [query, setQuery] = useState('');
+  const [courses, setCourses] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  const fetchCourses = useCallback(async () => {
+    try {
+      setLoading(true);
+      const params = {};
+      if (activeCat !== 'All') params.category = activeCat;
+      if (query.trim()) params.search = query.trim();
+
+      const res = await api.get('/courses', { params });
+      setCourses(res.data ?? []);
+    } catch (err) {
+      console.log('Failed to fetch courses:', err?.message);
+    } finally {
+      setLoading(false);
+    }
+  }, [activeCat, query]);
+
+  useEffect(() => {
+    fetchCourses();
+  }, [fetchCourses]);
 
   const openCourse = (course) => navigation.navigate('CourseDetail', { course });
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
       <StatusBar barStyle="dark-content" />
-      <ScrollView
-        contentContainerStyle={styles.scroll}
-        showsVerticalScrollIndicator={false}
-      >
-        {/* Greeting */}
-        <View style={styles.hello}>
-          <View>
-            <Text style={styles.helloTitle}>Hello, Jana 👋</Text>
-            <Text style={styles.helloSub}>What will you learn today?</Text>
-          </View>
-          <View style={styles.avatar}>
-            <Text style={styles.avatarText}>J</Text>
-          </View>
+      <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+
+        {/* Header */}
+        <View style={styles.header}>
+          <Text style={styles.greeting}>Browse Courses</Text>
+          <Text style={styles.sub}>Find something new to learn</Text>
         </View>
 
         {/* Search */}
-        <View style={styles.search}>
-          <Feather name="search" size={16} color={colors.ink3} />
+        <View style={styles.searchRow}>
+          <Feather name="search" size={18} color="#888" style={styles.searchIcon} />
           <TextInput
             style={styles.searchInput}
-            placeholder="Search courses, topics…"
-            placeholderTextColor={colors.ink3}
+            placeholder="Search courses..."
+            placeholderTextColor="#aaa"
             value={query}
             onChangeText={setQuery}
+            returnKeyType="search"
+            onSubmitEditing={fetchCourses}
           />
         </View>
 
@@ -80,154 +69,151 @@ export default function CoursesBrowseScreen({ navigation }) {
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.chipsRow}
         >
-          {CATEGORIES.map((c) => {
-            const active = c === activeCat;
-            return (
-              <Pressable
-                key={c}
-                onPress={() => setActiveCat(c)}
-                style={[styles.chip, active && styles.chipActive]}
-              >
-                <Text style={[styles.chipText, active && styles.chipTextActive]}>{c}</Text>
-              </Pressable>
-            );
-          })}
+          {CATEGORIES.map(cat => (
+            <Pressable
+              key={cat}
+              style={[styles.chip, activeCat === cat && styles.chipActive]}
+              onPress={() => setActiveCat(cat)}
+            >
+              <Text style={[styles.chipText, activeCat === cat && styles.chipTextActive]}>
+                {cat}
+              </Text>
+            </Pressable>
+          ))}
         </ScrollView>
 
-        {/* Featured card */}
-        <Pressable
-          style={styles.featured}
-          onPress={() => openCourse({ ...FEATURED, id: 'c1' })}
-        >
-          <View style={styles.featuredTag}>
-            <Text style={styles.featuredTagText}>{FEATURED.tag}</Text>
+        {/* Courses list */}
+        {loading ? (
+          <ActivityIndicator size="large" color="#2F54EB" style={{ marginTop: 40 }} />
+        ) : courses.length === 0 ? (
+          <View style={styles.empty}>
+            <Ionicons name="book-outline" size={48} color="#ccc" />
+            <Text style={styles.emptyText}>No courses found</Text>
           </View>
-          <Text style={styles.featuredTitle}>{FEATURED.title}</Text>
-          <Text style={styles.featuredSub}>
-            Learn the essentials in {FEATURED.duration} · {FEATURED.instructor}
-          </Text>
-          <View style={styles.featuredCta}>
-            <Text style={styles.featuredCtaText}>Start learning →</Text>
-          </View>
-        </Pressable>
+        ) : (
+          <>
+            <Text style={styles.sectionTitle}>
+              {activeCat === 'All' ? 'All Courses' : activeCat} ({courses.length})
+            </Text>
+            {courses.map(course => (
+              <Pressable
+                key={course.id}
+                style={styles.card}
+                onPress={() => openCourse(course)}
+              >
+                {/* Thumbnail */}
+                <View style={styles.thumbWrap}>
+                  {course.thumbnail ? (
+                    <Image source={{ uri: course.thumbnail }} style={styles.thumb} />
+                  ) : (
+                    <View style={styles.thumbFallback}>
+                      <Ionicons name="play-circle-outline" size={36} color="#2F54EB" />
+                    </View>
+                  )}
+                </View>
 
-        {/* Popular section */}
-        <View style={styles.sectionRow}>
-          <Text style={styles.sectionTitle}>Popular now</Text>
-          <Text style={styles.sectionMore}>See all</Text>
-        </View>
+                {/* Info */}
+                <View style={styles.cardInfo}>
+                  <Text style={styles.cardTitle} numberOfLines={2}>{course.title}</Text>
 
-        {COURSES.map((course) => (
-          <Pressable
-            key={course.id}
-            style={styles.card}
-            onPress={() => openCourse(course)}
-            android_ripple={{ color: colors.surface3 }}
-          >
-            <View style={[styles.thumb, { backgroundColor: course.thumbBg[0] }]}>
-              <Text style={styles.thumbEmoji}>{course.emoji}</Text>
-            </View>
-            <View style={styles.cardInfo}>
-              <Text style={styles.cardTitle} numberOfLines={1}>{course.title}</Text>
-              <Text style={styles.cardInstr}>{course.instructor}</Text>
-              <View style={styles.cardRow3}>
-                <Text style={styles.cardRate}>★ {course.rating}</Text>
-                <Text style={styles.cardMuted}>· {course.duration}</Text>
-                <Text style={styles.cardMuted}>· {course.lessons} lessons</Text>
-              </View>
-            </View>
-            <Ionicons name="chevron-forward" size={18} color={colors.ink4} />
-          </Pressable>
-        ))}
+                  {course.creator?.name && (
+                    <Text style={styles.cardInstructor}>{course.creator.name}</Text>
+                  )}
+
+                  <View style={styles.cardMeta}>
+                    {course.rating > 0 && (
+                      <View style={styles.metaItem}>
+                        <Ionicons name="star" size={12} color="#f5a623" />
+                        <Text style={styles.metaText}>{course.rating.toFixed(1)}</Text>
+                      </View>
+                    )}
+                    {course.enrolledCount > 0 && (
+                      <View style={styles.metaItem}>
+                        <Ionicons name="people-outline" size={12} color="#888" />
+                        <Text style={styles.metaText}>{course.enrolledCount}</Text>
+                      </View>
+                    )}
+                    {course.category && (
+                      <View style={styles.categoryBadge}>
+                        <Text style={styles.categoryBadgeText}>{course.category}</Text>
+                      </View>
+                    )}
+                  </View>
+
+                  <Text style={styles.cardPrice}>
+                    {course.price === 0 ? 'Free' : `$${course.price}`}
+                  </Text>
+                </View>
+              </Pressable>
+            ))}
+          </>
+        )}
+
       </ScrollView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: colors.surface },
-  scroll: { padding: spacing.xl, paddingBottom: spacing.huge },
+  safe: { flex: 1, backgroundColor: '#f8f9fa' },
+  scroll: { paddingHorizontal: 16, paddingBottom: 32 },
 
-  hello: {
-    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    marginBottom: spacing.lg,
-  },
-  helloTitle: { ...typography.heading, color: colors.ink, fontSize: 20 },
-  helloSub: { color: colors.ink3, fontSize: 13, marginTop: 2 },
-  avatar: {
-    width: 40, height: 40, borderRadius: 20,
-    backgroundColor: colors.primary,
-    alignItems: 'center', justifyContent: 'center',
-  },
-  avatarText: { color: '#78350F', fontWeight: '700', fontSize: 15 },
+  header: { marginTop: 16, marginBottom: 16 },
+  greeting: { fontSize: 24, fontWeight: '700', color: '#000' },
+  sub: { fontSize: 14, color: '#666', marginTop: 4 },
 
-  search: {
-    flexDirection: 'row', alignItems: 'center', gap: spacing.sm,
-    backgroundColor: colors.surface3,
-    borderRadius: radius.md,
-    paddingHorizontal: spacing.md, paddingVertical: 10,
-    marginBottom: spacing.lg,
+  searchRow: {
+    flexDirection: 'row', alignItems: 'center',
+    backgroundColor: '#fff', borderRadius: 12,
+    paddingHorizontal: 14, paddingVertical: 10,
+    marginBottom: 16,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.06, shadowRadius: 4, elevation: 2,
   },
-  searchInput: { flex: 1, fontSize: 14, color: colors.ink, padding: 0 },
+  searchIcon: { marginRight: 8 },
+  searchInput: { flex: 1, fontSize: 15, color: '#000' },
 
-  chipsRow: { gap: 6, paddingRight: spacing.xl, marginBottom: spacing.lg },
+  chipsRow: { paddingBottom: 16, gap: 8 },
   chip: {
-    paddingHorizontal: spacing.md, paddingVertical: 6,
-    backgroundColor: colors.surface3, borderRadius: radius.pill,
-    marginRight: 6,
+    paddingHorizontal: 16, paddingVertical: 8,
+    borderRadius: 20, backgroundColor: '#fff',
+    borderWidth: 1, borderColor: '#e0e0e0',
   },
-  chipActive: { backgroundColor: colors.ink },
-  chipText: { fontSize: 12, color: colors.ink2, fontWeight: '500' },
-  chipTextActive: { color: '#FFFFFF' },
+  chipActive: { backgroundColor: '#2F54EB', borderColor: '#2F54EB' },
+  chipText: { fontSize: 13, color: '#555', fontWeight: '500' },
+  chipTextActive: { color: '#fff' },
 
-  featured: {
-    backgroundColor: '#312E81',
-    borderRadius: radius.lg,
-    padding: spacing.lg,
-    marginBottom: spacing.lg,
-    overflow: 'hidden',
+  sectionTitle: {
+    fontSize: 16, fontWeight: '700', color: '#000',
+    marginBottom: 12,
   },
-  featuredTag: {
-    alignSelf: 'flex-start',
-    backgroundColor: 'rgba(255,255,255,0.18)',
-    paddingHorizontal: spacing.sm, paddingVertical: 3,
-    borderRadius: radius.sm, marginBottom: spacing.sm,
-  },
-  featuredTagText: {
-    color: '#FFFFFF', fontSize: 10, fontWeight: '700', letterSpacing: 0.6,
-  },
-  featuredTitle: { color: '#FFFFFF', fontSize: 16, fontWeight: '700' },
-  featuredSub: { color: 'rgba(255,255,255,0.85)', fontSize: 11, marginTop: 4 },
-  featuredCta: {
-    alignSelf: 'flex-start', marginTop: spacing.md,
-    backgroundColor: colors.primary, paddingHorizontal: spacing.md, paddingVertical: 6,
-    borderRadius: radius.sm,
-  },
-  featuredCtaText: { color: '#78350F', fontWeight: '700', fontSize: 11 },
-
-  sectionRow: {
-    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    marginBottom: spacing.md,
-  },
-  sectionTitle: { ...typography.title, color: colors.ink, fontSize: 15 },
-  sectionMore: { fontSize: 12, color: colors.primary700, fontWeight: '600' },
 
   card: {
-    flexDirection: 'row', alignItems: 'center', gap: spacing.md,
-    padding: 10, borderRadius: radius.md,
-    borderWidth: 1, borderColor: colors.line,
-    backgroundColor: colors.surface,
-    marginBottom: spacing.sm,
+    flexDirection: 'row', backgroundColor: '#fff',
+    borderRadius: 14, marginBottom: 12, overflow: 'hidden',
+    shadowColor: '#000', shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.07, shadowRadius: 6, elevation: 2,
   },
-  thumb: {
-    width: 56, height: 56, borderRadius: 10,
-    alignItems: 'center', justifyContent: 'center',
+  thumbWrap: { width: 110, height: 100 },
+  thumb: { width: '100%', height: '100%' },
+  thumbFallback: {
+    width: '100%', height: '100%',
+    backgroundColor: '#e8eeff',
+    justifyContent: 'center', alignItems: 'center',
   },
-  thumbEmoji: { fontSize: 22, color: '#FFFFFF' },
-  cardInfo: { flex: 1 },
-  cardTitle: { fontSize: 13, fontWeight: '600', color: colors.ink },
-  cardInstr: { fontSize: 11, color: colors.ink3, marginTop: 2 },
-  cardRow3: { flexDirection: 'row', gap: 8, marginTop: 6 },
-  cardRate: { fontSize: 10, color: colors.primary700, fontWeight: '600' },
-  cardMuted: { fontSize: 10, color: colors.ink3 },
+  cardInfo: { flex: 1, padding: 12, justifyContent: 'space-between' },
+  cardTitle: { fontSize: 14, fontWeight: '700', color: '#000', lineHeight: 20 },
+  cardInstructor: { fontSize: 12, color: '#666', marginTop: 2 },
+  cardMeta: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 6 },
+  metaItem: { flexDirection: 'row', alignItems: 'center', gap: 3 },
+  metaText: { fontSize: 11, color: '#888' },
+  categoryBadge: {
+    backgroundColor: '#e8eeff', borderRadius: 6,
+    paddingHorizontal: 6, paddingVertical: 2,
+  },
+  categoryBadgeText: { fontSize: 10, color: '#2F54EB', fontWeight: '600' },
+  cardPrice: { fontSize: 13, fontWeight: '700', color: '#2F54EB', marginTop: 4 },
+
+  empty: { alignItems: 'center', marginTop: 60, gap: 12 },
+  emptyText: { fontSize: 15, color: '#aaa' },
 });

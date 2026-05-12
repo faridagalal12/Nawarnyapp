@@ -19,13 +19,16 @@ function formatExpiry(val) {
 }
 
 export default function CardScreen({ navigation, route }) {
-  const { plan, price } = route.params;
+  const { course, plan, price } = route?.params ?? {};
+
+  const displayTitle = course?.title ?? (plan ? `${plan} Plan` : 'Order');
+  const displayPrice = course?.price ? `EGP ${course.price}` : (price ?? '');
 
   const [cardNumber, setCardNumber] = useState('');
-  const [cardName, setCardName] = useState('');
-  const [expiry, setExpiry] = useState('');
-  const [cvv, setCvv] = useState('');
-  const [focused, setFocused] = useState(null);
+  const [cardName,   setCardName]   = useState('');
+  const [expiry,     setExpiry]     = useState('');
+  const [cvv,        setCvv]        = useState('');
+  const [focused,    setFocused]    = useState(null);
 
   const isValid =
     cardNumber.replace(/\s/g, '').length === 16 &&
@@ -39,13 +42,21 @@ export default function CardScreen({ navigation, route }) {
       return;
     }
     try {
-      const planId = plan.toLowerCase();
-      await api.post('/subscriptions/subscribe', { plan: planId });
-      Alert.alert('Payment Successful 🎉', `You are now subscribed to the ${plan} plan!`, [
-        { text: 'Done', onPress: () => navigation.popToTop() },
-      ]);
+      if (course) {
+        await api.post('/courses/enroll', { courseId: course._id ?? course.id });        Alert.alert('Payment Successful 🎉', `You enrolled in ${course.title}!`, [
+          { text: 'Done', onPress: () => navigation.navigate('CourseCompletion', { course }) },
+        ]);
+      } else {
+        const planId = plan.toLowerCase();
+        await api.post('/subscriptions/subscribe', { plan: planId });
+        Alert.alert('Payment Successful 🎉', `You are now subscribed to the ${plan} plan!`, [
+          { text: 'Done', onPress: () => navigation.popToTop() },
+        ]);
+      }
     } catch (err) {
-      Alert.alert('Error', 'Payment failed. Please try again.');
+      console.log('Payment error status:', err?.response?.status);
+      console.log('Payment error detail:', JSON.stringify(err?.response?.data));
+      Alert.alert('Error', err?.response?.data?.error ?? err?.message ?? 'Payment failed.');
     }
   };
 
@@ -61,7 +72,6 @@ export default function CardScreen({ navigation, route }) {
     <SafeAreaView style={styles.safe}>
       <StatusBar barStyle="light-content" backgroundColor={BLUE} />
 
-      {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
           <Ionicons name="chevron-back" size={24} color="#fff" />
@@ -72,13 +82,11 @@ export default function CardScreen({ navigation, route }) {
 
       <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
 
-        {/* Card Preview */}
         <View style={styles.cardPreview}>
           <View style={styles.cardPreviewTop}>
-            <Ionicons name="wifi-outline" size={22} color="rgba(255,255,255,0.7)" style={{ transform: [{ rotate: '90deg' }] }} />
-            {getCardBrand() && (
-              <Text style={styles.cardBrand}>{getCardBrand()}</Text>
-            )}
+            <Ionicons name="wifi-outline" size={22} color="rgba(255,255,255,0.7)"
+              style={{ transform: [{ rotate: '90deg' }] }} />
+            {getCardBrand() && <Text style={styles.cardBrand}>{getCardBrand()}</Text>}
           </View>
           <Text style={styles.cardPreviewNumber}>
             {cardNumber || '•••• •••• •••• ••••'}
@@ -86,9 +94,7 @@ export default function CardScreen({ navigation, route }) {
           <View style={styles.cardPreviewBottom}>
             <View>
               <Text style={styles.cardPreviewLabel}>CARD HOLDER</Text>
-              <Text style={styles.cardPreviewValue}>
-                {cardName || 'FULL NAME'}
-              </Text>
+              <Text style={styles.cardPreviewValue}>{cardName || 'FULL NAME'}</Text>
             </View>
             <View>
               <Text style={styles.cardPreviewLabel}>EXPIRES</Text>
@@ -97,13 +103,11 @@ export default function CardScreen({ navigation, route }) {
           </View>
         </View>
 
-        {/* Order summary strip */}
         <View style={styles.orderStrip}>
-          <Text style={styles.orderPlan}>{plan} Plan</Text>
-          <Text style={styles.orderPrice}>{price}/mo</Text>
+          <Text style={styles.orderPlan} numberOfLines={1}>{displayTitle}</Text>
+          <Text style={styles.orderPrice}>{displayPrice}</Text>
         </View>
 
-        {/* Inputs */}
         <View style={styles.inputGroup}>
           <Text style={styles.label}>Card Number</Text>
           <View style={[styles.inputBox, focused === 'number' && styles.inputFocused]}>
@@ -184,7 +188,7 @@ export default function CardScreen({ navigation, route }) {
           activeOpacity={0.85}
         >
           <Ionicons name="lock-closed" size={18} color="#fff" />
-          <Text style={styles.payText}>Pay {price}</Text>
+          <Text style={styles.payText}>Pay {displayPrice}</Text>
         </TouchableOpacity>
 
         <Text style={styles.secure}>
@@ -212,8 +216,7 @@ const styles = StyleSheet.create({
   },
   cardPreview: {
     backgroundColor: BLUE,
-    borderRadius: 20, padding: 24,
-    marginBottom: 20,
+    borderRadius: 20, padding: 24, marginBottom: 20,
     shadowColor: BLUE, shadowOpacity: 0.4,
     shadowRadius: 16, shadowOffset: { width: 0, height: 8 },
     elevation: 8,
@@ -235,7 +238,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#E8F0FF', borderRadius: 12,
     padding: 14, marginBottom: 20,
   },
-  orderPlan: { fontSize: 15, fontWeight: '600', color: '#333' },
+  orderPlan:  { fontSize: 15, fontWeight: '600', color: '#333', flex: 1, marginRight: 8 },
   orderPrice: { fontSize: 15, fontWeight: '700', color: BLUE },
   inputGroup: { marginBottom: 16 },
   label: { fontSize: 13, fontWeight: '600', color: '#555', marginBottom: 8 },

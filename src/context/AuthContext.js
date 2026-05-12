@@ -7,11 +7,12 @@ import React, {
   useMemo,
 } from "react";
 import * as SecureStore from "expo-secure-store";
+import { setAuthToken } from "../services/api";
 
 const AuthContext = createContext();
 
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(null); // null = not checked, {} = logged in
+  const [user, setUser] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
 
   // Load stored session on mount
@@ -19,7 +20,9 @@ export function AuthProvider({ children }) {
     const bootstrapAsync = async () => {
       try {
         const storedUser = await SecureStore.getItemAsync("user");
-        if (storedUser) {
+        const storedToken = await SecureStore.getItemAsync("token");
+        if (storedUser && storedToken) {
+          setAuthToken(storedToken);
           setUser(JSON.parse(storedUser));
         }
       } catch (e) {
@@ -32,27 +35,41 @@ export function AuthProvider({ children }) {
     bootstrapAsync();
   }, []);
 
-  const signIn = async (email, password) => {
-    // ── MOCK LOGIC ── (replace later with real API)
-    if (email === "test@example.com" && password === "123456") {
-      const mockUser = { email, id: "mock-123", name: "Test User" };
-      await SecureStore.setItemAsync("user", JSON.stringify(mockUser));
-      setUser(mockUser);
-      return { success: true };
-    }
-    return { success: false, error: "Invalid credentials" };
-  };
+  // Called from LoginScreen with (token, email)
+  // Called from VerifyOtp with the full user object + token
+  const signIn = async (token, emailOrUser) => {
+    try {
+      let userData;
 
-  const signUp = async (email, password, name) => {
-    // ── MOCK SIGNUP ── (later → real API + email verification)
-    const mockUser = { email, id: "mock-" + Date.now(), name };
-    await SecureStore.setItemAsync("user", JSON.stringify(mockUser));
-    setUser(mockUser);
-    return { success: true };
+      if (typeof emailOrUser === "object") {
+        // called from OTP verify with full user object
+        userData = emailOrUser;
+      } else {
+        // called from login screen — decode token to get user info
+        const base64 = token.split(".")[1];
+        const decoded = JSON.parse(atob(base64));
+        userData = {
+          id: decoded.sub,
+          email: decoded.email,
+          role: decoded.role,
+        };
+      }
+
+      setAuthToken(token);
+      await SecureStore.setItemAsync("token", token);
+      await SecureStore.setItemAsync("user", JSON.stringify(userData));
+      setUser(userData);
+      return { success: true };
+    } catch (e) {
+      console.error("signIn error:", e);
+      return { success: false, error: "Failed to save session" };
+    }
   };
 
   const signOut = async () => {
     await SecureStore.deleteItemAsync("user");
+    await SecureStore.deleteItemAsync("token");
+    setAuthToken(null);
     setUser(null);
   };
 
@@ -61,7 +78,6 @@ export function AuthProvider({ children }) {
       user,
       isLoading,
       signIn,
-      signUp,
       signOut,
       isAuthenticated: !!user,
     }),

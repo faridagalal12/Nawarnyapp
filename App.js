@@ -12,7 +12,8 @@ import QuizScreen from "./src/screens/QuizScreen";
 import SearchScreen from "./src/screens/SearchScreen";
 import VideoPlayerScreen from "./src/screens/VideoPlayerScreen";
 import CoursesSearchScreen from "./src/screens/CoursesSearchScreen";
-
+import PublicProfileScreen from "./src/screens/PublicProfileScreen";
+import UploadVideoScreen from "./src/screens/AddPosts/UploadVideoScreen";
 import * as SecureStore from "expo-secure-store";
 import MyTabs from "./src/navigations/AppTabs";
 import api, { setAuthToken } from "./src/services/api";
@@ -418,6 +419,16 @@ export default function App() {
                 name="CoursesSearch"
                 component={CoursesSearchScreen}
                 options={{ headerShown: false }}
+/>
+<Stack.Screen
+  name="UploadVideo"
+  component={UploadVideoScreen}
+  options={{ headerShown: false }}
+/>
+<Stack.Screen
+  name="PublicProfile"
+  component={PublicProfileScreen}
+  options={{ headerShown: false }}
 />
 
             </>
