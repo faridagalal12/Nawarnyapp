@@ -14,7 +14,6 @@ const CATEGORIES = ["Science", "Technology", "Business", "Mathematics", "History
 
 export default function UploadVideoScreen() {
   const navigation = useNavigation();
-
   const [videoUri,    setVideoUri]    = useState(null);
   const [videoName,   setVideoName]   = useState(null);
   const [title,       setTitle]       = useState("");
@@ -30,13 +29,12 @@ export default function UploadVideoScreen() {
         Alert.alert("Permission needed", "Please allow access to your media library.");
         return;
       }
-
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Videos,
-        allowsEditing: false,
+        mediaTypes: ["videos"],
+        allowsEditing: true,
+        videoExportPreset: 6,
         quality: 1,
       });
-
       if (result.canceled) return;
       const asset = result.assets[0];
       setVideoUri(asset.uri);
@@ -48,9 +46,9 @@ export default function UploadVideoScreen() {
   };
 
   const handleUpload = async () => {
-    if (!videoUri)      { Alert.alert("No video", "Please pick a video first."); return; }
-    if (!title.trim())  { Alert.alert("Missing title", "Please enter a title."); return; }
-    if (!category)      { Alert.alert("Missing category", "Please select a category."); return; }
+    if (!videoUri)     { Alert.alert("No video", "Please pick a video first."); return; }
+    if (!title.trim()) { Alert.alert("Missing title", "Please enter a title."); return; }
+    if (!category)     { Alert.alert("Missing category", "Please select a category."); return; }
 
     setUploading(true);
     try {
@@ -81,7 +79,6 @@ export default function UploadVideoScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor="#fff" />
-
       <View style={styles.navBar}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
           <Ionicons name="chevron-back" size={24} color="#000" />
@@ -89,9 +86,7 @@ export default function UploadVideoScreen() {
         <Text style={styles.navTitle}>Upload Video</Text>
         <View style={{ width: 40 }} />
       </View>
-
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
-
         <TouchableOpacity style={styles.videoPicker} onPress={pickVideo}>
           {videoUri ? (
             <View style={styles.videoSelected}>
@@ -107,46 +102,19 @@ export default function UploadVideoScreen() {
             </View>
           )}
         </TouchableOpacity>
-
         <Text style={styles.label}>Title <Text style={styles.required}>*</Text></Text>
-        <TextInput
-          style={styles.input}
-          placeholder="Enter video title..."
-          value={title}
-          onChangeText={setTitle}
-          maxLength={100}
-        />
-
+        <TextInput style={styles.input} placeholder="Enter video title..." value={title} onChangeText={setTitle} maxLength={100} />
         <Text style={styles.label}>Description</Text>
-        <TextInput
-          style={[styles.input, styles.textArea]}
-          placeholder="What is this video about?"
-          value={description}
-          onChangeText={setDescription}
-          multiline
-          maxLength={500}
-        />
-
+        <TextInput style={[styles.input, styles.textArea]} placeholder="What is this video about?" value={description} onChangeText={setDescription} multiline maxLength={500} />
         <Text style={styles.label}>Category <Text style={styles.required}>*</Text></Text>
         <View style={styles.categoryGrid}>
           {CATEGORIES.map(c => (
-            <TouchableOpacity
-              key={c}
-              style={[styles.categoryChip, category === c && styles.categoryChipActive]}
-              onPress={() => setCategory(c)}
-            >
-              <Text style={[styles.categoryChipText, category === c && styles.categoryChipTextActive]}>
-                {c}
-              </Text>
+            <TouchableOpacity key={c} style={[styles.categoryChip, category === c && styles.categoryChipActive]} onPress={() => setCategory(c)}>
+              <Text style={[styles.categoryChipText, category === c && styles.categoryChipTextActive]}>{c}</Text>
             </TouchableOpacity>
           ))}
         </View>
-
-        <TouchableOpacity
-          style={[styles.uploadBtn, (!videoUri || uploading) && { opacity: 0.6 }]}
-          onPress={handleUpload}
-          disabled={!videoUri || uploading}
-        >
+        <TouchableOpacity style={[styles.uploadBtn, (!videoUri || uploading) && { opacity: 0.6 }]} onPress={handleUpload} disabled={!videoUri || uploading}>
           {uploading ? (
             <View style={styles.uploadingRow}>
               <ActivityIndicator color="#fff" />
@@ -156,7 +124,6 @@ export default function UploadVideoScreen() {
             <Text style={styles.uploadBtnText}>Upload Video</Text>
           )}
         </TouchableOpacity>
-
       </ScrollView>
     </SafeAreaView>
   );
@@ -165,18 +132,10 @@ export default function UploadVideoScreen() {
 const styles = StyleSheet.create({
   container:  { flex: 1, backgroundColor: "#F8FAFF" },
   scroll:     { padding: 20, paddingBottom: 40 },
-  navBar: {
-    flexDirection: "row", alignItems: "center", justifyContent: "space-between",
-    paddingHorizontal: 8, paddingVertical: 12, backgroundColor: "#fff",
-    borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: "#eee",
-  },
-  backBtn:  { padding: 8 },
-  navTitle: { fontSize: 17, fontWeight: "700", color: "#000" },
-  videoPicker: {
-    height: 180, backgroundColor: "#EEF4FF", borderRadius: 16,
-    borderWidth: 2, borderColor: "#2F54EB", borderStyle: "dashed",
-    justifyContent: "center", alignItems: "center", marginBottom: 24,
-  },
+  navBar:     { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 8, paddingVertical: 12, backgroundColor: "#fff", borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: "#eee" },
+  backBtn:    { padding: 8 },
+  navTitle:   { fontSize: 17, fontWeight: "700", color: "#000" },
+  videoPicker: { height: 180, backgroundColor: "#EEF4FF", borderRadius: 16, borderWidth: 2, borderColor: "#2F54EB", borderStyle: "dashed", justifyContent: "center", alignItems: "center", marginBottom: 24 },
   videoEmpty:         { alignItems: "center", gap: 8 },
   videoEmptyTitle:    { fontSize: 16, fontWeight: "700", color: "#2F54EB" },
   videoEmptySubtitle: { fontSize: 13, color: "#64748B" },
@@ -185,23 +144,14 @@ const styles = StyleSheet.create({
   videoChangeTap:     { fontSize: 11, color: "#64748B" },
   label:    { fontSize: 14, fontWeight: "600", color: "#1E293B", marginBottom: 8 },
   required: { color: "#EF4444" },
-  input: {
-    backgroundColor: "#fff", borderRadius: 12, borderWidth: 1.5,
-    borderColor: "#E2E8F0", paddingHorizontal: 14, paddingVertical: 12,
-    fontSize: 15, color: "#1E293B", marginBottom: 20,
-  },
+  input:    { backgroundColor: "#fff", borderRadius: 12, borderWidth: 1.5, borderColor: "#E2E8F0", paddingHorizontal: 14, paddingVertical: 12, fontSize: 15, color: "#1E293B", marginBottom: 20 },
   textArea: { height: 100, textAlignVertical: "top" },
   categoryGrid: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 24 },
-  categoryChip: {
-    paddingHorizontal: 14, paddingVertical: 8, borderRadius: 99,
-    backgroundColor: "#F1F5F9", borderWidth: 1.5, borderColor: "#E2E8F0",
-  },
+  categoryChip:           { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 99, backgroundColor: "#F1F5F9", borderWidth: 1.5, borderColor: "#E2E8F0" },
   categoryChipActive:     { backgroundColor: "#2F54EB", borderColor: "#2F54EB" },
   categoryChipText:       { fontSize: 13, color: "#64748B", fontWeight: "500" },
   categoryChipTextActive: { color: "#fff", fontWeight: "700" },
-  uploadBtn: {
-    backgroundColor: "#2F54EB", borderRadius: 14, padding: 16, alignItems: "center",
-  },
+  uploadBtn:     { backgroundColor: "#2F54EB", borderRadius: 14, padding: 16, alignItems: "center" },
   uploadingRow:  { flexDirection: "row", alignItems: "center", gap: 10 },
   uploadBtnText: { color: "#fff", fontSize: 16, fontWeight: "700" },
 });
