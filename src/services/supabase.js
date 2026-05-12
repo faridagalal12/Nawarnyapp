@@ -9,41 +9,44 @@ export async function uploadVideoToSupabase(fileUri, fileName) {
   try {
     console.log("Starting upload for:", fileUri);
 
-    const blob = await new Promise((resolve, reject) => {
-      const xhr = new XMLHttpRequest();
-      xhr.onload = () => resolve(xhr.response);
-      xhr.onerror = () => reject(new Error("Failed to read file"));
-      xhr.responseType = "blob";
-      xhr.open("GET", fileUri, true);
-      xhr.send(null);
+    const formData = new FormData();
+
+    const uniqueId = `${Date.now()}_${Math.random()
+      .toString(36)
+      .substring(2, 8)}`;
+
+    const filePath = `${uniqueId}.mp4`;
+
+    formData.append("file", {
+      uri: fileUri,
+      name: filePath,
+      type: "video/mp4",
     });
 
-    console.log("Blob size:", blob.size, "type:", blob.type);
-    if (!blob || blob.size === 0) {
-      throw new Error("File is empty or could not be read");
+    const response = await fetch(
+      `${SUPABASE_URL}/storage/v1/object/videos/${filePath}`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+          apikey: SUPABASE_ANON_KEY,
+        },
+        body: formData,
+      }
+    );
+
+    const result = await response.json();
+
+    if (!response.ok) {
+      console.log("Upload error:", result);
+      throw new Error(result.message || "Upload failed");
     }
 
-    const uniqueId = `${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
-const filePath = `${uniqueId}.mp4`;
+    const publicUrl = `${SUPABASE_URL}/storage/v1/object/public/videos/${filePath}`;
 
-    const { data, error } = await supabase.storage
-      .from("videos")  // ← correct bucket
-      .upload(filePath, blob, {
-        contentType: "video/mp4",
-        upsert: false,
-      });
+    console.log("Upload success:", publicUrl);
 
-    if (error) {
-      console.log("Supabase upload error:", JSON.stringify(error));
-      throw new Error(error.message);
-    }
-
-    const { data: urlData } = supabase.storage
-      .from("videos")  // ← correct bucket
-      .getPublicUrl(filePath);
-
-    console.log("Upload success, URL:", urlData.publicUrl);
-    return urlData.publicUrl;
+    return publicUrl;
   } catch (err) {
     console.log("uploadVideoToSupabase error:", err?.message);
     throw err;

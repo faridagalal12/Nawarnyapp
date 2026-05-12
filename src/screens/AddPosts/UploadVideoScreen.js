@@ -55,6 +55,7 @@ export default function UploadVideoScreen() {
       setProgress("Uploading video to storage...");
       const videoUrl = await uploadVideoToSupabase(videoUri, videoName);
 
+      console.log("Video uploaded to:", videoUrl);
       setProgress("Saving to database...");
       await api.post("/videos/upload", {
         title: title.trim(),

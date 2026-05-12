@@ -414,6 +414,7 @@ export default function Reels({ navigation }) {
       try {
         const res = await api.get("/videos/feed?limit=50");
         const fetched = res?.data?.videos ?? [];
+        console.log("Fetched videos:", JSON.stringify(fetched));
 const fixed = fetched.map(v => ({ ...v }));
 setOriginalVideos(fixed);
 setVideos(shuffle(fixed));
