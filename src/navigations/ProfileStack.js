@@ -62,6 +62,13 @@ export default function ProfileStack({ signOut }) {
         component={CreatorApplicationScreen}
         options={{ headerShown: false }}
       />
+      import GMissionLeaderboardScreen from "../screens/Gamification/GMissionLeaderboardScreen";
+
+<Stack.Screen
+  name="Leaderboard"
+  component={GMissionLeaderboardScreen}
+  options={{ headerShown: false }}
+/>
       <Stack.Screen
   name="UploadCourse"
   component={UploadCourseScreen}

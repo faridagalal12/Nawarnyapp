@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, RefreshControl,
   TouchableOpacity, Image, SafeAreaView, StatusBar,
@@ -8,7 +8,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { FontAwesome5, Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import api from '../../services/api';
 
-const LAMP_IMAGE = require('../../assets/lamp1.png');
+const LAMP_IMAGE  = require('../../assets/lamp1.png');
 const BRAIN_IMAGE = require('../../assets/brain.png');
 
 const BLUE = '#2F83D4';
@@ -28,10 +28,10 @@ const courseCategories = [
 
 const softSkills = [
   { label: 'Critical Thinking', tag: 'Skill Unlocked!', desc: 'Sharpen your mind. Solve real-world problems.', icon: 'brain', accent: '#2F83D4', softBg: '#EAF4FF', gems: '+60', coins: '+300', progress: '3 / 5 days', rank: 'Top 15%', featured: true },
-  { label: 'Communication', tag: 'Practice Path', desc: 'Speak clearly, listen actively, and present ideas.', icon: 'message-text', accent: '#10B981', softBg: '#EAFBF4', gems: '+45', coins: '+220', progress: '2 / 4 days', rank: 'Top 24%' },
-  { label: 'Analysis', tag: 'New Challenge', desc: 'Read patterns, compare options, and defend choices.', icon: 'chart-timeline-variant', accent: '#8B5CF6', softBg: '#F2EDFF', gems: '+55', coins: '+260', progress: '1 / 5 days', rank: 'Top 31%' },
-  { label: 'Leadership', tag: 'Team Skill', desc: 'Guide decisions, set priorities, and motivate teams.', icon: 'account-group', accent: '#F97316', softBg: '#FFF3E8', gems: '+50', coins: '+240', progress: '4 / 6 days', rank: 'Top 18%' },
-  { label: 'Problem Solving', tag: 'Puzzle Run', desc: 'Break challenges into small, winnable moves.', icon: 'puzzle', accent: '#0EA5E9', softBg: '#EAF7FF', gems: '+65', coins: '+310', progress: '2 / 5 days', rank: 'Top 12%' },
+  { label: 'Communication',     tag: 'Practice Path',   desc: 'Speak clearly, listen actively, and present ideas.', icon: 'message-text', accent: '#10B981', softBg: '#EAFBF4', gems: '+45', coins: '+220', progress: '2 / 4 days', rank: 'Top 24%' },
+  { label: 'Analysis',          tag: 'New Challenge',   desc: 'Read patterns, compare options, and defend choices.', icon: 'chart-timeline-variant', accent: '#8B5CF6', softBg: '#F2EDFF', gems: '+55', coins: '+260', progress: '1 / 5 days', rank: 'Top 31%' },
+  { label: 'Leadership',        tag: 'Team Skill',      desc: 'Guide decisions, set priorities, and motivate teams.', icon: 'account-group', accent: '#F97316', softBg: '#FFF3E8', gems: '+50', coins: '+240', progress: '4 / 6 days', rank: 'Top 18%' },
+  { label: 'Problem Solving',   tag: 'Puzzle Run',      desc: 'Break challenges into small, winnable moves.', icon: 'puzzle', accent: '#0EA5E9', softBg: '#EAF7FF', gems: '+65', coins: '+310', progress: '2 / 5 days', rank: 'Top 12%' },
 ];
 
 function CategoryIcon({ item, active }) {
@@ -40,7 +40,7 @@ function CategoryIcon({ item, active }) {
   return <FontAwesome5 name={item.icon} size={19} color={iconColor} />;
 }
 
-export default function GWelcomeScreen({ navigation }) {
+export default function GWelcomeScreen({ navigation, route }) {
   const { height } = useWindowDimensions();
   const [selectedCourse, setSelectedCourse] = useState(courseCategories[0].label);
   const [selectedSkill,  setSelectedSkill]  = useState(softSkills[0].label);
@@ -67,7 +67,15 @@ export default function GWelcomeScreen({ navigation }) {
     }
   }, []);
 
+  // Refresh when screen comes into focus
   useFocusEffect(useCallback(() => { fetchData(); }, [fetchData]));
+
+  // Refresh when GMissionScreen signals completion via route param
+  useEffect(() => {
+    if (route?.params?.refresh) {
+      fetchData();
+    }
+  }, [route?.params?.refresh]);
 
   const handleRefresh = () => { setRefreshing(true); fetchData(); };
 
@@ -87,8 +95,8 @@ export default function GWelcomeScreen({ navigation }) {
     setSelectedCourse(item.label);
     Vibration.vibrate(45);
     navigation?.navigate('MissionStart', {
-      category: item,
-      totalPoints: stats?.xp ?? 0,
+      category:     item,
+      totalPoints:  stats?.xp ?? 0,
       earnedBadges: stats?.earnedBadgesCount ?? 0,
     });
   };
@@ -97,8 +105,8 @@ export default function GWelcomeScreen({ navigation }) {
     setSelectedSkill(skill.label);
     Vibration.vibrate(45);
     navigation?.navigate('MissionStart', {
-      category: { label: skill.label, icon: skill.icon, family: 'MaterialCommunityIcons', color: skill.accent, missionType: 'Soft Skill' },
-      totalPoints: stats?.xp ?? 0,
+      category:     { label: skill.label, icon: skill.icon, family: 'MaterialCommunityIcons', color: skill.accent, missionType: 'Soft Skill' },
+      totalPoints:  stats?.xp ?? 0,
       earnedBadges: stats?.earnedBadgesCount ?? 0,
     });
   };
@@ -107,22 +115,22 @@ export default function GWelcomeScreen({ navigation }) {
     setSelectedSkill(skill.label);
     Vibration.vibrate([0, 55, 35, 120]);
     navigation?.navigate('GMission', {
-      category: { label: skill.label, icon: skill.icon, family: 'MaterialCommunityIcons', color: skill.accent, missionType: 'Soft Skill' },
-      totalPoints: stats?.xp ?? 0,
+      category:     { label: skill.label, icon: skill.icon, family: 'MaterialCommunityIcons', color: skill.accent, missionType: 'Soft Skill' },
+      totalPoints:  stats?.xp ?? 0,
       earnedBadges: stats?.earnedBadgesCount ?? 0,
       currentLevel: 1,
     });
   };
 
-  const xp              = stats?.xp ?? 0;
-  const level           = stats?.level ?? 1;
-  const streak          = stats?.streak ?? 0;
-  const earnedBadges    = stats?.earnedBadgesCount ?? 0;
-  const pointsPerLevel  = 2000;
-  const pointsIntoLevel = xp % pointsPerLevel;
-  const pointsToNextLevel = pointsPerLevel - pointsIntoLevel;
+  const xp               = stats?.xp ?? 0;
+  const level            = stats?.level ?? 1;
+  const streak           = stats?.streak ?? 0;
+  const earnedBadges     = stats?.earnedBadgesCount ?? 0;
+  const pointsPerLevel   = 2000;
+  const pointsIntoLevel  = xp % pointsPerLevel;
+  const pointsToNextLevel= pointsPerLevel - pointsIntoLevel;
   const levelProgressWidth = `${Math.max(3, (pointsIntoLevel / pointsPerLevel) * 100)}%`;
-  const claimablePoints = quests.reduce((sum, q) => sum + (q.xpReward ?? 0), 0);
+  const claimablePoints  = quests.reduce((sum, q) => sum + (q.xpReward ?? 0), 0);
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -239,7 +247,7 @@ export default function GWelcomeScreen({ navigation }) {
                 <Text style={styles.sectionTitle}>Choose your mission category</Text>
               </View>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.categoryScrollContent}>
-                {courseCategories.map((item) => {
+                {courseCategories.map(item => {
                   const active = selectedCourse === item.label;
                   return (
                     <TouchableOpacity key={item.label} style={[styles.categoryTile, active && styles.categoryTileActive]} activeOpacity={0.82} onPress={() => handleCoursePress(item)}>
@@ -284,7 +292,7 @@ export default function GWelcomeScreen({ navigation }) {
                 <Text style={styles.sectionTitle}>Soft Skills</Text>
               </View>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.skillsScrollContent}>
-                {softSkills.map((skill) => {
+                {softSkills.map(skill => {
                   const active = selectedSkill === skill.label;
                   return (
                     <TouchableOpacity key={skill.label} style={[styles.skillBanner, skill.featured && styles.unlockedSkillBanner, active && styles.skillBannerActive]} activeOpacity={0.88} onPress={() => handleSkillPress(skill)}>
