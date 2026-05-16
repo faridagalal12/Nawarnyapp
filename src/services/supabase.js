@@ -1,4 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
+import api from "./api";
 
 const SUPABASE_URL = "https://jqcchypwglzsfmuavtvg.supabase.co";
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpxY2NoeXB3Z2x6c2ZtdWF2dHZnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYzMzc5MjQsImV4cCI6MjA5MTkxMzkyNH0.1kJpJHi9T4ALkdcHsUkri6BkjXQFPwvLLXqv5Sjx_Q0";
@@ -9,37 +10,21 @@ export async function uploadVideoToSupabase(fileUri, fileName) {
   try {
     console.log("Starting upload for:", fileUri);
 
-    const filePath = `${Date.now()}_${fileName}`;
-    const mimeType = fileName.endsWith(".mp4") ? "video/mp4" : "video/quicktime";
-
     const formData = new FormData();
     formData.append("file", {
       uri: fileUri,
       name: fileName,
-      type: mimeType,
+      type: fileName.endsWith(".mp4") ? "video/mp4" : "video/quicktime",
+    });
+    formData.append("category", "General");
+
+    const response = await api.post("/videos/upload-file", formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+      timeout: 120000,
     });
 
-    const uploadUrl = `${SUPABASE_URL}/storage/v1/object/videos/${filePath}`;
-
-    const response = await fetch(uploadUrl, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
-        "x-upsert": "true",
-      },
-      body: formData,
-    });
-
-    if (!response.ok) {
-      const errText = await response.text();
-      console.log("Upload failed:", errText);
-      throw new Error("Upload failed: " + errText);
-    }
-
-    const publicUrl = `${SUPABASE_URL}/storage/v1/object/public/videos/${filePath}`;
-    console.log("Upload success, URL:", publicUrl);
-    return publicUrl;
-
+    console.log("Upload success, URL:", response.data.videoUrl);
+    return response.data.videoUrl;
   } catch (err) {
     console.log("uploadVideoToSupabase error:", err?.message);
     throw err;
