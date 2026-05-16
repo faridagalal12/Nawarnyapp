@@ -13,6 +13,8 @@ import PublicProfileScreen from "../screens/PublicProfileScreen";
 import UploadCourseScreen from "../screens/AddPosts/UploadCourseScreen";
 import EditCourseScreen from "../screens/AddPosts/EditCourseScreen";
 import CreatorDashboardScreen from "../screens/CreatorDashboardScreen";
+import GMissionLeaderboardScreen from "../screens/Gamification/GMissionLeaderboardScreen";
+
 
 const Stack = createNativeStackNavigator();
 
@@ -62,7 +64,6 @@ export default function ProfileStack({ signOut }) {
         component={CreatorApplicationScreen}
         options={{ headerShown: false }}
       />
-      import GMissionLeaderboardScreen from "../screens/Gamification/GMissionLeaderboardScreen";
 
 <Stack.Screen
   name="Leaderboard"
