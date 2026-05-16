@@ -30,8 +30,7 @@ export default function PaymentScreen({ navigation, route }) {
       Alert.alert('Payment Successful 🎉', `You enrolled in ${displayTitle}!`, [
         {
           text: 'OK',
-          onPress: () => navigation.navigate('CourseCompletion', { course }),
-        },
+onPress: () => navigation.navigate('CourseDetail', { course }),        },
       ]);
     }
   };

@@ -16,11 +16,12 @@ export default function CourseDetailScreen({ route, navigation }) {
   const course = route?.params?.course ?? {};
   const courseId = course._id ?? course.id;
 
-  const [tab, setTab]               = useState('Curriculum');
+ const [tab, setTab]               = useState('Curriculum');
   const [detail, setDetail]         = useState(null);
   const [loading, setLoading]       = useState(true);
   const [videoModal, setVideoModal] = useState(false);
   const [activeVideo, setActiveVideo] = useState(null);
+  const [isEnrolled, setIsEnrolled] = useState(false);
   const videoRef = useRef(null);
 
   useEffect(() => {
@@ -28,6 +29,7 @@ export default function CourseDetailScreen({ route, navigation }) {
       try {
         const res = await api.get(`/courses/${courseId}`);
         setDetail(res.data);
+        setIsEnrolled(res.data.isEnrolled ?? false);
       } catch (err) {
         console.log('Failed to load course detail:', err?.message);
       } finally {
@@ -279,7 +281,7 @@ export default function CourseDetailScreen({ route, navigation }) {
       </ScrollView>
 
       {/* Sticky enroll bar */}
-      <View style={styles.enrollBar}>
+      {!isEnrolled && <View style={styles.enrollBar}>
         <View style={{ flex: 1 }}>
           {(data.price ?? 0) === 0 ? (
             <Text style={styles.priceFree}>Free</Text>
@@ -295,7 +297,7 @@ export default function CourseDetailScreen({ route, navigation }) {
             {(data.price ?? 0) === 0 ? 'Enroll Free →' : 'Buy Now →'}
           </Text>
         </Pressable>
-      </View>
+      </View>}
     </SafeAreaView>
   );
 }

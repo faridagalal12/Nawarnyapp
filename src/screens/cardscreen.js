@@ -43,8 +43,9 @@ export default function CardScreen({ navigation, route }) {
     }
     try {
       if (course) {
-        await api.post('/courses/enroll', { courseId: course._id ?? course.id });        Alert.alert('Payment Successful 🎉', `You enrolled in ${course.title}!`, [
-          { text: 'Done', onPress: () => navigation.navigate('CourseCompletion', { course }) },
+        await api.post('/courses/enroll', { courseId: course._id ?? course.id });
+        Alert.alert('Payment Successful 🎉', `You enrolled in ${course.title}!`, [
+          { text: 'Done', onPress: () => navigation.navigate('CourseDetail', { course }) },
         ]);
       } else {
         const planId = plan.toLowerCase();
