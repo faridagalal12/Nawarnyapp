@@ -409,33 +409,28 @@ export default function Reels({ navigation }) {
   useFocusEffect(
     useCallback(() => {
       setScreenFocused(true);
+      setLoading(true);
+      (async () => {
+        try {
+          const res = await api.get("/videos/feed?limit=50");
+          const fetched = res?.data?.videos ?? [];
+          const fixed = fetched.map(v => ({
+            ...v,
+            videoUrl: v.videoUrl?.includes(".MOV") || v.videoUrl?.includes(".mov")
+              ? v.videoUrl + "?t=" + Date.now()
+              : v.videoUrl,
+          }));
+          setOriginalVideos(fixed);
+          setVideos(shuffle(fixed));
+        } catch (err) {
+          console.log("Failed to load videos:", err?.message);
+        } finally {
+          setLoading(false);
+        }
+      })();
       return () => setScreenFocused(false);
     }, [])
   );
-
-  useEffect(() => {
-    (async () => {
-      try {
-        const res = await api.get("/videos/feed?limit=50");
-        const fetched = res?.data?.videos ?? [];
-const fixed = fetched.map(v => ({
-  ...v,
-  videoUrl: v.videoUrl?.includes(".MOV") || v.videoUrl?.includes(".mov")
-    ? v.videoUrl.replace(
-        "/object/public/",
-        "/object/public/"
-      ) + "?t=" + Date.now()
-    : v.videoUrl,
-}));
-setOriginalVideos(fixed);
-setVideos(shuffle(fixed));
-      } catch (err) {
-        console.log("Failed to load videos:", err?.message);
-      } finally {
-        setLoading(false);
-      }
-    })();
-  }, []);
 
   const onViewableItemsChanged = useRef(({ viewableItems }) => {
     if (viewableItems.length > 0) setActiveIndex(viewableItems[0].index);
