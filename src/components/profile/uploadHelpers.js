@@ -15,9 +15,11 @@ export async function pickAndUploadVideo(onSuccess, onError) {
     }
 
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Videos,
-      allowsEditing: false,
-      quality: 1,
+      mediaTypes: ["videos"],
+      allowsEditing: true,
+      videoExportPreset: ImagePicker.VideoExportPreset.LowQuality,
+      videoMaxDuration: 60,
+      quality: 0.5,
     });
 
     if (result.canceled) return;

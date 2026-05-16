@@ -9,41 +9,37 @@ export async function uploadVideoToSupabase(fileUri, fileName) {
   try {
     console.log("Starting upload for:", fileUri);
 
-    const blob = await new Promise((resolve, reject) => {
-      const xhr = new XMLHttpRequest();
-      xhr.onload = () => resolve(xhr.response);
-      xhr.onerror = () => reject(new Error("Failed to read file"));
-      xhr.responseType = "blob";
-      xhr.open("GET", fileUri, true);
-      xhr.send(null);
+    const filePath = `${Date.now()}_${fileName}`;
+    const mimeType = fileName.endsWith(".mp4") ? "video/mp4" : "video/quicktime";
+
+    const formData = new FormData();
+    formData.append("file", {
+      uri: fileUri,
+      name: fileName,
+      type: mimeType,
     });
 
-    console.log("Blob size:", blob.size, "type:", blob.type);
-    if (!blob || blob.size === 0) {
-      throw new Error("File is empty or could not be read");
+    const uploadUrl = `${SUPABASE_URL}/storage/v1/object/videos/${filePath}`;
+
+    const response = await fetch(uploadUrl, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+        "x-upsert": "true",
+      },
+      body: formData,
+    });
+
+    if (!response.ok) {
+      const errText = await response.text();
+      console.log("Upload failed:", errText);
+      throw new Error("Upload failed: " + errText);
     }
 
-    const filePath = `${Date.now()}_${fileName}`;
-    const mimeType = "video/mp4";
+    const publicUrl = `${SUPABASE_URL}/storage/v1/object/public/videos/${filePath}`;
+    console.log("Upload success, URL:", publicUrl);
+    return publicUrl;
 
-    const { data, error } = await supabase.storage
-      .from("videos")
-      .upload(filePath, blob, {
-        contentType: mimeType,
-        upsert: true,
-      });
-
-    if (error) {
-      console.log("Supabase upload error:", JSON.stringify(error));
-      throw new Error(error.message);
-    }
-
-    const { data: urlData } = supabase.storage
-      .from("videos")
-      .getPublicUrl(filePath);
-
-    console.log("Upload success, URL:", urlData.publicUrl);
-    return urlData.publicUrl;
   } catch (err) {
     console.log("uploadVideoToSupabase error:", err?.message);
     throw err;
