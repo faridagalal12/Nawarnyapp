@@ -395,6 +395,12 @@ export default function Reels({ navigation }) {
         } finally {
           setLoading(false);
         }
+        api.get("/notifications")
+        .then(res => {
+          const notifs = res?.data?.notifications ?? [];
+          setUnreadCount(notifs.filter(n => !n.read).length);
+        })
+        .catch(() => {});
       })();
       return () => setScreenFocused(false);
     }, [])
@@ -458,6 +464,7 @@ return (
           </Text>
         </View>
       )}
+      <View style={{flex:1}}>
     <FlatList
       data={videos}
       keyExtractor={(item, index) => `${item.id}-${index}`}
@@ -484,6 +491,21 @@ return (
         <VideoItem item={item} isActive={index === activeIndex && screenFocused} navigation={navigation} />
       )}
    />
+    {/* ── floating bell button ── */}
+    <TouchableOpacity
+        style={styles.bellBtn}
+        onPress={() => navigation.navigate("Notifications")}
+      >
+        <Ionicons name="notifications-outline" size={24} color="#fff" />
+        {unreadCount > 0 && (
+          <View style={styles.bellBadge}>
+            <Text style={styles.bellBadgeText}>
+              {unreadCount > 9 ? "9+" : unreadCount}
+            </Text>
+          </View>
+        )}
+      </TouchableOpacity>
+      </View>
     </View>
   );
 }
