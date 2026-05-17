@@ -16,6 +16,7 @@ import {
   ScrollView,
   KeyboardAvoidingView,
   Platform,
+  RefreshControl,
 } from "react-native";
 import { VideoView, useVideoPlayer } from "expo-video";
 import { Ionicons } from "@expo/vector-icons";
@@ -36,15 +37,9 @@ const CATEGORY_CONFIG = {
   Default:                { color: "#5ba8ff", bg: "rgba(91,168,255,0.18)",  border: "rgba(91,168,255,0.35)" },
 };
 
-const DIFFICULTY_CONFIG = {
-  Beginner:     { color: "#4ade80", bg: "rgba(74,222,128,0.15)",  border: "rgba(74,222,128,0.35)"  },
-  Intermediate: { color: "#f5c352", bg: "rgba(245,175,55,0.15)",  border: "rgba(245,175,55,0.35)"  },
-  Advanced:     { color: "#f87171", bg: "rgba(248,113,113,0.15)", border: "rgba(248,113,113,0.35)" },
-  Default:      { color: "#f5c352", bg: "rgba(245,175,55,0.15)",  border: "rgba(245,175,55,0.30)"  },
-};
 
-function getCat(s)  { return CATEGORY_CONFIG[s]   ?? CATEGORY_CONFIG.Default;  }
-function getDiff(d) { return DIFFICULTY_CONFIG[d] ?? DIFFICULTY_CONFIG.Default; }
+
+function getCat(s)  { return CATEGORY_CONFIG[s]   ?? CATEGORY_CONFIG.Default;   }
 
 const S = {
   textShadowColor: "rgba(0,0,0,0.99)",
@@ -170,7 +165,6 @@ function VideoItem({ item, isActive, navigation }) {
   const iconScale   = useRef(new Animated.Value(0.5)).current;
 
   const cat  = getCat(item.subject ?? item.category);
-  const diff = getDiff(item.difficulty);
 
   const player = useVideoPlayer(
     item.videoUrl ? { uri: item.videoUrl } : null,
@@ -266,20 +260,7 @@ function VideoItem({ item, isActive, navigation }) {
         </Animated.View>
       </Animated.View>
 
-      {/* ── dynamic top bar ── */}
-      <View style={styles.topBar}>
-        <View style={[styles.pill, { backgroundColor: cat.bg, borderColor: cat.border }]}>
-          <View style={[styles.dot, { backgroundColor: cat.color }]} />
-          <Text style={[styles.pillText, { color: cat.color }]}>
-            {item.subject ?? item.category ?? "General"}
-          </Text>
-        </View>
-        <View style={[styles.pill, { backgroundColor: diff.bg, borderColor: diff.border }]}>
-          <Text style={[styles.pillText, { color: diff.color }]}>
-            {item.difficulty ?? "Intermediate"}
-          </Text>
-        </View>
-      </View>
+      
 
       {/* ── right actions ── */}
       <View style={styles.actions}>
@@ -396,38 +377,51 @@ export default function Reels({ navigation }) {
   useFocusEffect(
     useCallback(() => {
       setScreenFocused(true);
-      api.get("/notifications")
-        .then(res => {
-          const notifs = res?.data?.notifications ?? [];
-          setUnreadCount(notifs.filter(n => !n.read).length);
-        })
-        .catch(() => {});
+      setLoading(true);
+      (async () => {
+        try {
+          const res = await api.get("/videos/feed?limit=50");
+          const fetched = res?.data?.videos ?? [];
+          const fixed = fetched.map(v => ({
+            ...v,
+            videoUrl: v.videoUrl?.includes(".MOV") || v.videoUrl?.includes(".mov")
+              ? v.videoUrl + "?t=" + Date.now()
+              : v.videoUrl,
+          }));
+          setOriginalVideos(fixed);
+          setVideos(shuffle(fixed));
+        } catch (err) {
+          console.log("Failed to load videos:", err?.message);
+        } finally {
+          setLoading(false);
+        }
+      })();
       return () => setScreenFocused(false);
     }, [])
   );
-
-  useEffect(() => {
-    (async () => {
-      try {
-        const res = await api.get("/videos/feed?limit=50");
-        const fetched = res?.data?.videos ?? [];
-        console.log("Fetched videos:", JSON.stringify(fetched));
-        const fixed = fetched.map(v => ({ ...v }));
-        setOriginalVideos(fixed);
-        setVideos(shuffle(fixed));
-      } catch (err) {
-        console.log("Failed to load videos:", err?.message);
-      } finally {
-        setLoading(false);
-      }
-    })();
-  }, []);
 
   const onViewableItemsChanged = useRef(({ viewableItems }) => {
     if (viewableItems.length > 0) setActiveIndex(viewableItems[0].index);
   });
 
   const viewabilityConfig = useRef({ itemVisiblePercentThreshold: 90 });
+
+ const [refreshing, setRefreshing] = useState(false);
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    try {
+      const res = await api.get("/videos/feed?limit=50");
+      const fetched = res?.data?.videos ?? [];
+      setOriginalVideos(fetched);
+      setVideos(shuffle(fetched));
+      setActiveIndex(0);
+    } catch (err) {
+      console.log("Failed to refresh videos:", err?.message);
+    } finally {
+      setRefreshing(false);
+    }
+  };
 
   const handleEndReached = () => {
     if (originalVideos.length === 0) return;
@@ -442,43 +436,54 @@ export default function Reels({ navigation }) {
     );
   }
 
-  return (
+return (
     <View style={{ flex: 1 }}>
-      <FlatList
-        data={videos}
-        keyExtractor={(item, index) => `${item.id}-${index}`}
-        pagingEnabled
-        snapToInterval={height}
-        snapToAlignment="start"
-        decelerationRate="fast"
-        showsVerticalScrollIndicator={false}
-        onViewableItemsChanged={onViewableItemsChanged.current}
-        viewabilityConfig={viewabilityConfig.current}
-        onEndReached={handleEndReached}
-        onEndReachedThreshold={0.5}
-        renderItem={({ item, index }) => (
-          <VideoItem
-            item={item}
-            isActive={index === activeIndex && screenFocused}
-            navigation={navigation}
-          />
-        )}
-      />
-
-      {/* ── floating bell button ── */}
-      <TouchableOpacity
-        style={styles.bellBtn}
-        onPress={() => navigation.navigate("Notifications")}
-      >
-        <Ionicons name="notifications-outline" size={24} color="#fff" />
-        {unreadCount > 0 && (
-          <View style={styles.bellBadge}>
-            <Text style={styles.bellBadgeText}>
-              {unreadCount > 9 ? "9+" : unreadCount}
-            </Text>
-          </View>
-        )}
-      </TouchableOpacity>
+      {refreshing && (
+        <View style={{
+          position: "absolute",
+          top: 60,
+          alignSelf: "center",
+          zIndex: 100,
+          backgroundColor: "rgba(0,0,0,0.6)",
+          borderRadius: 20,
+          paddingHorizontal: 16,
+          paddingVertical: 10,
+          flexDirection: "row",
+          alignItems: "center",
+          gap: 8,
+        }}>
+          <ActivityIndicator size="small" color="#ffffff" />
+          <Text style={{ color: "#ffffff", fontSize: 13, fontWeight: "700" }}>
+            Loading new videos...
+          </Text>
+        </View>
+      )}
+    <FlatList
+      data={videos}
+      keyExtractor={(item, index) => `${item.id}-${index}`}
+      pagingEnabled
+      snapToInterval={height}
+      snapToAlignment="start"
+      decelerationRate="fast"
+      showsVerticalScrollIndicator={false}
+      onViewableItemsChanged={onViewableItemsChanged.current}
+      viewabilityConfig={viewabilityConfig.current}
+      onEndReached={handleEndReached}
+      onEndReachedThreshold={0.5}
+      refreshControl={
+        <RefreshControl
+          refreshing={refreshing}
+          onRefresh={handleRefresh}
+          tintColor="#1a5ff5"
+          colors={["#1a5ff5"]}
+          progressBackgroundColor="#ffffff"
+          style={{ backgroundColor: "transparent" }}
+        />
+      }
+      renderItem={({ item, index }) => (
+        <VideoItem item={item} isActive={index === activeIndex && screenFocused} navigation={navigation} />
+      )}
+   />
     </View>
   );
 }

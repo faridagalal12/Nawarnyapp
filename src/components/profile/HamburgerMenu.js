@@ -37,6 +37,12 @@ export default function HamburgerMenu({
   const creatorDashboardItems = [
     { icon: "grid-outline", title: "Creator Dashboard", subtitle: "View your stats & analytics", onPress: () => { onClose(); setTimeout(() => navigation.navigate("CreatorDashboard"), 300); } },
     { icon: "book-outline", title: "Upload Course", subtitle: "Publish a new course", onPress: () => { onClose(); setTimeout(() => navigation.navigate("UploadCourse"), 300); } },
+    { 
+  icon: "trophy-outline", 
+  title: "Leaderboard", 
+  subtitle: "See how you rank globally", 
+  onPress: () => { onClose(); setTimeout(() => navigation.navigate("Leaderboard"), 300); } 
+},
   ];
 
   const moreItems = [
