@@ -35,15 +35,9 @@ const CATEGORY_CONFIG = {
   Default:                { color: "#5ba8ff", bg: "rgba(91,168,255,0.18)",  border: "rgba(91,168,255,0.35)" },
 };
 
-const DIFFICULTY_CONFIG = {
-  Beginner:     { color: "#4ade80", bg: "rgba(74,222,128,0.15)",  border: "rgba(74,222,128,0.35)"  },
-  Intermediate: { color: "#f5c352", bg: "rgba(245,175,55,0.15)",  border: "rgba(245,175,55,0.35)"  },
-  Advanced:     { color: "#f87171", bg: "rgba(248,113,113,0.15)", border: "rgba(248,113,113,0.35)" },
-  Default:      { color: "#f5c352", bg: "rgba(245,175,55,0.15)",  border: "rgba(245,175,55,0.30)"  },
-};
+
 
 function getCat(s)  { return CATEGORY_CONFIG[s]   ?? CATEGORY_CONFIG.Default;   }
-function getDiff(d) { return DIFFICULTY_CONFIG[d] ?? DIFFICULTY_CONFIG.Default; }
 
 const S = {
   textShadowColor: "rgba(0,0,0,0.99)",
@@ -169,7 +163,6 @@ function VideoItem({ item, isActive, navigation }) {
   const iconScale   = useRef(new Animated.Value(0.5)).current;
 
   const cat  = getCat(item.subject ?? item.category);
-  const diff = getDiff(item.difficulty);
 
  const videoSource = item.videoUrl
     ? {
@@ -270,20 +263,7 @@ function VideoItem({ item, isActive, navigation }) {
         </Animated.View>
       </Animated.View>
 
-      {/* ── dynamic top bar ── */}
-      <View style={styles.topBar}>
-        <View style={[styles.pill, { backgroundColor: cat.bg, borderColor: cat.border }]}>
-          <View style={[styles.dot, { backgroundColor: cat.color }]} />
-          <Text style={[styles.pillText, { color: cat.color }]}>
-            {item.subject ?? item.category ?? "General"}
-          </Text>
-        </View>
-        <View style={[styles.pill, { backgroundColor: diff.bg, borderColor: diff.border }]}>
-          <Text style={[styles.pillText, { color: diff.color }]}>
-            {item.difficulty ?? "Intermediate"}
-          </Text>
-        </View>
-      </View>
+      
 
       {/* ── right actions ── */}
       <View style={styles.actions}>

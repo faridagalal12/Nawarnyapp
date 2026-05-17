@@ -41,11 +41,16 @@ export default function CourseDetailScreen({ route, navigation }) {
   }, [courseId]);
 
   const data = detail ?? course;
-
-  const handleEnroll = () => {
+const enrolled = isEnrolled;
+  const handleEnroll = async () => {
     const price = data.price ?? 0;
     if (price === 0) {
-      navigation.navigate('CourseCompletion', { course: data });
+      try {
+        await api.post('/courses/enroll', { courseId: courseId });
+        setIsEnrolled(true);
+      } catch (err) {
+        console.log('Enroll error:', err?.message);
+      }
     } else {
       navigation.navigate('Payment', { course: data });
     }
@@ -178,7 +183,14 @@ export default function CourseDetailScreen({ route, navigation }) {
           )}
 
           {/* Curriculum — Videos */}
-          {!loading && tab === 'Curriculum' && (
+          {!loading && tab === 'Curriculum' && !enrolled && (
+            <View style={styles.emptySection}>
+              <Ionicons name="lock-closed-outline" size={40} color="#ccc" />
+              <Text style={styles.emptyTitle}>Enrolled students only</Text>
+              <Text style={styles.emptyText}>Purchase this course to access the curriculum</Text>
+            </View>
+          )}
+          {!loading && tab === 'Curriculum' && enrolled && (
             <View>
               {detail?.videos?.length > 0 ? (
                 <>
@@ -219,7 +231,14 @@ export default function CourseDetailScreen({ route, navigation }) {
           )}
 
           {/* Files */}
-          {!loading && tab === 'Files' && (
+          {!loading && tab === 'Files' && !enrolled && (
+            <View style={styles.emptySection}>
+              <Ionicons name="lock-closed-outline" size={40} color="#ccc" />
+              <Text style={styles.emptyTitle}>Enrolled students only</Text>
+              <Text style={styles.emptyText}>Purchase this course to access the files</Text>
+            </View>
+          )}
+          {!loading && tab === 'Files' && enrolled && (
             <View>
               {detail?.files?.length > 0 ? (
                 <>
@@ -279,7 +298,13 @@ export default function CourseDetailScreen({ route, navigation }) {
 
         </View>
       </ScrollView>
-
+{/* Enrolled badge */}
+      {isEnrolled && (
+        <View style={styles.enrolledBar}>
+          <Ionicons name="checkmark-circle" size={22} color="#10B981" />
+          <Text style={styles.enrolledText}>You are enrolled in this course</Text>
+        </View>
+      )}
       {/* Sticky enroll bar */}
       {!isEnrolled && <View style={styles.enrollBar}>
         <View style={{ flex: 1 }}>
@@ -457,4 +482,15 @@ const styles = StyleSheet.create({
   },
   modalBody: { padding: 20 },
   modalVideoTitle: { fontSize: 16, fontWeight: '700', color: '#fff' },
+
+  enrolledBar: {
+    position: 'absolute', left: 0, right: 0, bottom: 0,
+    flexDirection: 'row', alignItems: 'center', gap: 10,
+    paddingHorizontal: 20, paddingVertical: 16, paddingBottom: 28,
+    backgroundColor: '#F0FDF4',
+    borderTopWidth: 1, borderTopColor: '#BBF7D0',
+  },
+  enrolledText: {
+    fontSize: 15, fontWeight: '700', color: '#10B981',
+  },
 });
