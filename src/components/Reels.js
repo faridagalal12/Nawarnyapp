@@ -1,6 +1,7 @@
 import React, { useRef, useState, useEffect, useCallback } from "react";
 import { useFocusEffect } from "@react-navigation/native";
-import {  View,
+import {
+  View,
   FlatList,
   Dimensions,
   StyleSheet,
@@ -42,7 +43,7 @@ const DIFFICULTY_CONFIG = {
   Default:      { color: "#f5c352", bg: "rgba(245,175,55,0.15)",  border: "rgba(245,175,55,0.30)"  },
 };
 
-function getCat(s)  { return CATEGORY_CONFIG[s]   ?? CATEGORY_CONFIG.Default;   }
+function getCat(s)  { return CATEGORY_CONFIG[s]   ?? CATEGORY_CONFIG.Default;  }
 function getDiff(d) { return DIFFICULTY_CONFIG[d] ?? DIFFICULTY_CONFIG.Default; }
 
 const S = {
@@ -156,7 +157,7 @@ function NotesModal({ visible, onClose, videoTitle, videoId }) {
 
 // ── VideoItem ─────────────────────────────────────────────────────────────────
 function VideoItem({ item, isActive, navigation }) {
-    const [liked,     setLiked]     = useState(item.isLiked ?? false);
+  const [liked,     setLiked]     = useState(item.isLiked ?? false);
   const [saved,     setSaved]     = useState(false);
   const [followed,  setFollowed]  = useState(false);
   const [likes,     setLikes]     = useState(item.likesCount ?? 0);
@@ -171,7 +172,7 @@ function VideoItem({ item, isActive, navigation }) {
   const cat  = getCat(item.subject ?? item.category);
   const diff = getDiff(item.difficulty);
 
- const player = useVideoPlayer(
+  const player = useVideoPlayer(
     item.videoUrl ? { uri: item.videoUrl } : null,
     p => {
       p.loop = true;
@@ -208,8 +209,7 @@ function VideoItem({ item, isActive, navigation }) {
     const willPause = !paused;
     setPaused(willPause);
     setIsPlaying(!willPause);
-    
-    // Award XP when user actively watches
+
     if (willPause === false) {
       api.post("/learning-profile/award-xp", { action: "WATCH_VIDEO" }).catch(() => {});
     }
@@ -308,16 +308,13 @@ function VideoItem({ item, isActive, navigation }) {
       </View>
 
       {/* ── bottom content ── */}
-<View style={styles.bottomContent} pointerEvents="box-none" collapsable={false}>
+      <View style={styles.bottomContent} pointerEvents="box-none" collapsable={false}>
         <View style={styles.instructorRow}>
-          {/* avatar — blue background */}
           <TouchableOpacity
             style={styles.avatarWrap}
             onPress={() => {
               const creatorId = item.creator?.id ?? item.creator?._id;
-              if (creatorId) {
-                navigation.navigate("PublicProfile", { creatorId });
-              }
+              if (creatorId) navigation.navigate("PublicProfile", { creatorId });
             }}
           >
             {item.educatorAvatar ? (
@@ -327,8 +324,6 @@ function VideoItem({ item, isActive, navigation }) {
                 <Ionicons name="person" size={24} color="#fff" />
               </View>
             )}
-
-            {/* follow badge — disappears after tap */}
             {!followed && (
               <TouchableOpacity
                 onPress={() => setFollowed(true)}
@@ -339,7 +334,6 @@ function VideoItem({ item, isActive, navigation }) {
             )}
           </TouchableOpacity>
 
-          {/* name + cred — only from API, no hardcoded fallback */}
           <TouchableOpacity
             style={{ flex: 1 }}
             onPress={() => {
@@ -360,18 +354,13 @@ function VideoItem({ item, isActive, navigation }) {
           </TouchableOpacity>
         </View>
 
-        {/* title */}
         <Text style={[styles.videoTitle, S]} numberOfLines={2}>
           {item.title}
         </Text>
 
-        {/* progress bar — always blue */}
         <View style={styles.progTrack}>
-          <View style={[styles.progFill, {
-            width: `${Math.round(progress * 100)}%`,
-          }]} />
+          <View style={[styles.progFill, { width: `${Math.round(progress * 100)}%` }]} />
         </View>
-
       </View>
 
       <NotesModal
@@ -396,15 +385,23 @@ function shuffle(array) {
 
 // ── Reels ─────────────────────────────────────────────────────────────────────
 export default function Reels({ navigation }) {
-    const [originalVideos, setOriginalVideos] = useState([]);
+  const [originalVideos, setOriginalVideos] = useState([]);
   const [videos,         setVideos]         = useState([]);
   const [loading,        setLoading]        = useState(true);
   const [activeIndex,    setActiveIndex]    = useState(0);
   const [screenFocused,  setScreenFocused]  = useState(true);
+  const [unreadCount,    setUnreadCount]    = useState(0);
 
+  // ── fetch unread notification count + screen focus ──
   useFocusEffect(
     useCallback(() => {
       setScreenFocused(true);
+      api.get("/notifications")
+        .then(res => {
+          const notifs = res?.data?.notifications ?? [];
+          setUnreadCount(notifs.filter(n => !n.read).length);
+        })
+        .catch(() => {});
       return () => setScreenFocused(false);
     }, [])
   );
@@ -415,9 +412,9 @@ export default function Reels({ navigation }) {
         const res = await api.get("/videos/feed?limit=50");
         const fetched = res?.data?.videos ?? [];
         console.log("Fetched videos:", JSON.stringify(fetched));
-const fixed = fetched.map(v => ({ ...v }));
-setOriginalVideos(fixed);
-setVideos(shuffle(fixed));
+        const fixed = fetched.map(v => ({ ...v }));
+        setOriginalVideos(fixed);
+        setVideos(shuffle(fixed));
       } catch (err) {
         console.log("Failed to load videos:", err?.message);
       } finally {
@@ -446,22 +443,43 @@ setVideos(shuffle(fixed));
   }
 
   return (
-    <FlatList
-      data={videos}
-      keyExtractor={(item, index) => `${item.id}-${index}`}
-      pagingEnabled
-      snapToInterval={height}
-      snapToAlignment="start"
-      decelerationRate="fast"
-      showsVerticalScrollIndicator={false}
-      onViewableItemsChanged={onViewableItemsChanged.current}
-      viewabilityConfig={viewabilityConfig.current}
-      onEndReached={handleEndReached}
-      onEndReachedThreshold={0.5}
-      renderItem={({ item, index }) => (
-        <VideoItem item={item} isActive={index === activeIndex && screenFocused} navigation={navigation} />
-      )}
-    />
+    <View style={{ flex: 1 }}>
+      <FlatList
+        data={videos}
+        keyExtractor={(item, index) => `${item.id}-${index}`}
+        pagingEnabled
+        snapToInterval={height}
+        snapToAlignment="start"
+        decelerationRate="fast"
+        showsVerticalScrollIndicator={false}
+        onViewableItemsChanged={onViewableItemsChanged.current}
+        viewabilityConfig={viewabilityConfig.current}
+        onEndReached={handleEndReached}
+        onEndReachedThreshold={0.5}
+        renderItem={({ item, index }) => (
+          <VideoItem
+            item={item}
+            isActive={index === activeIndex && screenFocused}
+            navigation={navigation}
+          />
+        )}
+      />
+
+      {/* ── floating bell button ── */}
+      <TouchableOpacity
+        style={styles.bellBtn}
+        onPress={() => navigation.navigate("Notifications")}
+      >
+        <Ionicons name="notifications-outline" size={24} color="#fff" />
+        {unreadCount > 0 && (
+          <View style={styles.bellBadge}>
+            <Text style={styles.bellBadgeText}>
+              {unreadCount > 9 ? "9+" : unreadCount}
+            </Text>
+          </View>
+        )}
+      </TouchableOpacity>
+    </View>
   );
 }
 
@@ -490,7 +508,7 @@ const styles = StyleSheet.create({
     justifyContent: "center", alignItems: "center",
   },
 
-  // top bar
+  // top bar (pills)
   topBar: {
     position: "absolute",
     top: 52, left: 0, right: 0,
@@ -508,13 +526,13 @@ const styles = StyleSheet.create({
   dot: { width: 6, height: 6, borderRadius: 3 },
   pillText: { fontSize: 11, fontWeight: "700", letterSpacing: 0.3 },
 
-  // actions
+  // right actions
   actions: {
     position: "absolute",
     right: 16, bottom: 170,
     alignItems: "center", gap: 26, zIndex: 10,
   },
-  actionBtn: { alignItems: "center", gap: 4 },
+  actionBtn:   { alignItems: "center", gap: 4 },
   actionCount: { color: "#fff", fontSize: 13, fontWeight: "700" },
   actionLabel: { color: "#fff", fontSize: 12, fontWeight: "600" },
 
@@ -538,14 +556,14 @@ const styles = StyleSheet.create({
   },
   avatarFallback: {
     width: 50, height: 50, borderRadius: 25,
-    backgroundColor: "#bfdbfe",         
+    backgroundColor: "#bfdbfe",
     borderWidth: 2, borderColor: "#93c5fd",
     justifyContent: "center", alignItems: "center",
   },
   followBadge: {
     position: "absolute", bottom: -2, right: -2,
     width: 20, height: 20, borderRadius: 10,
-    backgroundColor: "#1a5ff5",          // ✅ same blue as avatar
+    backgroundColor: "#1a5ff5",
     justifyContent: "center", alignItems: "center",
     borderWidth: 2, borderColor: "#fff",
   },
@@ -566,12 +584,32 @@ const styles = StyleSheet.create({
   },
   progFill: {
     height: "100%", borderRadius: 2,
-    backgroundColor: "#1a5ff5",          // ✅ always blue
+    backgroundColor: "#1a5ff5",
   },
+
+  // floating bell
+  bellBtn: {
+    position: "absolute",
+    top: 52, right: 16,
+    zIndex: 20,
+    width: 42, height: 42, borderRadius: 21,
+    backgroundColor: "rgba(0,0,0,0.45)",
+    justifyContent: "center", alignItems: "center",
+    borderWidth: 1, borderColor: "rgba(255,255,255,0.15)",
+  },
+  bellBadge: {
+    position: "absolute", top: 4, right: 4,
+    minWidth: 16, height: 16, borderRadius: 8,
+    backgroundColor: "#ff4d58",
+    justifyContent: "center", alignItems: "center",
+    paddingHorizontal: 3,
+    borderWidth: 1.5, borderColor: "#0a0a14",
+  },
+  bellBadgeText: { color: "#fff", fontSize: 9, fontWeight: "800" },
 
   // notes modal
   modalBackdrop: { flex: 1, justifyContent: "flex-end" },
-  modalDismiss: { flex: 1, backgroundColor: "rgba(0,0,0,0.4)" },
+  modalDismiss:  { flex: 1, backgroundColor: "rgba(0,0,0,0.4)" },
   modalSheet: {
     backgroundColor: "#0f1623",
     borderTopLeftRadius: 24, borderTopRightRadius: 24,
@@ -589,7 +627,7 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(255,255,255,0.2)", marginBottom: 14,
   },
   modalTitle: { color: "#fff", fontSize: 16, fontWeight: "700", marginBottom: 4 },
-  modalSub: { color: "rgba(255,255,255,0.4)", fontSize: 12, textAlign: "center" },
+  modalSub:   { color: "rgba(255,255,255,0.4)", fontSize: 12, textAlign: "center" },
   inputRow: {
     flexDirection: "row", alignItems: "flex-end", gap: 10,
     paddingHorizontal: 16, paddingVertical: 14,
@@ -608,8 +646,8 @@ const styles = StyleSheet.create({
     justifyContent: "center", alignItems: "center",
   },
   emptyNotes: { alignItems: "center", paddingVertical: 40, gap: 12 },
-  emptyText: { color: "rgba(255,255,255,0.3)", fontSize: 13, textAlign: "center" },
-  notesList: { paddingHorizontal: 16, paddingTop: 12 },
+  emptyText:  { color: "rgba(255,255,255,0.3)", fontSize: 13, textAlign: "center" },
+  notesList:  { paddingHorizontal: 16, paddingTop: 12 },
   noteCard: {
     flexDirection: "row", alignItems: "flex-start",
     backgroundColor: "rgba(255,255,255,0.05)",

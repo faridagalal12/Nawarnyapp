@@ -9,14 +9,10 @@ export async function uploadVideoToSupabase(fileUri, fileName) {
   try {
     console.log("Starting upload for:", fileUri);
 
-    const formData = new FormData();
-
-    const uniqueId = `${Date.now()}_${Math.random()
-      .toString(36)
-      .substring(2, 8)}`;
-
+    const uniqueId = `${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
     const filePath = `${uniqueId}.mp4`;
 
+    const formData = new FormData();
     formData.append("file", {
       uri: fileUri,
       name: filePath,
@@ -36,16 +32,13 @@ export async function uploadVideoToSupabase(fileUri, fileName) {
     );
 
     const result = await response.json();
-
     if (!response.ok) {
       console.log("Upload error:", result);
       throw new Error(result.message || "Upload failed");
     }
 
     const publicUrl = `${SUPABASE_URL}/storage/v1/object/public/videos/${filePath}`;
-
     console.log("Upload success:", publicUrl);
-
     return publicUrl;
   } catch (err) {
     console.log("uploadVideoToSupabase error:", err?.message);
@@ -55,43 +48,38 @@ export async function uploadVideoToSupabase(fileUri, fileName) {
 
 export async function uploadCourseToSupabase(fileUri, fileName) {
   try {
-    console.log("Starting course file upload for:", fileUri);
-
-    const blob = await new Promise((resolve, reject) => {
-      const xhr = new XMLHttpRequest();
-      xhr.onload = () => resolve(xhr.response);
-      xhr.onerror = () => reject(new Error("Failed to read file"));
-      xhr.responseType = "blob";
-      xhr.open("GET", fileUri, true);
-      xhr.send(null);
-    });
-
-    console.log("Course file blob size:", blob.size);
-    if (!blob || blob.size === 0) {
-      throw new Error("File is empty or could not be read");
-    }
+    console.log("Starting course upload for:", fileUri);
 
     const filePath = `courses/${Date.now()}_${fileName}`;
-    const mimeType = blob.type || "application/octet-stream";
 
-    const { data, error } = await supabase.storage
-      .from("courses")  // ← course bucket stays as courses
-      .upload(filePath, blob, {
-        contentType: mimeType,
-        upsert: false,
-      });
+    const formData = new FormData();
+    formData.append("file", {
+      uri: fileUri,
+      name: fileName,
+      type: "application/octet-stream",
+    });
 
-    if (error) {
-      console.log("Supabase course upload error:", JSON.stringify(error));
-      throw new Error(error.message);
+    const response = await fetch(
+      `${SUPABASE_URL}/storage/v1/object/courses/${filePath}`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+          apikey: SUPABASE_ANON_KEY,
+        },
+        body: formData,
+      }
+    );
+
+    const result = await response.json();
+    if (!response.ok) {
+      console.log("Course upload error:", result);
+      throw new Error(result.message || "Course upload failed");
     }
 
-    const { data: urlData } = supabase.storage
-      .from("courses")
-      .getPublicUrl(filePath);
-
-    console.log("Course upload success, URL:", urlData.publicUrl);
-    return urlData.publicUrl;
+    const publicUrl = `${SUPABASE_URL}/storage/v1/object/public/courses/${filePath}`;
+    console.log("Course upload success:", publicUrl);
+    return publicUrl;
   } catch (err) {
     console.log("uploadCourseToSupabase error:", err?.message);
     throw err;

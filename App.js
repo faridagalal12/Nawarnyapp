@@ -14,6 +14,7 @@ import VideoPlayerScreen from "./src/screens/VideoPlayerScreen";
 import CoursesSearchScreen from "./src/screens/CoursesSearchScreen";
 import PublicProfileScreen from "./src/screens/PublicProfileScreen";
 import UploadVideoScreen from "./src/screens/AddPosts/UploadVideoScreen";
+import NotificationsScreen from "./src/screens/NotificationsScreen";
 import * as SecureStore from "expo-secure-store";
 import MyTabs from "./src/navigations/AppTabs";
 import api, { setAuthToken } from "./src/services/api";
@@ -53,19 +54,17 @@ export default function App() {
       isSignout: false,
       userToken: null,
       quizCompleted: false,
-      isVerified: false,
+      isVerified: true,
       pendingVerificationEmail: null,
     },
   );
 
   const extractQuizCompleted = profile => {
     if (!profile || typeof profile !== "object") return null;
-    if (typeof profile.quizCompleted === "boolean")
-      return profile.quizCompleted;
+    if (typeof profile.quizCompleted === "boolean") return profile.quizCompleted;
     if (profile.quizCompleted === "true") return true;
     if (profile.quizCompleted === "false") return false;
-    if (typeof profile.quiz_completed === "boolean")
-      return profile.quiz_completed;
+    if (typeof profile.quiz_completed === "boolean") return profile.quiz_completed;
     if (profile.quiz_completed === "true") return true;
     if (profile.quiz_completed === "false") return false;
     return null;
@@ -79,8 +78,7 @@ export default function App() {
     if (typeof profile.isVerified === "boolean") return profile.isVerified;
     if (profile.isVerified === "true") return true;
     if (profile.isVerified === "false") return false;
-    if (typeof profile.emailVerified === "boolean")
-      return profile.emailVerified;
+    if (typeof profile.emailVerified === "boolean") return profile.emailVerified;
     if (profile.emailVerified === "true") return true;
     if (profile.emailVerified === "false") return false;
     if (typeof profile.is_verified === "boolean") return profile.is_verified;
@@ -105,10 +103,7 @@ export default function App() {
         (await SecureStore.getItemAsync(USER_EMAIL_KEY)) || profileEmail;
 
       if (profileEmail && profileEmail !== storedEmail) {
-        await SecureStore.setItemAsync(
-          USER_EMAIL_KEY,
-          profileEmail.toLowerCase(),
-        );
+        await SecureStore.setItemAsync(USER_EMAIL_KEY, profileEmail.toLowerCase());
       }
 
       if (quizCompleted !== null) {
@@ -154,9 +149,7 @@ export default function App() {
         console.log(userToken);
         console.log("====================================");
         const userEmail = await SecureStore.getItemAsync(USER_EMAIL_KEY);
-        pendingVerificationEmail = await SecureStore.getItemAsync(
-          PENDING_VERIFY_EMAIL_KEY,
-        );
+        pendingVerificationEmail = await SecureStore.getItemAsync(PENDING_VERIFY_EMAIL_KEY);
         if (userEmail) {
           const storedQuizCompleted = await SecureStore.getItemAsync(
             getQuizCompletedKey(userEmail),
@@ -167,10 +160,7 @@ export default function App() {
 
       dispatch({ type: "RESTORE_TOKEN", token: userToken });
       dispatch({ type: "SET_QUIZ_COMPLETED", value: quizCompleted });
-      dispatch({
-        type: "SET_PENDING_VERIFY_EMAIL",
-        value: pendingVerificationEmail || null,
-      });
+      dispatch({ type: "SET_PENDING_VERIFY_EMAIL", value: pendingVerificationEmail || null });
       setAuthToken(userToken);
       if (userToken) {
         await refreshProfile();
@@ -204,10 +194,7 @@ export default function App() {
         try {
           const userEmail = await SecureStore.getItemAsync(USER_EMAIL_KEY);
           if (userEmail) {
-            await SecureStore.setItemAsync(
-              getQuizCompletedKey(userEmail),
-              String(value),
-            );
+            await SecureStore.setItemAsync(getQuizCompletedKey(userEmail), String(value));
           }
         } catch (error) {
           console.warn("Failed to persist quizCompleted:", error);
@@ -216,14 +203,8 @@ export default function App() {
       setPendingVerificationEmail: async email => {
         const normalizedEmail = (email || "").toLowerCase();
         if (normalizedEmail) {
-          await SecureStore.setItemAsync(
-            PENDING_VERIFY_EMAIL_KEY,
-            normalizedEmail,
-          );
-          dispatch({
-            type: "SET_PENDING_VERIFY_EMAIL",
-            value: normalizedEmail,
-          });
+          await SecureStore.setItemAsync(PENDING_VERIFY_EMAIL_KEY, normalizedEmail);
+          dispatch({ type: "SET_PENDING_VERIFY_EMAIL", value: normalizedEmail });
         }
       },
       completeVerification: async () => {
@@ -241,12 +222,8 @@ export default function App() {
     [refreshProfile],
   );
 
-  // ✅ Stable callback using dispatch directly — no stale closure possible
   const handleQuizCompleted = React.useCallback(async () => {
-    // 1. Update state immediately so navigation can switch right away
     dispatch({ type: "SET_QUIZ_COMPLETED", value: true });
-
-    // 2. Persist to SecureStore (do not block UI)
     try {
       const userEmail = await SecureStore.getItemAsync(USER_EMAIL_KEY);
       if (userEmail) {
@@ -326,9 +303,7 @@ export default function App() {
                   name="SignUp"
                   children={() => (
                     <SignUpScreen
-                      setPendingVerificationEmail={
-                        authContext.setPendingVerificationEmail
-                      }
+                      setPendingVerificationEmail={authContext.setPendingVerificationEmail}
                     />
                   )}
                   options={{
@@ -385,14 +360,11 @@ export default function App() {
           ) : !state.quizCompleted ? (
             <Stack.Screen
               name="Quiz"
-              // ✅ Pass the stable handleQuizCompleted that calls dispatch directly
-              children={() => (
-                <QuizScreen onQuizCompleted={handleQuizCompleted} />
-              )}
+              children={() => <QuizScreen onQuizCompleted={handleQuizCompleted} />}
               options={{ headerShown: false }}
             />
           ) : (
-                        <>
+            <>
               <Stack.Screen
                 name="Tabs"
                 children={() => <MyTabs signOut={authContext.signOut} />}
@@ -400,9 +372,7 @@ export default function App() {
               />
               <Stack.Screen
                 name="Quiz"
-                children={() => (
-                  <QuizScreen onQuizCompleted={handleQuizCompleted} />
-                )}
+                children={() => <QuizScreen onQuizCompleted={handleQuizCompleted} />}
                 options={{ headerShown: false }}
               />
               <Stack.Screen
@@ -419,21 +389,23 @@ export default function App() {
                 name="CoursesSearch"
                 component={CoursesSearchScreen}
                 options={{ headerShown: false }}
-/>
-<Stack.Screen
-  name="UploadVideo"
-  component={UploadVideoScreen}
-  options={{ headerShown: false }}
-/>
-<Stack.Screen
-  name="PublicProfile"
-  component={PublicProfileScreen}
-  options={{ headerShown: false }}
-/>
-
+              />
+              <Stack.Screen
+                name="UploadVideo"
+                component={UploadVideoScreen}
+                options={{ headerShown: false }}
+              />
+              <Stack.Screen
+                name="PublicProfile"
+                component={PublicProfileScreen}
+                options={{ headerShown: false }}
+              />
+              <Stack.Screen
+                name="Notifications"
+                component={NotificationsScreen}
+                options={{ headerShown: false }}
+              />
             </>
-
-
           )}
         </Stack.Navigator>
       </NavigationContainer>
