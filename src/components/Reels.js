@@ -15,6 +15,7 @@ import {  View,
   ScrollView,
   KeyboardAvoidingView,
   Platform,
+  RefreshControl,
 } from "react-native";
 import { VideoView, useVideoPlayer } from "expo-video";
 import { Ionicons } from "@expo/vector-icons";
@@ -418,6 +419,23 @@ export default function Reels({ navigation }) {
 
   const viewabilityConfig = useRef({ itemVisiblePercentThreshold: 90 });
 
+ const [refreshing, setRefreshing] = useState(false);
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    try {
+      const res = await api.get("/videos/feed?limit=50");
+      const fetched = res?.data?.videos ?? [];
+      setOriginalVideos(fetched);
+      setVideos(shuffle(fetched));
+      setActiveIndex(0);
+    } catch (err) {
+      console.log("Failed to refresh videos:", err?.message);
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
   const handleEndReached = () => {
     if (originalVideos.length === 0) return;
     setVideos(prev => [...prev, ...shuffle(originalVideos)]);
@@ -431,7 +449,28 @@ export default function Reels({ navigation }) {
     );
   }
 
-  return (
+return (
+    <View style={{ flex: 1 }}>
+      {refreshing && (
+        <View style={{
+          position: "absolute",
+          top: 60,
+          alignSelf: "center",
+          zIndex: 100,
+          backgroundColor: "rgba(0,0,0,0.6)",
+          borderRadius: 20,
+          paddingHorizontal: 16,
+          paddingVertical: 10,
+          flexDirection: "row",
+          alignItems: "center",
+          gap: 8,
+        }}>
+          <ActivityIndicator size="small" color="#ffffff" />
+          <Text style={{ color: "#ffffff", fontSize: 13, fontWeight: "700" }}>
+            Loading new videos...
+          </Text>
+        </View>
+      )}
     <FlatList
       data={videos}
       keyExtractor={(item, index) => `${item.id}-${index}`}
@@ -444,10 +483,21 @@ export default function Reels({ navigation }) {
       viewabilityConfig={viewabilityConfig.current}
       onEndReached={handleEndReached}
       onEndReachedThreshold={0.5}
+      refreshControl={
+        <RefreshControl
+          refreshing={refreshing}
+          onRefresh={handleRefresh}
+          tintColor="#1a5ff5"
+          colors={["#1a5ff5"]}
+          progressBackgroundColor="#ffffff"
+          style={{ backgroundColor: "transparent" }}
+        />
+      }
       renderItem={({ item, index }) => (
         <VideoItem item={item} isActive={index === activeIndex && screenFocused} navigation={navigation} />
       )}
-    />
+   />
+    </View>
   );
 }
 

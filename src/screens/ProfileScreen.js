@@ -3,9 +3,10 @@ import { useFocusEffect } from "@react-navigation/native";
 import {
   View, Text, TouchableOpacity, StyleSheet, SafeAreaView,
   StatusBar, Image, Alert, ActivityIndicator, ScrollView,
-  Animated, Dimensions,
+  Animated, Dimensions, Modal, RefreshControl,
 } from "react-native";
 import Ionicons from "@expo/vector-icons/Ionicons";
+import { VideoView, useVideoPlayer } from "expo-video";
 import api from "../services/api";
 import HamburgerMenu from "../components/profile/HamburgerMenu";
 import UploadFeedback from "../components/profile/UploadFeedback";
@@ -14,6 +15,57 @@ import { pickAndUploadVideo, pickAndUploadCourse } from "../components/profile/u
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const TAB_WIDTH = (SCREEN_WIDTH - 32) / 2;
+
+function VideoModal({ visible, video, onClose }) {
+  const player = useVideoPlayer(video?.videoUrl ?? null, (p) => {
+    p.loop = false;
+  });
+
+  return (
+    <Modal
+      visible={visible}
+      animationType="slide"
+      presentationStyle="pageSheet"
+      onRequestClose={onClose}
+    >
+      <View style={{ flex: 1, backgroundColor: "#000" }}>
+        <View style={{
+          flexDirection: "row", alignItems: "center",
+          justifyContent: "space-between",
+          padding: 16, paddingTop: 50, backgroundColor: "#111",
+        }}>
+          <Text style={{ color: "#fff", fontSize: 16, fontWeight: "600", flex: 1 }} numberOfLines={1}>
+            {video?.title || "Video"}
+          </Text>
+          <TouchableOpacity
+            onPress={onClose}
+            style={{
+              width: 36, height: 36, borderRadius: 18,
+              backgroundColor: "rgba(255,255,255,0.1)",
+              justifyContent: "center", alignItems: "center",
+            }}
+          >
+            <Ionicons name="close" size={24} color="#fff" />
+          </TouchableOpacity>
+        </View>
+
+        {video?.videoUrl ? (
+          <VideoView
+            player={player}
+            style={{ width: SCREEN_WIDTH, height: SCREEN_WIDTH * (9 / 16) }}
+            allowsFullscreen
+            allowsPictureInPicture
+          />
+        ) : (
+          <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+            <Ionicons name="videocam-off-outline" size={48} color="#555" />
+            <Text style={{ color: "#555", marginTop: 12 }}>Video not available</Text>
+          </View>
+        )}
+      </View>
+    </Modal>
+  );
+}
 
 export default function ProfileScreen({ signOut, navigation }) {
   const [userName, setUserName]       = useState("");
@@ -34,6 +86,8 @@ export default function ProfileScreen({ signOut, navigation }) {
   const [uploading, setUploading]     = useState(false);
 
   const [downloadedVideos, setDownloadedVideos] = useState([]);
+  const [videoModalVisible, setVideoModalVisible] = useState(false);
+  const [activeVideo, setActiveVideo] = useState(null);
   const [savedCourses, setSavedCourses]         = useState([]);
   const [creatorCourses, setCreatorCourses]     = useState([]);
 
@@ -76,14 +130,12 @@ export default function ProfileScreen({ signOut, navigation }) {
           setIsAdmin(creatorData?.role === "admin");
 
           if (creatorApproved) {
-            // fetch creator's own videos
             try {
               const videosRes = await api.get(`/creator/${profile._id}/videos`);
               setDownloadedVideos(videosRes?.data ?? []);
             } catch {
               setDownloadedVideos([]);
             }
-            // fetch creator's courses
             try {
               const coursesRes = await api.get("/creator/my-courses");
               setCreatorCourses(coursesRes?.data ?? []);
@@ -91,7 +143,6 @@ export default function ProfileScreen({ signOut, navigation }) {
               setCreatorCourses([]);
             }
           } else {
-            // fetch regular user downloads
             try {
               const downloadsRes = await api.get("/downloads/videos");
               setDownloadedVideos(downloadsRes?.data ?? []);
@@ -100,7 +151,6 @@ export default function ProfileScreen({ signOut, navigation }) {
             }
           }
 
-          // fetch level — skip if endpoint doesn't exist
           try {
             const statsRes = await api.get("/learning-profile/stats");
             setLevel(statsRes?.data?.level ?? 1);
@@ -142,105 +192,117 @@ export default function ProfileScreen({ signOut, navigation }) {
     );
     setUploading(false);
   };
-const renderTabContent = () => {
-  // ── CREATOR view ──
-  if (isCreator) {
+
+  const openVideo = (v) => {
+    setActiveVideo(v);
+    setVideoModalVisible(true);
+  };
+
+  const renderTabContent = () => {
+    // ── CREATOR view ──
+    if (isCreator) {
+      if (activeTab === 0) {
+        return downloadedVideos.length === 0 ? (
+          <View style={styles.emptyState}>
+            <View style={styles.emptyIconBox}>
+              <Ionicons name="videocam-outline" size={26} color="#2F54EB" />
+            </View>
+            <Text style={styles.emptyTitle}>No videos uploaded yet</Text>
+            <Text style={styles.emptySubtitle}>Upload your first short educational video.</Text>
+          </View>
+        ) : (
+          <View>
+            {downloadedVideos.map((v, i) => (
+              <TouchableOpacity key={i} style={styles.videoCard} onPress={() => openVideo(v)}>
+                <View style={styles.videoIconBox}>
+                  <Ionicons name="videocam-outline" size={22} color="#2F54EB" />
+                </View>
+                <View style={styles.courseInfo}>
+                  <Text style={styles.courseTitle} numberOfLines={1}>{v.title}</Text>
+                  <Text style={styles.courseMeta}>
+                    {v.createdAt ? new Date(v.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : ""}
+                  </Text>
+                </View>
+                <Ionicons name="play-circle-outline" size={24} color="#2F54EB" />
+              </TouchableOpacity>
+            ))}
+          </View>
+        );
+      }
+
+      // Courses tab for creator
+      return (
+        <View>
+          <View style={styles.publicBanner}>
+            <Ionicons name="earth-outline" size={13} color="#0C5A8C" />
+            <Text style={styles.publicBannerText}>Your uploaded courses — visible to everyone</Text>
+          </View>
+          {creatorCourses.length === 0 ? (
+            <View style={styles.emptyState}>
+              <View style={styles.emptyIconBox}>
+                <Ionicons name="book-outline" size={26} color="#2F54EB" />
+              </View>
+              <Text style={styles.emptyTitle}>No courses yet</Text>
+              <Text style={styles.emptySubtitle}>Upload your first course from the menu.</Text>
+            </View>
+          ) : (
+            creatorCourses.map(item => <CreatorCourseCard key={item.id} item={item} navigation={navigation} />)
+          )}
+        </View>
+      );
+    }
+
+    // ── REGULAR USER view ──
     if (activeTab === 0) {
       return downloadedVideos.length === 0 ? (
         <View style={styles.emptyState}>
           <View style={styles.emptyIconBox}>
-            <Ionicons name="videocam-outline" size={26} color="#2F54EB" />
+            <Ionicons name="download-outline" size={26} color="#2F54EB" />
           </View>
-          <Text style={styles.emptyTitle}>No videos uploaded yet</Text>
-          <Text style={styles.emptySubtitle}>Upload your first short educational video.</Text>
+          <Text style={styles.emptyTitle}>No downloaded videos yet</Text>
+          <Text style={styles.emptySubtitle}>Videos you download from the feed will appear here.</Text>
         </View>
       ) : (
         <View>
           {downloadedVideos.map((v, i) => (
-            <View key={i} style={styles.videoCard}>
+            <TouchableOpacity key={i} style={styles.videoCard} onPress={() => openVideo(v)}>
               <View style={styles.videoIconBox}>
                 <Ionicons name="videocam-outline" size={22} color="#2F54EB" />
               </View>
               <View style={styles.courseInfo}>
                 <Text style={styles.courseTitle} numberOfLines={1}>{v.title}</Text>
                 <Text style={styles.courseMeta}>
-                  {v.createdAt ? new Date(v.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : ""}
+                  {v.downloadedAt ? new Date(v.downloadedAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : ""}
                 </Text>
               </View>
               <Ionicons name="play-circle-outline" size={24} color="#2F54EB" />
-            </View>
+            </TouchableOpacity>
           ))}
         </View>
       );
     }
 
-    // Courses tab for creator
+    // Saved courses tab for regular user
     return (
-      <View>
-        <View style={styles.publicBanner}>
-          <Ionicons name="earth-outline" size={13} color="#0C5A8C" />
-          <Text style={styles.publicBannerText}>Your uploaded courses — visible to everyone</Text>
-        </View>
-        {creatorCourses.length === 0 ? (
-          <View style={styles.emptyState}>
-            <View style={styles.emptyIconBox}>
-              <Ionicons name="book-outline" size={26} color="#2F54EB" />
-            </View>
-            <Text style={styles.emptyTitle}>No courses yet</Text>
-            <Text style={styles.emptySubtitle}>Upload your first course from the menu.</Text>
-          </View>
-        ) : (
-          creatorCourses.map(item => <CreatorCourseCard key={item.id} item={item} navigation={navigation} />)
-        )}
-      </View>
-    );
-  }
-
-  // ── REGULAR USER view ──
-  if (activeTab === 0) {
-    return downloadedVideos.length === 0 ? (
       <View style={styles.emptyState}>
         <View style={styles.emptyIconBox}>
-          <Ionicons name="download-outline" size={26} color="#2F54EB" />
+          <Ionicons name="bookmark-outline" size={26} color="#2F54EB" />
         </View>
-        <Text style={styles.emptyTitle}>No downloaded videos yet</Text>
-        <Text style={styles.emptySubtitle}>Videos you download from the feed will appear here.</Text>
-      </View>
-    ) : (
-      <View>
-        {downloadedVideos.map((v, i) => (
-          <View key={i} style={styles.videoCard}>
-            <View style={styles.videoIconBox}>
-              <Ionicons name="videocam-outline" size={22} color="#2F54EB" />
-            </View>
-            <View style={styles.courseInfo}>
-              <Text style={styles.courseTitle} numberOfLines={1}>{v.title}</Text>
-              <Text style={styles.courseMeta}>
-                {v.downloadedAt ? new Date(v.downloadedAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : ""}
-              </Text>
-            </View>
-            <Ionicons name="play-circle-outline" size={24} color="#2F54EB" />
-          </View>
-        ))}
+        <Text style={styles.emptyTitle}>No saved courses yet</Text>
+        <Text style={styles.emptySubtitle}>Courses you save will appear here.</Text>
       </View>
     );
-  }
-
-  // Saved courses tab for regular user
-  return (
-    <View style={styles.emptyState}>
-      <View style={styles.emptyIconBox}>
-        <Ionicons name="bookmark-outline" size={26} color="#2F54EB" />
-      </View>
-      <Text style={styles.emptyTitle}>No saved courses yet</Text>
-      <Text style={styles.emptySubtitle}>Courses you save will appear here.</Text>
-    </View>
-  );
-};
+  };
 
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor="#f4f6fb" />
+
+      <VideoModal
+        visible={videoModalVisible}
+        video={activeVideo}
+        onClose={() => { setVideoModalVisible(false); setActiveVideo(null); }}
+      />
 
       <View style={styles.topBar}>
         <Text style={styles.topBarLogo}>nawarny</Text>
@@ -251,8 +313,17 @@ const renderTabContent = () => {
         </TouchableOpacity>
       </View>
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
-
+<ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent}
+        refreshControl={
+          <RefreshControl refreshing={loading} onRefresh={() => {
+            setLoading(true);
+            setDownloadedVideos([]);
+            setCreatorCourses([]);
+          }} colors={["#2F54EB"]} tintColor="#2F54EB" />
+        }
+      >
         <View style={styles.heroCard}>
           <View style={styles.avatarWrapper}>
             <View style={styles.avatarRing}>
