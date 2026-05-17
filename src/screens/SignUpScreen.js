@@ -28,7 +28,6 @@ export default function SignUpScreen({ setPendingVerificationEmail }) {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [name, setName] = useState("");
-
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const navigation = useNavigation();
@@ -57,22 +56,16 @@ export default function SignUpScreen({ setPendingVerificationEmail }) {
       if (setPendingVerificationEmail) {
         await setPendingVerificationEmail(normalizedEmail);
       } else {
-        await SecureStore.setItemAsync(
-          PENDING_VERIFY_EMAIL_KEY,
-          normalizedEmail,
-        );
+        await SecureStore.setItemAsync(PENDING_VERIFY_EMAIL_KEY, normalizedEmail);
       }
-      Alert.alert(
-        "Success",
-        "Account created successfully! Please verify your email.",
-      );
+      Alert.alert("Success", "Account created successfully! Please verify your email.");
       navigation.navigate("Verify", { email: normalizedEmail });
     } catch (error) {
       Alert.alert(
         "Sign Up Failed",
         error?.response?.data?.message ||
           error?.message ||
-          "Failed to sign up. Please try again.",
+          "Failed to sign up. Please try again."
       );
     }
 
@@ -83,12 +76,17 @@ export default function SignUpScreen({ setPendingVerificationEmail }) {
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView>
-        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-          <KeyboardAvoidingView
-            behavior={Platform.OS === "ios" ? "padding" : "height"}
-            style={styles.keyboardView}
-          >
+      <KeyboardAvoidingView
+        style={styles.keyboardView}
+        behavior={"position"}
+        keyboardVerticalOffset={Platform.OS === "android" ? 30 : 0}
+      >
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
             <View style={styles.content}>
               <Image
                 source={require("../assets/logo.png")}
@@ -98,17 +96,19 @@ export default function SignUpScreen({ setPendingVerificationEmail }) {
 
               <Text style={styles.title}>Create Account</Text>
 
+              {/* Full Name */}
               <View style={styles.inputGroup}>
                 <TextInput
                   style={styles.input}
                   placeholder="Full Name"
                   value={name}
                   onChangeText={setName}
-                  keyboardType="default"
-                  autoCapitalize="none"
+                  autoCapitalize="words"
+                  returnKeyType="next"
                 />
               </View>
-              {/* EMAIL */}
+
+              {/* Email */}
               <View style={styles.inputGroup}>
                 <TextInput
                   style={styles.input}
@@ -117,10 +117,11 @@ export default function SignUpScreen({ setPendingVerificationEmail }) {
                   onChangeText={setEmail}
                   keyboardType="email-address"
                   autoCapitalize="none"
+                  returnKeyType="next"
                 />
               </View>
 
-              {/* PASSWORD */}
+              {/* Password */}
               <View style={styles.passwordContainer}>
                 <TextInput
                   style={styles.passwordInput}
@@ -128,10 +129,9 @@ export default function SignUpScreen({ setPendingVerificationEmail }) {
                   value={password}
                   onChangeText={setPassword}
                   secureTextEntry={!showPassword}
+                  returnKeyType="next"
                 />
-                <TouchableOpacity
-                  onPress={() => setShowPassword(!showPassword)}
-                >
+                <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
                   <Ionicons
                     name={showPassword ? "eye-off-outline" : "eye-outline"}
                     size={22}
@@ -140,7 +140,7 @@ export default function SignUpScreen({ setPendingVerificationEmail }) {
                 </TouchableOpacity>
               </View>
 
-              {/* CONFIRM PASSWORD */}
+              {/* Confirm Password */}
               <View style={styles.passwordContainer}>
                 <TextInput
                   style={styles.passwordInput}
@@ -148,29 +148,22 @@ export default function SignUpScreen({ setPendingVerificationEmail }) {
                   value={confirmPassword}
                   onChangeText={setConfirmPassword}
                   secureTextEntry={!showConfirmPassword}
+                  returnKeyType="done"
+                  onSubmitEditing={handleSignUp}
                 />
-                <TouchableOpacity
-                  onPress={() => setShowConfirmPassword(!showConfirmPassword)}
-                >
+                <TouchableOpacity onPress={() => setShowConfirmPassword(!showConfirmPassword)}>
                   <Ionicons
-                    name={
-                      showConfirmPassword ? "eye-off-outline" : "eye-outline"
-                    }
+                    name={showConfirmPassword ? "eye-off-outline" : "eye-outline"}
                     size={22}
                     color="#555"
                   />
                 </TouchableOpacity>
               </View>
 
-              {/* SIGN UP BUTTON */}
-              <TouchableOpacity
-                style={styles.signUpButton}
-                onPress={handleSignUp}
-              >
+              <TouchableOpacity style={styles.signUpButton} onPress={handleSignUp}>
                 <Text style={styles.buttonText}>Sign Up</Text>
               </TouchableOpacity>
 
-              {/* LOGIN LINK */}
               <View style={styles.footer}>
                 <Text>Already have an account? </Text>
                 <TouchableOpacity onPress={() => navigation.navigate("Login")}>
@@ -178,9 +171,9 @@ export default function SignUpScreen({ setPendingVerificationEmail }) {
                 </TouchableOpacity>
               </View>
             </View>
-          </KeyboardAvoidingView>
-        </TouchableWithoutFeedback>
-      </ScrollView>
+          </TouchableWithoutFeedback>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
@@ -193,11 +186,14 @@ const styles = StyleSheet.create({
   keyboardView: {
     flex: 1,
   },
+  scrollContent: {
+    flexGrow: 1,
+  },
   content: {
     flex: 1,
     alignItems: "center",
     paddingHorizontal: 30,
-    justifyContent: "center",
+    paddingVertical: 40,
   },
   logo: {
     width: 120,
