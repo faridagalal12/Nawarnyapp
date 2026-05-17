@@ -1,24 +1,29 @@
 import React from "react";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
-import ProfileScreen from "../screens/ProfileScreen";
-import EditProfileScreen from "../screens/EditProfileScreen";
-import LearningProfileScreen from "../screens/learningProfileScreen";
-import SubscriptionScreen from "../screens/SubscriptionScreen";
-import cardscreen from "../screens/cardscreen";
-import ContactSupportScreen from "../screens/ContactSupportScreen";
-import AboutAppScreen from "../screens/AboutAppScreen";
+import ProfileScreen            from "../screens/ProfileScreen";
+import EditProfileScreen        from "../screens/EditProfileScreen";
+import LearningProfileScreen    from "../screens/learningProfileScreen";
+import SubscriptionScreen       from "../screens/SubscriptionScreen";
+import cardscreen               from "../screens/cardscreen";
+import ContactSupportScreen     from "../screens/ContactSupportScreen";
+import AboutAppScreen           from "../screens/AboutAppScreen";
 import CreatorApplicationScreen from "../screens/CreatorApplicationScreen";
-import AdminScreen from "../screens/AdminScreen";
-import PublicProfileScreen from "../screens/PublicProfileScreen";
-import UploadCourseScreen from "../screens/AddPosts/UploadCourseScreen";
-import EditCourseScreen from "../screens/AddPosts/EditCourseScreen";
-import CreatorDashboardScreen from "../screens/CreatorDashboardScreen";
+import AdminScreen              from "../screens/AdminScreen";
+import PublicProfileScreen      from "../screens/PublicProfileScreen";
+import UploadCourseScreen       from "../screens/AddPosts/UploadCourseScreen";
+import EditCourseScreen         from "../screens/AddPosts/EditCourseScreen";
+import CreatorDashboardScreen   from "../screens/CreatorDashboardScreen";
+import AvailableSlotsScreen     from "../screens/AvailableSlotsScreen";
+import SessionBookedScreen      from "../screens/SessionBookedScreen";
+import PaymentScreen            from "../screens/paymentscreen";
+import CardScreen               from "../screens/cardscreen";
 
 const Stack = createNativeStackNavigator();
 
 export default function ProfileStack({ signOut }) {
   return (
     <Stack.Navigator>
+
       <Stack.Screen
         name="ProfileMain"
         options={{ headerShown: false }}
@@ -41,10 +46,9 @@ export default function ProfileStack({ signOut }) {
         component={SubscriptionScreen}
         options={{ headerShown: false }}
       />
-    
       <Stack.Screen
         name="Card"
-        component={cardscreen}
+        component={CardScreen}
         options={{ headerShown: false }}
       />
       <Stack.Screen
@@ -63,10 +67,10 @@ export default function ProfileStack({ signOut }) {
         options={{ headerShown: false }}
       />
       <Stack.Screen
-  name="UploadCourse"
-  component={UploadCourseScreen}
-  options={{ headerShown: false }}
-/>
+        name="UploadCourse"
+        component={UploadCourseScreen}
+        options={{ headerShown: false }}
+      />
       <Stack.Screen
         name="CreatorDashboard"
         component={CreatorDashboardScreen}
@@ -78,16 +82,33 @@ export default function ProfileStack({ signOut }) {
         options={{ headerShown: false }}
       />
       <Stack.Screen
-  name="EditCourse"
-  component={EditCourseScreen}
-  options={{ headerShown: false }}
-/>
+        name="EditCourse"
+        component={EditCourseScreen}
+        options={{ headerShown: false }}
+      />
       <Stack.Screen
         name="PublicProfile"
         component={PublicProfileScreen}
         options={{ headerShown: false }}
       />
+
+      {/* ── 1-to-1 Booking Flow ── */}
+      <Stack.Screenn
+        name="AvailableSlots"
+        component={AvailableSlotsScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="Payment"
+        component={PaymentScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="SessionBooked"
+        component={SessionBookedScreen}
+        options={{ headerShown: false, gestureEnabled: false }}
+      />
+
     </Stack.Navigator>
-    
   );
 }

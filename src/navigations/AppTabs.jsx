@@ -16,6 +16,7 @@ export default function MyTabs({ signOut }) {
     <Tab.Navigator
       screenOptions={{
         animation: "fade",
+          tabBarActiveTintColor: "#3054E9",
       }}
     >
       <Tab.Screen
@@ -38,37 +39,26 @@ export default function MyTabs({ signOut }) {
           ),
         }}
       />
-      <Tab.Screen
-        name="AddPost"
-        children={() => <AddPostScreen/>}
-        options={{
-          headerShown: false,
-
-          tabBarButton: props => {
-            return (
-              <TouchableOpacity
-                {...props}
-                style={{
-                  alignSelf: "center",
-                  width: 60,
-                  backgroundColor: "#D9D9D9",
-                  justifyContent: "center",
-                  alignItems: "center",
-                  height: 30,
-                  marginTop: "12%",
-                  borderRadius: 5,
-                  borderLeftColor: "#0088FF",
-                  borderLeftWidth: 4,
-                  borderRightColor: "#FFCC00",
-                  borderRightWidth: 4,
-                }}
-              >
-                <Entypo name="plus" size={24} color="black" />
-              </TouchableOpacity>
-            );
-          }, // hide from tab bar
+     <Tab.Screen
+  name="AddPost"
+  children={() => <AddPostScreen />}
+  options={{
+    headerShown: false,
+    tabBarLabel: () => null,
+    tabBarButton: (props) => (
+      <TouchableOpacity
+        {...props}
+        style={{
+          flex: 1,
+          justifyContent: "center",
+          alignItems: "center",
         }}
-      />
+      >
+        <Ionicons name="add-circle" size={50} color="#3054E9" />
+      </TouchableOpacity>
+    ),
+  }}
+/>
       <Tab.Screen
         name="Challenge"
         component={GWelcomeScreen}

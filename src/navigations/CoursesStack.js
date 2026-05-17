@@ -6,6 +6,9 @@ import CourseCompletionScreen from '../screens/CourseCompletionScreen';
 import CertificateScreen      from '../screens/CertificateScreen';
 import PaymentScreen          from '../screens/paymentscreen';
 import CardScreen             from '../screens/cardscreen';
+import PublicProfileScreen    from '../screens/PublicProfileScreen';
+import AvailableSlotsScreen   from '../screens/AvailableSlotsScreen';
+import SessionBookedScreen    from '../screens/SessionBookedScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -27,6 +30,10 @@ export default function CoursesStack() {
         options={{ animation: 'fade' }} />
       <Stack.Screen name="Certificate"      component={CertificateScreen}
         options={{ animation: 'slide_from_bottom' }} />
+      <Stack.Screen name="PublicProfile"    component={PublicProfileScreen} />
+      <Stack.Screen name="AvailableSlots"   component={AvailableSlotsScreen} />
+      <Stack.Screen name="SessionBooked"    component={SessionBookedScreen}
+        options={{ gestureEnabled: false }} />
     </Stack.Navigator>
   );
 }

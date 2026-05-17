@@ -8,31 +8,48 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 const BLUE = '#0066FF';
 
 const methods = [
-  { id: 'card',   icon: 'card-outline',  label: 'Credit / Debit Card' },
-  { id: 'apple',  icon: 'logo-apple',    label: 'Apple Pay' },
-  { id: 'paypal', icon: 'logo-paypal',   label: 'PayPal' },
+  { id: 'card', icon: 'card-outline', label: 'Credit / Debit Card' },
 ];
 
 export default function PaymentScreen({ navigation, route }) {
-  const { course, plan, price } = route.params;
+  const { course, plan, price, session } = route.params;
 
-  // Support both course-based and plan-based navigation
-  const displayTitle = course?.title ?? `${plan} Plan`;
-  const displayPrice = course?.price ? `EGP ${course.price}` : price;
+  // session = { creator, sessionType, day, slot } when coming from booking flow
+  const isSession = !!session;
+
+  const displayTitle = isSession
+    ? `${session.sessionType.label} · ${session.sessionType.duration}`
+    : (course?.title ?? `${plan} Plan`);
+
+  const displaySubtitle = isSession
+    ? `with ${session.creator?.name ?? 'Instructor'} · ${session.day} at ${session.slot?.time}`
+    : null;
+
+  const displayPrice = isSession
+    ? `$${session.sessionType.price}.00`
+    : (course?.price ? `EGP ${course.price}` : price);
 
   const [selected, setSelected] = useState('card');
 
   const handleConfirm = () => {
     if (selected === 'card') {
-      navigation.navigate('Card', { course, plan, price });
+      navigation.navigate('Card', { course, plan, price, session });
     } else {
-      // Simulate successful payment then go to completion
-      Alert.alert('Payment Successful 🎉', `You enrolled in ${displayTitle}!`, [
-        {
-          text: 'OK',
-          onPress: () => navigation.navigate('CourseCompletion', { course }),
-        },
-      ]);
+      if (isSession) {
+        Alert.alert('Session Booked! 🎉', `Your session has been confirmed.`, [
+          {
+            text: 'OK',
+            onPress: () => navigation.navigate('SessionBooked', { ...session }),
+          },
+        ]);
+      } else {
+        Alert.alert('Payment Successful 🎉', `You enrolled in ${displayTitle}!`, [
+          {
+            text: 'OK',
+            onPress: () => navigation.navigate('CourseCompletion', { course }),
+          },
+        ]);
+      }
     }
   };
 
@@ -49,13 +66,45 @@ export default function PaymentScreen({ navigation, route }) {
       </View>
 
       <View style={styles.container}>
+
         {/* Order Summary */}
         <View style={styles.summary}>
-          <Text style={styles.summaryLabel}>Order Summary</Text>
+          <Text style={styles.summaryLabel}>
+            {isSession ? 'Session Summary' : 'Order Summary'}
+          </Text>
           <View style={styles.summaryRow}>
-            <Text style={styles.summaryPlan} numberOfLines={1}>{displayTitle}</Text>
+            <View style={{ flex: 1, marginRight: 8 }}>
+              <Text style={styles.summaryPlan} numberOfLines={1}>
+                {displayTitle}
+              </Text>
+              {!!displaySubtitle && (
+                <Text style={styles.summarySub} numberOfLines={2}>
+                  {displaySubtitle}
+                </Text>
+              )}
+            </View>
             <Text style={styles.summaryPrice}>{displayPrice}</Text>
           </View>
+
+          {/* Extra session detail rows */}
+          {isSession && (
+            <View style={styles.sessionDetails}>
+              <View style={styles.sessionDetailRow}>
+                <Ionicons name="person-outline" size={13} color="#888" />
+                <Text style={styles.sessionDetailText}>
+                  {session.creator?.name ?? 'Instructor'}
+                </Text>
+              </View>
+              <View style={styles.sessionDetailRow}>
+                <Ionicons name="calendar-outline" size={13} color="#888" />
+                <Text style={styles.sessionDetailText}>{session.day}</Text>
+              </View>
+              <View style={styles.sessionDetailRow}>
+                <Ionicons name="time-outline" size={13} color="#888" />
+                <Text style={styles.sessionDetailText}>{session.slot?.time}</Text>
+              </View>
+            </View>
+          )}
         </View>
 
         <Text style={styles.sectionTitle}>Select Payment Method</Text>
@@ -83,6 +132,7 @@ export default function PaymentScreen({ navigation, route }) {
         <Text style={styles.secure}>
           <Ionicons name="lock-closed" size={13} color="#aaa" /> Secured with 256-bit encryption
         </Text>
+
       </View>
     </SafeAreaView>
   );
@@ -95,23 +145,34 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 16, paddingVertical: 12,
   },
-  backBtn: { padding: 4 },
+  backBtn:     { padding: 4 },
   headerTitle: { fontSize: 17, fontWeight: '600', color: '#fff' },
+
   container: {
     flex: 1, backgroundColor: '#F4F6FB',
     borderTopLeftRadius: 24, borderTopRightRadius: 24,
     padding: 20,
   },
+
   summary: {
     backgroundColor: '#fff', borderRadius: 14,
     padding: 16, marginBottom: 24,
     borderWidth: 1, borderColor: '#eee',
   },
   summaryLabel: { fontSize: 13, color: '#999', marginBottom: 8 },
-  summaryRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  summaryPlan:  { fontSize: 17, fontWeight: '600', color: '#111', flex: 1, marginRight: 8 },
+  summaryRow: {
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start',
+  },
+  summaryPlan:  { fontSize: 16, fontWeight: '700', color: '#111' },
+  summarySub:   { fontSize: 12, color: '#888', marginTop: 3, lineHeight: 17 },
   summaryPrice: { fontSize: 17, fontWeight: '700', color: BLUE },
+
+  sessionDetails: { marginTop: 12, gap: 6, borderTopWidth: 1, borderTopColor: '#f0f0f0', paddingTop: 12 },
+  sessionDetailRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  sessionDetailText: { fontSize: 13, color: '#555' },
+
   sectionTitle: { fontSize: 15, fontWeight: '600', color: '#333', marginBottom: 12 },
+
   method: {
     flexDirection: 'row', alignItems: 'center', gap: 14,
     backgroundColor: '#fff', borderRadius: 12, padding: 16,
@@ -125,7 +186,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center', alignItems: 'center',
   },
   radioActive: { borderColor: BLUE },
-  radioDot: { width: 9, height: 9, borderRadius: 5, backgroundColor: BLUE },
+  radioDot:    { width: 9, height: 9, borderRadius: 5, backgroundColor: BLUE },
+
   payBtn: {
     backgroundColor: BLUE, borderRadius: 14,
     paddingVertical: 16, alignItems: 'center',
@@ -135,5 +197,5 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
   payText: { fontSize: 17, fontWeight: '700', color: '#fff' },
-  secure: { textAlign: 'center', color: '#aaa', fontSize: 13, marginTop: 16 },
+  secure:  { textAlign: 'center', color: '#aaa', fontSize: 13, marginTop: 16 },
 });
