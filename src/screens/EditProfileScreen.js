@@ -12,6 +12,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
+  Keyboard,
 } from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
 import Ionicons from "@expo/vector-icons/Ionicons";
@@ -34,12 +35,20 @@ export default function EditProfileScreen({ navigation }) {
   const [avatarLocalUri, setAvatarLocalUri] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+
   const insets = useSafeAreaInsets();
   const scrollRef = useRef(null);
 
+  // Refs for each input — used to scroll the exact field into view
+  const nameRef    = useRef(null);
+  const usernameRef = useRef(null);
+  const emailRef   = useRef(null);
+  const bioRef     = useRef(null);
+  const bioInputLayout = useRef({ y: 0, height: 0 });
+
   const getAvatarMimeType = (uri) => {
     const lower = (uri || "").toLowerCase();
-    if (lower.endsWith(".png")) return "image/png";
+    if (lower.endsWith(".png"))  return "image/png";
     if (lower.endsWith(".webp")) return "image/webp";
     if (lower.endsWith(".heic")) return "image/heic";
     return "image/jpeg";
@@ -49,8 +58,7 @@ export default function EditProfileScreen({ navigation }) {
     if (!avatarLocalUri) return avatarUrl;
     const mimeType = getAvatarMimeType(avatarLocalUri);
     const ext = mimeType.split("/")[1] || "jpg";
-    const remoteFileName = `avatar.${ext}`;
-    return uploadAvatarToSupabase(avatarLocalUri, remoteFileName, mimeType);
+    return uploadAvatarToSupabase(avatarLocalUri, `avatar.${ext}`, mimeType);
   };
 
   const handlePickAvatar = async () => {
@@ -59,25 +67,41 @@ export default function EditProfileScreen({ navigation }) {
       Alert.alert("Permission needed", "Please allow photo library access to pick an avatar.");
       return;
     }
-
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ["images"],
       allowsEditing: true,
       aspect: [1, 1],
       quality: 0.9,
     });
-
     if (result.canceled) return;
     const picked = result.assets?.[0];
     if (!picked?.uri) return;
     setAvatarLocalUri(picked.uri);
   };
 
-  const handleBioFocus = () => {
-    // Ensure the bio input scrolls above the keyboard.
+  // Scroll a specific y-offset into view above the keyboard
+  const scrollFieldIntoView = (fieldY, fieldHeight) => {
     setTimeout(() => {
-      scrollRef.current?.scrollToEnd?.({ animated: true });
-    }, 50);
+      scrollRef.current?.scrollTo({
+        y: Math.max(0, fieldY - 24),
+        animated: true,
+      });
+    }, 100);
+  };
+
+  // Called when bio layout is measured — stores its position
+  const handleBioLayout = (e) => {
+    bioInputLayout.current = {
+      y: e.nativeEvent.layout.y,
+      height: e.nativeEvent.layout.height,
+    };
+  };
+
+  const handleBioFocus = () => {
+    scrollFieldIntoView(
+      bioInputLayout.current.y,
+      bioInputLayout.current.height
+    );
   };
 
   useFocusEffect(
@@ -93,7 +117,7 @@ export default function EditProfileScreen({ navigation }) {
           setBioHeight(BIO_MIN_HEIGHT);
           setAvatarUrl(data.avatarUrl ?? "");
           setAvatarLocalUri("");
-        } catch (err) {
+        } catch {
           Alert.alert("Error", "Failed to load profile");
         } finally {
           setLoading(false);
@@ -104,6 +128,8 @@ export default function EditProfileScreen({ navigation }) {
   );
 
   const handleSave = async () => {
+    Keyboard.dismiss();
+
     if (email && !/^\S+@\S+\.\S+$/.test(email)) {
       Alert.alert("Invalid email", "Please enter a valid email address.");
       return;
@@ -125,18 +151,15 @@ export default function EditProfileScreen({ navigation }) {
       const payload = {
         name: name.trim(),
         avatarUrl: nextAvatarUrl || null,
+        bio: bio.trim() || null,
       };
-
       const trimmedUsername = username.trim();
       if (trimmedUsername) payload.username = trimmedUsername;
-
-      const trimmedBio = bio.trim();
-      payload.bio = trimmedBio || null;
 
       const response = await api.put("/users/profile", payload);
       console.log("Save response:", JSON.stringify(response?.data));
       Alert.alert("Success", "Profile updated successfully", [
-        { text: "OK", onPress: () => navigation.goBack() }
+        { text: "OK", onPress: () => navigation.goBack() },
       ]);
     } catch (err) {
       const serverError =
@@ -144,7 +167,6 @@ export default function EditProfileScreen({ navigation }) {
         err?.response?.data?.error ??
         err?.response?.data?.message ??
         err?.message;
-      console.log("Profile update error:", err?.response?.data ?? err?.message);
       Alert.alert("Error", serverError || "Failed to update profile");
     } finally {
       setSaving(false);
@@ -162,11 +184,13 @@ export default function EditProfileScreen({ navigation }) {
   const renderTopBar = () => (
     <View style={styles.topBar}>
       <TouchableOpacity onPress={() => navigation.goBack()} disabled={saving}>
-        <Text style={[styles.topBarText, saving && styles.topBarTextDisabled]}>Cancel</Text>
+        <Text style={[styles.topBarText, saving && styles.topBarTextDisabled]}>
+          Cancel
+        </Text>
       </TouchableOpacity>
       <TouchableOpacity onPress={handleSave} disabled={saving}>
         <Text style={[styles.topBarText, styles.topBarPrimary]}>
-          {saving ? "Saving..." : "Save"}
+          {saving ? "Saving…" : "Save"}
         </Text>
       </TouchableOpacity>
     </View>
@@ -175,11 +199,13 @@ export default function EditProfileScreen({ navigation }) {
   const renderBody = () => (
     <ScrollView
       ref={scrollRef}
-      contentContainerStyle={{ paddingBottom: 16 + insets.bottom }}
+      contentContainerStyle={{ paddingBottom: 40 + insets.bottom }}
       keyboardShouldPersistTaps="handled"
-      keyboardDismissMode="on-drag"
+      keyboardDismissMode="interactive"   // ← swipe down dismisses keyboard
       showsVerticalScrollIndicator={false}
+      scrollEventThrottle={16}
     >
+      {/* Avatar upload card */}
       <View style={styles.uploadCard}>
         <View style={styles.uploadAvatarCircle}>
           {avatarLocalUri || avatarUrl ? (
@@ -200,28 +226,38 @@ export default function EditProfileScreen({ navigation }) {
         </TouchableOpacity>
       </View>
 
+      {/* Form card */}
       <View style={styles.formCard}>
         <Text style={styles.sectionTitle}>Edit details</Text>
 
         <Text style={styles.label}>Name</Text>
         <TextInput
+          ref={nameRef}
           style={styles.input}
           value={name}
           onChangeText={setName}
           placeholder="Your name"
+          returnKeyType="next"
+          onSubmitEditing={() => usernameRef.current?.focus()}
+          blurOnSubmit={false}
         />
 
         <Text style={styles.label}>Username</Text>
         <TextInput
+          ref={usernameRef}
           style={styles.input}
           value={username}
           onChangeText={setUsername}
           placeholder="Your username"
           autoCapitalize="none"
+          returnKeyType="next"
+          onSubmitEditing={() => emailRef.current?.focus()}
+          blurOnSubmit={false}
         />
 
         <Text style={styles.label}>Email</Text>
         <TextInput
+          ref={emailRef}
           style={styles.input}
           value={email}
           onChangeText={setEmail}
@@ -229,6 +265,9 @@ export default function EditProfileScreen({ navigation }) {
           autoCapitalize="none"
           autoCorrect={false}
           keyboardType="email-address"
+          returnKeyType="next"
+          onSubmitEditing={() => bioRef.current?.focus()}
+          blurOnSubmit={false}
         />
 
         <View style={styles.labelRow}>
@@ -238,19 +277,25 @@ export default function EditProfileScreen({ navigation }) {
           </Text>
         </View>
         <TextInput
+          ref={bioRef}
           style={[styles.input, styles.bioInput, { height: bioHeight }]}
           value={bio}
           onChangeText={setBio}
           placeholder="Tell us about you"
           multiline
           textAlignVertical="top"
-          onFocus={handleBioFocus}
           maxLength={BIO_MAX_LEN}
-          scrollEnabled
+          returnKeyType="done"
+          onFocus={handleBioFocus}
+          onLayout={handleBioLayout}
+          scrollEnabled={false}           // ← let parent ScrollView handle scrolling
           onContentSizeChange={(e) => {
             const next = Math.max(
               BIO_MIN_HEIGHT,
-              Math.min(BIO_MAX_HEIGHT, e?.nativeEvent?.contentSize?.height ?? BIO_MIN_HEIGHT)
+              Math.min(
+                BIO_MAX_HEIGHT,
+                e?.nativeEvent?.contentSize?.height ?? BIO_MIN_HEIGHT
+              )
             );
             setBioHeight(next);
           }}
@@ -261,29 +306,25 @@ export default function EditProfileScreen({ navigation }) {
 
   return (
     <SafeAreaView style={styles.container}>
-      {Platform.OS === "ios" ? (
-        <KeyboardAvoidingView
-          style={styles.flex}
-          behavior="padding"
-          keyboardVerticalOffset={0}
-        >
-          {renderTopBar()}
-          {renderBody()}
-        </KeyboardAvoidingView>
-      ) : (
-        <View style={styles.flex}>
-          {renderTopBar()}
-          {renderBody()}
-        </View>
-      )}
+      <KeyboardAvoidingView
+        style={styles.flex}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        // On iOS, offset = 0 is fine inside SafeAreaView.
+        // On Android, "height" shrinks the view so the ScrollView
+        // naturally scrolls the focused field into view.
+        keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 24}
+      >
+        {renderTopBar()}
+        {renderBody()}
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#ffffff" },
-  flex: { flex: 1 },
-  centered: { flex: 1, justifyContent: "center", alignItems: "center" },
+  container:            { flex: 1, backgroundColor: "#ffffff" },
+  flex:                 { flex: 1 },
+  centered:             { flex: 1, justifyContent: "center", alignItems: "center" },
   topBar: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -292,9 +333,9 @@ const styles = StyleSheet.create({
     paddingTop: 12,
     paddingBottom: 6,
   },
-  topBarText: { fontSize: 16, color: "#6b7280", fontWeight: "600" },
-  topBarTextDisabled: { opacity: 0.6 },
-  topBarPrimary: { color: "#2F54EB" },
+  topBarText:          { fontSize: 16, color: "#6b7280", fontWeight: "600" },
+  topBarTextDisabled:  { opacity: 0.6 },
+  topBarPrimary:       { color: "#2F54EB" },
   uploadCard: {
     marginTop: 10,
     marginHorizontal: 18,
@@ -320,14 +361,14 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     overflow: "hidden",
   },
-  uploadAvatarImage: { width: 54, height: 54 },
+  uploadAvatarImage:   { width: 54, height: 54 },
   uploadButton: {
     backgroundColor: "#ffffff",
     paddingHorizontal: 18,
     paddingVertical: 12,
     borderRadius: 10,
   },
-  uploadButtonText: { color: "#2F54EB", fontSize: 14, fontWeight: "700" },
+  uploadButtonText:    { color: "#2F54EB", fontSize: 14, fontWeight: "700" },
   formCard: {
     marginTop: 18,
     marginHorizontal: 18,
@@ -342,14 +383,14 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 12 },
     elevation: 6,
   },
-  sectionTitle: { fontSize: 14, color: "#111827", fontWeight: "700" },
-  label: { fontSize: 13, color: "#6b7280", marginBottom: 6, marginTop: 14 },
+  sectionTitle:        { fontSize: 14, color: "#111827", fontWeight: "700" },
+  label:               { fontSize: 13, color: "#6b7280", marginBottom: 6, marginTop: 14 },
   labelRow: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
   },
-  counter: { fontSize: 12, color: "#9ca3af", marginTop: 14, marginBottom: 6, fontWeight: "700" },
+  counter:             { fontSize: 12, color: "#9ca3af", marginTop: 14, marginBottom: 6, fontWeight: "700" },
   input: {
     backgroundColor: "#ffffff",
     borderRadius: 12,
@@ -358,5 +399,5 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#e5e7eb",
   },
-  bioInput: { minHeight: 110 },
+  bioInput:            { minHeight: 110 },
 });
