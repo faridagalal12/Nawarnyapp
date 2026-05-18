@@ -152,6 +152,26 @@ export default function App() {
     }
   }, [clearStoredSession]);
 
+  const cancelVerification = React.useCallback(async () => {
+    await SecureStore.deleteItemAsync(PENDING_VERIFY_EMAIL_KEY);
+    await SecureStore.deleteItemAsync(TOKEN_KEY);
+    await SecureStore.deleteItemAsync(USER_EMAIL_KEY);
+    setAuthToken(null);
+    dispatch({ type: "SIGN_OUT" });
+    dispatch({ type: "SET_QUIZ_COMPLETED", value: false });
+    dispatch({ type: "SET_VERIFIED", value: true });
+    dispatch({ type: "SET_PENDING_VERIFY_EMAIL", value: null });
+
+    requestAnimationFrame(() => {
+      const nav = navigationRef.current;
+      if (nav?.resetRoot) {
+        nav.resetRoot({ index: 0, routes: [{ name: "Welcome" }] });
+      } else if (nav?.reset) {
+        nav.reset({ index: 0, routes: [{ name: "Welcome" }] });
+      }
+    });
+  }, []);
+
   React.useEffect(() => {
     const bootstrapAsync = async () => {
       let userToken;
@@ -224,6 +244,7 @@ export default function App() {
         dispatch({ type: "SET_PENDING_VERIFY_EMAIL", value: null });
         dispatch({ type: "SET_VERIFIED", value: true });
       },
+      cancelVerification,
       signUp: async token => {
         await SecureStore.setItemAsync(TOKEN_KEY, token);
         setAuthToken(token);
@@ -231,7 +252,7 @@ export default function App() {
       },
       refreshProfile,
     }),
-    [refreshProfile],
+    [cancelVerification, refreshProfile],
   );
 
   const handleQuizCompleted = React.useCallback(async () => {
@@ -289,7 +310,11 @@ export default function App() {
                   <VerifyScreen
                     signIn={authContext.signIn}
                     pendingEmail={state.pendingVerificationEmail}
-                    onVerified={async ({ hasToken } = {}) => {
+                    onVerified={async ({ hasToken, cancelled } = {}) => {
+                      if (cancelled) {
+                        await authContext.cancelVerification();
+                        return;
+                      }
                       await authContext.completeVerification();
                       if (hasToken) await authContext.refreshProfile();
                     }}
@@ -345,7 +370,11 @@ export default function App() {
                     <VerifyScreen
                       signIn={authContext.signIn}
                       pendingEmail={state.pendingVerificationEmail}
-                      onVerified={async ({ hasToken } = {}) => {
+                      onVerified={async ({ hasToken, cancelled } = {}) => {
+                        if (cancelled) {
+                          await authContext.cancelVerification();
+                          return;
+                        }
                         await authContext.completeVerification();
                         if (hasToken) await authContext.refreshProfile();
                       }}
@@ -365,7 +394,11 @@ export default function App() {
                 <VerifyScreen
                   signIn={authContext.signIn}
                   pendingEmail={state.pendingVerificationEmail}
-                  onVerified={async ({ hasToken } = {}) => {
+                  onVerified={async ({ hasToken, cancelled } = {}) => {
+                    if (cancelled) {
+                      await authContext.cancelVerification();
+                      return;
+                    }
                     await authContext.completeVerification();
                     if (hasToken) await authContext.refreshProfile();
                   }}

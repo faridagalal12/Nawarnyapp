@@ -143,12 +143,30 @@ export default function VerifyScreen({ signIn, pendingEmail, onVerified }) {
     }
   };
 
+  const handleBack = async () => {
+    if (onVerified) {
+      await onVerified({ cancelled: true, hasToken: false, email: null });
+      return;
+    }
+    if (navigation.canGoBack()) {
+      navigation.goBack();
+    } else {
+      navigation.reset({
+        index: 1,
+        routes: [{ name: "Welcome" }, { name: "Login" }],
+      });
+    }
+  };
+
   return (
     <KeyboardAvoidingView
       style={styles.container}
       behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
       <View style={styles.content}>
+        <TouchableOpacity style={styles.backButton} onPress={handleBack}>
+          <Text style={styles.backText}>Back</Text>
+        </TouchableOpacity>
         <Text style={styles.title}>Verify Account</Text>
         <Text style={styles.subtitle}>
           Enter the verification code sent to your email
@@ -207,6 +225,17 @@ const styles = StyleSheet.create({
   content: {
     width: "85%",
     alignItems: "center",
+  },
+  backButton: {
+    alignSelf: "flex-start",
+    marginBottom: 24,
+    paddingVertical: 6,
+    paddingHorizontal: 2,
+  },
+  backText: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#4F6FA5",
   },
   title: {
     fontSize: 28,
