@@ -19,10 +19,23 @@ function formatExpiry(val) {
 }
 
 export default function CardScreen({ navigation, route }) {
-  const { course, plan, price } = route?.params ?? {};
+  const { course, plan, price, session } = route?.params ?? {};
 
-  const displayTitle = course?.title ?? (plan ? `${plan} Plan` : 'Order');
-  const displayPrice = course?.price ? `EGP ${course.price}` : (price ?? '');
+  // ── Determine which flow we're in ──
+  const isSession = !!session;
+  const isCourse  = !!course;
+
+  const displayTitle = isSession
+    ? `${session.sessionType?.label ?? 'Session'} with ${session.creator?.name ?? 'Instructor'}`
+    : isCourse
+      ? course.title
+      : `${plan ?? ''} Plan`;
+
+  const displayPrice = isSession
+    ? `$${session.sessionType?.price ?? 0}.00`
+    : isCourse
+      ? `EGP ${course.price}`
+      : (price ?? '');
 
   const [cardNumber, setCardNumber] = useState('');
   const [cardName,   setCardName]   = useState('');
@@ -41,13 +54,37 @@ export default function CardScreen({ navigation, route }) {
       Alert.alert('Invalid Details', 'Please fill in all card details correctly.');
       return;
     }
+
     try {
-      if (course) {
+      if (isSession) {
+  await api.post('/sessions/book', {
+    creatorId:     session.creator?.id ?? session.creator?._id,
+    sessionType:   session.sessionType?.id,
+    date:          session.day,
+    time:          session.slot?.time,
+    price:         session.sessionType?.price,
+    paymentMethod: 'card',
+  });
+  Alert.alert('Session Booked! 🎉', `Your session with ${session.creator?.name ?? 'the instructor'} is confirmed!`, [
+    {
+      text: 'Done',
+      onPress: () => navigation.navigate('SessionBooked', {
+        creator:     session.creator,
+        sessionType: session.sessionType,
+        day:         session.day,
+        slot:        session.slot,
+      }),
+    },
+  ]);
+  return;
+} else if (isCourse) {
+        // ── Course enrollment payment ──
         await api.post('/courses/enroll', { courseId: course._id ?? course.id });
         Alert.alert('Payment Successful 🎉', `You enrolled in ${course.title}!`, [
           { text: 'Done', onPress: () => navigation.navigate('CourseDetail', { course }) },
         ]);
       } else {
+        // ── Subscription payment ──
         const planId = plan.toLowerCase();
         await api.post('/subscriptions/subscribe', { plan: planId });
         Alert.alert('Payment Successful 🎉', `You are now subscribed to the ${plan} plan!`, [
@@ -83,6 +120,7 @@ export default function CardScreen({ navigation, route }) {
 
       <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
 
+        {/* Card preview */}
         <View style={styles.cardPreview}>
           <View style={styles.cardPreviewTop}>
             <Ionicons name="wifi-outline" size={22} color="rgba(255,255,255,0.7)"
@@ -104,11 +142,27 @@ export default function CardScreen({ navigation, route }) {
           </View>
         </View>
 
+        {/* Order strip */}
         <View style={styles.orderStrip}>
-          <Text style={styles.orderPlan} numberOfLines={1}>{displayTitle}</Text>
+          <Text style={styles.orderPlan} numberOfLines={2}>{displayTitle}</Text>
           <Text style={styles.orderPrice}>{displayPrice}</Text>
         </View>
 
+        {/* Session extra details */}
+        {isSession && (
+          <View style={styles.sessionDetails}>
+            <View style={styles.sessionDetailRow}>
+              <Ionicons name="calendar-outline" size={13} color="#888" />
+              <Text style={styles.sessionDetailText}>{session.day}</Text>
+            </View>
+            <View style={styles.sessionDetailRow}>
+              <Ionicons name="time-outline" size={13} color="#888" />
+              <Text style={styles.sessionDetailText}>{session.slot?.time}</Text>
+            </View>
+          </View>
+        )}
+
+        {/* Card number */}
         <View style={styles.inputGroup}>
           <Text style={styles.label}>Card Number</Text>
           <View style={[styles.inputBox, focused === 'number' && styles.inputFocused]}>
@@ -127,6 +181,7 @@ export default function CardScreen({ navigation, route }) {
           </View>
         </View>
 
+        {/* Cardholder name */}
         <View style={styles.inputGroup}>
           <Text style={styles.label}>Cardholder Name</Text>
           <View style={[styles.inputBox, focused === 'name' && styles.inputFocused]}>
@@ -144,6 +199,7 @@ export default function CardScreen({ navigation, route }) {
           </View>
         </View>
 
+        {/* Expiry + CVV */}
         <View style={styles.row}>
           <View style={[styles.inputGroup, { flex: 1, marginRight: 10 }]}>
             <Text style={styles.label}>Expiry Date</Text>
@@ -162,7 +218,6 @@ export default function CardScreen({ navigation, route }) {
               />
             </View>
           </View>
-
           <View style={[styles.inputGroup, { flex: 1 }]}>
             <Text style={styles.label}>CVV</Text>
             <View style={[styles.inputBox, focused === 'cvv' && styles.inputFocused]}>
@@ -208,13 +263,15 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 16, paddingVertical: 12,
   },
-  backBtn: { padding: 4 },
+  backBtn:     { padding: 4 },
   headerTitle: { fontSize: 17, fontWeight: '600', color: '#fff' },
+
   container: {
     backgroundColor: '#F4F6FB',
     borderTopLeftRadius: 24, borderTopRightRadius: 24,
     padding: 20, paddingBottom: 40, flexGrow: 1,
   },
+
   cardPreview: {
     backgroundColor: BLUE,
     borderRadius: 20, padding: 24, marginBottom: 20,
@@ -226,23 +283,32 @@ const styles = StyleSheet.create({
     flexDirection: 'row', justifyContent: 'space-between',
     alignItems: 'center', marginBottom: 24,
   },
-  cardBrand: { color: '#fff', fontWeight: '800', fontSize: 16, letterSpacing: 1 },
+  cardBrand:         { color: '#fff', fontWeight: '800', fontSize: 16, letterSpacing: 1 },
   cardPreviewNumber: {
     fontSize: 20, fontWeight: '600', color: '#fff',
     letterSpacing: 3, marginBottom: 24,
   },
   cardPreviewBottom: { flexDirection: 'row', justifyContent: 'space-between' },
-  cardPreviewLabel: { fontSize: 10, color: 'rgba(255,255,255,0.6)', letterSpacing: 1, marginBottom: 4 },
-  cardPreviewValue: { fontSize: 14, color: '#fff', fontWeight: '600', letterSpacing: 1 },
+  cardPreviewLabel:  { fontSize: 10, color: 'rgba(255,255,255,0.6)', letterSpacing: 1, marginBottom: 4 },
+  cardPreviewValue:  { fontSize: 14, color: '#fff', fontWeight: '600', letterSpacing: 1 },
+
   orderStrip: {
     flexDirection: 'row', justifyContent: 'space-between',
     backgroundColor: '#E8F0FF', borderRadius: 12,
-    padding: 14, marginBottom: 20,
+    padding: 14, marginBottom: 12,
   },
-  orderPlan:  { fontSize: 15, fontWeight: '600', color: '#333', flex: 1, marginRight: 8 },
+  orderPlan:  { fontSize: 14, fontWeight: '600', color: '#333', flex: 1, marginRight: 8 },
   orderPrice: { fontSize: 15, fontWeight: '700', color: BLUE },
+
+  sessionDetails: {
+    backgroundColor: '#fff', borderRadius: 12,
+    padding: 12, marginBottom: 16, gap: 6,
+  },
+  sessionDetailRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  sessionDetailText: { fontSize: 13, color: '#555' },
+
   inputGroup: { marginBottom: 16 },
-  label: { fontSize: 13, fontWeight: '600', color: '#555', marginBottom: 8 },
+  label:      { fontSize: 13, fontWeight: '600', color: '#555', marginBottom: 8 },
   inputBox: {
     flexDirection: 'row', alignItems: 'center', gap: 10,
     backgroundColor: '#fff', borderRadius: 12,
@@ -252,8 +318,9 @@ const styles = StyleSheet.create({
     shadowRadius: 4, elevation: 1,
   },
   inputFocused: { borderColor: BLUE },
-  input: { flex: 1, fontSize: 16, color: '#111' },
-  row: { flexDirection: 'row' },
+  input:        { flex: 1, fontSize: 16, color: '#111' },
+  row:          { flexDirection: 'row' },
+
   payBtn: {
     backgroundColor: BLUE, borderRadius: 14,
     paddingVertical: 16, flexDirection: 'row',
@@ -264,6 +331,6 @@ const styles = StyleSheet.create({
     elevation: 5,
   },
   payBtnDisabled: { backgroundColor: '#a0b4d6', shadowOpacity: 0 },
-  payText: { fontSize: 17, fontWeight: '700', color: '#fff' },
-  secure: { textAlign: 'center', color: '#aaa', fontSize: 12, marginTop: 16 },
+  payText:        { fontSize: 17, fontWeight: '700', color: '#fff' },
+  secure:         { textAlign: 'center', color: '#aaa', fontSize: 12, marginTop: 16 },
 });
