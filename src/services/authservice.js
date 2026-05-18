@@ -16,6 +16,14 @@ export const verifyOtp = async (email, otp) => {
   });
   return response.data;
 };
+
+export const resendOtp = async (email) => {
+  const response = await api.post("/auth/resend-otp", {
+    email,
+  });
+  return response.data;
+};
+
 export const getGamificationStats = async () => {
   const response = await api.get("/gamification/stats");
   return response.data;

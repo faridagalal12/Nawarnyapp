@@ -40,7 +40,7 @@ async function tryRequest(buildConfigs) {
 }
 
 function subscriptionBaseUrls() {
-  return unique([LOCAL_DEV_BASE_URL, API_BASE_URL, LEGACY_HOSTED_BASE_URL]);
+  return unique([API_BASE_URL, LEGACY_HOSTED_BASE_URL, LOCAL_DEV_BASE_URL]);
 }
 
 export async function getCurrentSubscription() {
