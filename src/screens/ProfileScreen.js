@@ -152,6 +152,13 @@ export default function ProfileScreen({ signOut, navigation }) {
           }
 
           try {
+            const savedCoursesRes = await api.get("/users/courses/saved");
+            setSavedCourses(savedCoursesRes?.data ?? []);
+          } catch {
+            setSavedCourses([]);
+          }
+
+          try {
             const statsRes = await api.get("/learning-profile/stats");
             setLevel(statsRes?.data?.level ?? 1);
           } catch {
@@ -283,13 +290,45 @@ export default function ProfileScreen({ signOut, navigation }) {
     }
 
     // Saved courses tab for regular user
-    return (
+    return savedCourses.length === 0 ? (
       <View style={styles.emptyState}>
         <View style={styles.emptyIconBox}>
           <Ionicons name="bookmark-outline" size={26} color="#2F54EB" />
         </View>
         <Text style={styles.emptyTitle}>No saved courses yet</Text>
         <Text style={styles.emptySubtitle}>Courses you save will appear here.</Text>
+      </View>
+    ) : (
+      <View>
+        {savedCourses.map((course, i) => (
+          <TouchableOpacity
+            key={course.id ?? course.courseId ?? i}
+            style={styles.videoCard}
+            onPress={() => navigation.navigate("CourseDetail", {
+              course: {
+                id: course.id ?? course.courseId,
+                title: course.title,
+                thumbnail: course.thumbnail,
+                category: course.category,
+                description: course.description,
+                price: course.price,
+                enrolledCount: course.enrolledCount,
+                creatorId: course.creatorId,
+              },
+            })}
+          >
+            <View style={styles.videoIconBox}>
+              <Ionicons name="book-outline" size={22} color="#2F54EB" />
+            </View>
+            <View style={styles.courseInfo}>
+              <Text style={styles.courseTitle} numberOfLines={1}>{course.title}</Text>
+              <Text style={styles.courseMeta}>
+                {course.savedAt ? new Date(course.savedAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : ""}
+              </Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color="#2F54EB" />
+          </TouchableOpacity>
+        ))}
       </View>
     );
   };

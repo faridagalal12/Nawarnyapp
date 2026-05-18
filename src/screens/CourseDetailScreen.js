@@ -22,6 +22,8 @@ export default function CourseDetailScreen({ route, navigation }) {
   const [videoModal, setVideoModal] = useState(false);
   const [activeVideo, setActiveVideo] = useState(null);
   const [isEnrolled, setIsEnrolled] = useState(false);
+  const [isSaved, setIsSaved] = useState(false);
+  const [savingCourse, setSavingCourse] = useState(false);
   const videoRef = useRef(null);
 
   useEffect(() => {
@@ -30,6 +32,7 @@ export default function CourseDetailScreen({ route, navigation }) {
         const res = await api.get(`/courses/${courseId}`);
         setDetail(res.data);
         setIsEnrolled(res.data.isEnrolled ?? false);
+        setIsSaved(res.data.isSaved ?? false);
       } catch (err) {
         console.log('Failed to load course detail:', err?.message);
       } finally {
@@ -69,6 +72,20 @@ const enrolled = isEnrolled;
 
   const openFile = (fileUrl) => {
     Linking.openURL(fileUrl);
+  };
+
+  const handleToggleSave = async () => {
+    if (!courseId || savingCourse) return;
+    setSavingCourse(true);
+    try {
+      const res = await api.post(`/courses/${courseId}/save`);
+      const nextSaved = res?.data?.saved ?? !isSaved;
+      setIsSaved(nextSaved);
+    } catch (err) {
+      console.log("Save course error:", err?.response?.data ?? err?.message);
+    } finally {
+      setSavingCourse(false);
+    }
   };
 
   return (
@@ -119,8 +136,16 @@ const enrolled = isEnrolled;
           <Pressable style={styles.heroBtn} onPress={() => navigation.goBack()}>
             <Ionicons name="chevron-back" size={20} color="#000" />
           </Pressable>
-          <Pressable style={[styles.heroBtn, styles.heroBtnRight]}>
-            <Ionicons name="bookmark-outline" size={18} color="#000" />
+          <Pressable
+            style={[styles.heroBtn, styles.heroBtnRight]}
+            onPress={handleToggleSave}
+            disabled={savingCourse}
+          >
+            <Ionicons
+              name={isSaved ? "bookmark" : "bookmark-outline"}
+              size={18}
+              color={isSaved ? "#2F54EB" : "#000"}
+            />
           </Pressable>
           <View style={styles.heroBadge}>
             <Text style={styles.heroBadgeText}>{data.category ?? ''}</Text>

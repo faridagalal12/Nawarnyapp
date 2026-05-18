@@ -153,7 +153,6 @@ function NotesModal({ visible, onClose, videoTitle, videoId }) {
 // ── VideoItem ─────────────────────────────────────────────────────────────────
 function VideoItem({ item, isActive, navigation }) {
   const [liked,     setLiked]     = useState(item.isLiked ?? false);
-  const [saved,     setSaved]     = useState(false);
   const [followed,  setFollowed]  = useState(false);
   const [likes,     setLikes]     = useState(item.likesCount ?? 0);
   const [progress,  setProgress]  = useState(0);
@@ -165,6 +164,7 @@ function VideoItem({ item, isActive, navigation }) {
   const iconScale   = useRef(new Animated.Value(0.5)).current;
 
   const cat  = getCat(item.subject ?? item.category);
+  const creatorAvatar = item.creator?.avatarUrl ?? item.educatorAvatar ?? null;
 
   const player = useVideoPlayer(
     item.videoUrl ? { uri: item.videoUrl } : null,
@@ -277,15 +277,6 @@ function VideoItem({ item, isActive, navigation }) {
           <Ionicons name="create-outline" size={30} color="#fff" />
           <Text style={[styles.actionLabel, S]}>Notes</Text>
         </TouchableOpacity>
-
-        <TouchableOpacity onPress={() => setSaved(v => !v)} style={styles.actionBtn}>
-          <Ionicons
-            name={saved ? "bookmark" : "bookmark-outline"}
-            size={30}
-            color={saved ? "#1a5ff5" : "#fff"}
-          />
-          <Text style={[styles.actionLabel, S]}>Save</Text>
-        </TouchableOpacity>
       </View>
 
       {/* ── bottom content ── */}
@@ -298,8 +289,8 @@ function VideoItem({ item, isActive, navigation }) {
               if (creatorId) navigation.navigate("PublicProfile", { creatorId });
             }}
           >
-            {item.educatorAvatar ? (
-              <Image source={{ uri: item.educatorAvatar }} style={styles.avatarImg} />
+            {creatorAvatar ? (
+              <Image source={{ uri: creatorAvatar }} style={styles.avatarImg} />
             ) : (
               <View style={styles.avatarFallback}>
                 <Ionicons name="person" size={24} color="#fff" />
