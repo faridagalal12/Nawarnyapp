@@ -7,6 +7,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons, Feather } from '@expo/vector-icons';
 import api from '../services/api';
+import { toggleCreatorFollow } from '../services/creatorFollow';
 
 export default function AllCreatorsScreen({ navigation }) {
   const [creators, setCreators]   = useState([]);
@@ -53,8 +54,7 @@ export default function AllCreatorsScreen({ navigation }) {
     const isFollowed = followed[creatorId];
     setFollowed(prev => ({ ...prev, [creatorId]: !isFollowed }));
     try {
-      if (isFollowed) await api.delete(`/creators/${creatorId}/follow`);
-      else            await api.post(`/creators/${creatorId}/follow`);
+      await toggleCreatorFollow(creatorId, !isFollowed);
     } catch (err) {
       console.log('Follow toggle failed:', err?.response?.data ?? err?.message);
       setFollowed(prev => ({ ...prev, [creatorId]: isFollowed }));

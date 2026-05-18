@@ -5,6 +5,7 @@ import {
 } from "react-native";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import api from "../services/api";
+import { toggleCreatorFollow } from "../services/creatorFollow";
 
 const { width } = Dimensions.get("window");
 const THUMB_SIZE = (width - 48) / 3;
@@ -111,8 +112,7 @@ export default function PublicProfileScreen({ route, navigation }) {
     const next = !followed;
     setFollowed(next);
     try {
-      if (next) await api.post(`/creators/${creatorId}/follow`);
-      else      await api.delete(`/creators/${creatorId}/follow`);
+      await toggleCreatorFollow(creatorId, next);
     } catch (err) {
       console.log('Follow toggle failed:', err?.response?.data ?? err?.message);
       setFollowed(!next);

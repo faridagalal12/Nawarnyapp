@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -17,12 +17,24 @@ export default function SearchScreen({ navigation }) {
   const [query, setQuery] = useState("");
   const [activeTab, setActiveTab] = useState("all");
   const [loading, setLoading] = useState(false);
+  const [currentUserId, setCurrentUserId] = useState(null);
   const [results, setResults] = useState({
     videos: [],
     topics: [],
     users: [],
     courses: [],
   });
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const response = await api.get("/users/me/profile/editable");
+        setCurrentUserId(response?.data?._id ?? response?.data?.id ?? null);
+      } catch (err) {
+        console.log("Failed to load current user:", err?.message);
+      }
+    })();
+  }, []);
 
   const search = async (text) => {
     setQuery(text);
@@ -73,10 +85,19 @@ export default function SearchScreen({ navigation }) {
     </TouchableOpacity>
   );
 
+  const openUserProfile = (item) => {
+    const userId = item.objectID ?? item.id ?? item._id;
+    if (currentUserId && String(userId) === String(currentUserId)) {
+      navigation.navigate("Tabs", { screen: "Profile" });
+      return;
+    }
+    navigation.navigate("PublicProfile", { creatorId: userId });
+  };
+
   const renderUser = ({ item }) => (
     <TouchableOpacity 
       style={styles.resultItem}
-onPress={() => navigation.navigate("PublicProfile", { creatorId: item.objectID })}>
+      onPress={() => openUserProfile(item)}>
       <View style={styles.avatarPlaceholder}>
         <Ionicons name="person" size={24} color="#fff" />
       </View>

@@ -5,8 +5,10 @@ import {
   Pressable, StatusBar, Image, ActivityIndicator, Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons, Feather } from '@expo/vector-icons';
 import api from '../services/api';
+import { toggleCreatorFollow } from '../services/creatorFollow';
 
 const CATEGORIES = ['All', 'Design', 'Technology', 'Business', 'Science', 'Mathematics'];
 
@@ -35,36 +37,43 @@ export default function CoursesBrowseScreen({ navigation }) {
     }
   }, [activeCat, query]);
 
+  const fetchCreators = useCallback(async () => {
+    try {
+      setCreatorsLoading(true);
+      const res = await api.get('/creator/trending');
+      const creatorList = res.data ?? [];
+      setCreators(creatorList);
+      setFollowed(
+        creatorList.reduce((acc, creator) => {
+          const id = creator.id ?? creator._id;
+          if (id) acc[id] = !!(creator.isFollowed ?? creator.followed);
+          return acc;
+        }, {})
+      );
+    } catch (err) {
+      console.log('Failed to fetch creators:', err?.message);
+      setCreators([]);
+    } finally {
+      setCreatorsLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
     fetchCourses();
-    (async () => {
-      try {
-        setCreatorsLoading(true);
-        const res = await api.get('/creator/trending');
-        const creatorList = res.data ?? [];
-        setCreators(creatorList);
-        setFollowed(
-          creatorList.reduce((acc, creator) => {
-            const id = creator.id ?? creator._id;
-            if (id) acc[id] = !!(creator.isFollowed ?? creator.followed);
-            return acc;
-          }, {})
-        );
-      } catch (err) {
-        console.log('Failed to fetch creators:', err?.message);
-        setCreators([]);
-      } finally {
-        setCreatorsLoading(false);
-      }
-    })();
-  }, [fetchCourses]);
+    fetchCreators();
+  }, [fetchCourses, fetchCreators]);
+
+  useFocusEffect(
+    useCallback(() => {
+      fetchCreators();
+    }, [fetchCreators])
+  );
 
   const handleFollow = async (creatorId) => {
     const isFollowed = followed[creatorId];
     setFollowed(prev => ({ ...prev, [creatorId]: !isFollowed }));
     try {
-      if (isFollowed) await api.delete(`/creators/${creatorId}/follow`);
-      else            await api.post(`/creators/${creatorId}/follow`);
+      await toggleCreatorFollow(creatorId, !isFollowed);
     } catch (err) {
       console.log('Follow toggle failed:', err?.response?.data ?? err?.message);
       setFollowed(prev => ({ ...prev, [creatorId]: isFollowed }));

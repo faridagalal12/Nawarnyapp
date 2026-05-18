@@ -10,10 +10,22 @@ export default function CoursesSearchScreen({ route, navigation }) {
   const [query, setQuery] = useState(route?.params?.query ?? "");
   const [activeTab, setActiveTab] = useState("all");
   const [loading, setLoading] = useState(false);
+  const [currentUserId, setCurrentUserId] = useState(null);
   const [results, setResults] = useState({ courses: [], users: [] });
 
   useEffect(() => {
     if (query.trim().length >= 3) search(query);
+  }, []);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const response = await api.get("/users/me/profile/editable");
+        setCurrentUserId(response?.data?._id ?? response?.data?.id ?? null);
+      } catch (err) {
+        console.log("Failed to load current user:", err?.message);
+      }
+    })();
   }, []);
 
   const search = async (text) => {
@@ -49,6 +61,15 @@ export default function CoursesSearchScreen({ route, navigation }) {
     ];
   };
 
+  const openUserProfile = (item) => {
+    const userId = item.objectID ?? item.id ?? item._id;
+    if (currentUserId && String(userId) === String(currentUserId)) {
+      navigation.navigate("Tabs", { screen: "Profile" });
+      return;
+    }
+    navigation.navigate("PublicProfile", { creatorId: userId });
+  };
+
   const renderItem = ({ item }) => {
     if (item._type === "course") {
       return (
@@ -64,7 +85,7 @@ export default function CoursesSearchScreen({ route, navigation }) {
       );
     }
     return (
-      <TouchableOpacity style={styles.resultItem}>
+      <TouchableOpacity style={styles.resultItem} onPress={() => openUserProfile(item)}>
         <View style={styles.avatarPlaceholder}>
           <Ionicons name="person" size={24} color="#fff" />
         </View>
