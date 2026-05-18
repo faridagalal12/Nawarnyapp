@@ -151,7 +151,7 @@ function NotesModal({ visible, onClose, videoTitle, videoId }) {
 // ── VideoItem ─────────────────────────────────────────────────────────────────
 function VideoItem({ item, isActive, navigation }) {
     const [liked,     setLiked]     = useState(item.isLiked ?? false);
-  const [saved,     setSaved]     = useState(false);
+ const [saved, setSaved] = useState(item.isSaved ?? false);
   const [followed,  setFollowed]  = useState(false);
   const [likes,     setLikes]     = useState(item.likesCount ?? 0);
   const [progress,  setProgress]  = useState(0);
@@ -238,6 +238,16 @@ function VideoItem({ item, isActive, navigation }) {
       setLikes(n => n + (next ? -1 : 1));
     }
   };
+  const handleSave = async () => {
+  const next = !saved;
+  setSaved(next);
+  try {
+    await api.post(`/videos/${item.id}/save`);
+    if (next) api.post("/learning-profile/award-xp", { action: "SAVE_VIDEO" }).catch(() => {});
+  } catch {
+    setSaved(!next); // revert on failure
+  }
+};
 
   return (
     <View style={styles.videoContainer}>
@@ -281,14 +291,14 @@ function VideoItem({ item, isActive, navigation }) {
           <Text style={[styles.actionLabel, S]}>Notes</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity onPress={() => setSaved(v => !v)} style={styles.actionBtn}>
-          <Ionicons
-            name={saved ? "bookmark" : "bookmark-outline"}
-            size={30}
-            color={saved ? "#1a5ff5" : "#fff"}
-          />
-          <Text style={[styles.actionLabel, S]}>Save</Text>
-        </TouchableOpacity>
+        <TouchableOpacity onPress={handleSave} style={styles.actionBtn}>
+  <Ionicons
+    name={saved ? "bookmark" : "bookmark-outline"}
+    size={30}
+    color={saved ? "#1a5ff5" : "#fff"}
+  />
+  <Text style={[styles.actionLabel, S]}>Save</Text>
+</TouchableOpacity>
       </View>
 
       {/* ── bottom content ── */}

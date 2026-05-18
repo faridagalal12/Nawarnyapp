@@ -14,6 +14,9 @@ import UploadCourseScreen from "../screens/AddPosts/UploadCourseScreen";
 import EditCourseScreen from "../screens/AddPosts/EditCourseScreen";
 import CreatorDashboardScreen from "../screens/CreatorDashboardScreen";
 import GMissionLeaderboardScreen from "../screens/Gamification/GMissionLeaderboardScreen";
+import AvailableSlotsScreen from '../screens/AvailableSlotsScreen';
+import SessionBookedScreen  from '../screens/SessionBookedScreen';
+
 
 
 const Stack = createNativeStackNavigator();
@@ -95,7 +98,21 @@ export default function ProfileStack({ signOut }) {
         component={PublicProfileScreen}
         options={{ headerShown: false }}
       />
+
+      <Stack.Screen
+  name="AvailableSlots"
+  component={AvailableSlotsScreen}
+  options={{ headerShown: false }}
+/>
+<Stack.Screen
+  name="SessionBooked"
+  component={SessionBookedScreen}
+  options={{ headerShown: false, gestureEnabled: false }}
+/>
+
     </Stack.Navigator>
+
+    
     
   );
 }

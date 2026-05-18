@@ -65,16 +65,24 @@ function CourseCard({ item }) {
 
 // ── Main screen ───────────────────────────────────────────────────────────────
 export default function PublicProfileScreen({ route, navigation }) {
-  const { creatorId } = route.params;
+  // Pull both creatorId and the fallback data passed from the card
+  const {
+    creatorId,
+    creatorName,
+    creatorField,
+    color,
+    textColor,
+  } = route.params;
 
-  const [profile, setProfile]  = useState(null);
-  const [videos,  setVideos]   = useState([]);
-  const [courses, setCourses]  = useState([]);
-  const [loading, setLoading]  = useState(true);
+  const [profile,   setProfile]   = useState(null);
+  const [videos,    setVideos]    = useState([]);
+  const [courses,   setCourses]   = useState([]);
+  const [loading,   setLoading]   = useState(true);
   const [activeTab, setActiveTab] = useState(0);
+  const [followed,  setFollowed]  = useState(false);
 
   useEffect(() => {
-    const fetchData = async () => {
+    (async () => {
       try {
         const [profileRes, videosRes, coursesRes] = await Promise.all([
           api.get(`/users/${creatorId}/profile`),
@@ -82,6 +90,7 @@ export default function PublicProfileScreen({ route, navigation }) {
           api.get(`/creator/${creatorId}/courses`),
         ]);
         setProfile(profileRes?.data);
+        setFollowed(profileRes?.data?.isFollowed ?? false);
         setVideos(videosRes?.data ?? []);
         setCourses(coursesRes?.data ?? []);
       } catch (err) {
@@ -89,9 +98,37 @@ export default function PublicProfileScreen({ route, navigation }) {
       } finally {
         setLoading(false);
       }
-    };
-    fetchData();
+    })();
   }, [creatorId]);
+
+  // Use API data if available, fall back to params passed from the card
+  const displayName  = profile?.name  ?? creatorName  ?? "Creator";
+  const displayField = profile?.bio   ?? creatorField  ?? "Instructor";
+  const displayColor    = color     ?? "#e8eeff";
+  const displayTextColor= textColor ?? "#2F54EB";
+
+  const handleFollow = async () => {
+    const next = !followed;
+    setFollowed(next);
+    try {
+      if (next) await api.post(`/creators/${creatorId}/follow`);
+      else      await api.delete(`/creators/${creatorId}/follow`);
+    } catch {
+      setFollowed(!next);
+    }
+  };
+
+  const handleBookSession = () => {
+    navigation.navigate("AvailableSlots", {
+      creator: {
+        id:        creatorId,
+        name:      displayName,
+        field:     displayField,
+        color:     displayColor,
+        textColor: displayTextColor,
+      },
+    });
+  };
 
   if (loading) {
     return (
@@ -110,9 +147,7 @@ export default function PublicProfileScreen({ route, navigation }) {
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
           <Ionicons name="chevron-back" size={24} color="#fff" />
         </TouchableOpacity>
-        <Text style={styles.navTitle} numberOfLines={1}>
-          {profile?.name ?? "Creator"}
-        </Text>
+        <Text style={styles.navTitle} numberOfLines={1}>{displayName}</Text>
         <View style={{ width: 40 }} />
       </View>
 
@@ -120,20 +155,41 @@ export default function PublicProfileScreen({ route, navigation }) {
 
         {/* Profile header */}
         <View style={styles.profileHeader}>
-          <View style={styles.avatarCircle}>
+          <View style={[styles.avatarCircle, { borderColor: displayTextColor }]}>
             {profile?.avatarUrl ? (
               <Image source={{ uri: profile.avatarUrl }} style={styles.avatarImg} />
             ) : (
-              <Ionicons name="person" size={36} color="#0066FF" />
+              <View style={[styles.avatarInner, { backgroundColor: displayColor }]}>
+                <Text style={[styles.avatarInitials, { color: displayTextColor }]}>
+                  {displayName.slice(0, 2).toUpperCase()}
+                </Text>
+              </View>
             )}
           </View>
-          <Text style={styles.name}>{profile?.name ?? "—"}</Text>
+
+          <Text style={styles.name}>{displayName}</Text>
           {!!profile?.username && (
             <Text style={styles.username}>@{profile.username}</Text>
           )}
-          {!!profile?.bio && (
-            <Text style={styles.bio}>{profile.bio}</Text>
+          {!!displayField && (
+            <Text style={styles.bio}>{displayField}</Text>
           )}
+
+          {/* Follow button */}
+          <TouchableOpacity
+            style={[styles.followBtn, followed && styles.followBtnActive]}
+            onPress={handleFollow}
+            activeOpacity={0.85}
+          >
+            <Ionicons
+              name={followed ? "checkmark" : "add"}
+              size={16}
+              color={followed ? "#2F54EB" : "#fff"}
+            />
+            <Text style={[styles.followBtnText, followed && styles.followBtnTextActive]}>
+              {followed ? "Following" : "Follow"}
+            </Text>
+          </TouchableOpacity>
 
           {/* Stats */}
           <View style={styles.statsRow}>
@@ -216,6 +272,16 @@ export default function PublicProfileScreen({ route, navigation }) {
           </View>
         )}
 
+        {/* ── Book a Session button ── */}
+        <TouchableOpacity
+          style={styles.bookBtn}
+          onPress={handleBookSession}
+          activeOpacity={0.85}
+        >
+          <Ionicons name="calendar-outline" size={18} color="#fff" />
+          <Text style={styles.bookBtnText}>Book a Session</Text>
+        </TouchableOpacity>
+
       </ScrollView>
     </SafeAreaView>
   );
@@ -237,17 +303,32 @@ const styles = StyleSheet.create({
   profileHeader: { alignItems: "center", paddingTop: 24, paddingBottom: 8 },
   avatarCircle: {
     width: 90, height: 90, borderRadius: 45,
-    backgroundColor: "#EEF4FF", alignItems: "center",
-    justifyContent: "center", marginBottom: 12,
+    overflow: "hidden", marginBottom: 12,
     borderWidth: 3, borderColor: "#0066FF",
   },
   avatarImg: { width: 90, height: 90, borderRadius: 45 },
+  avatarInner: {
+    width: "100%", height: "100%",
+    justifyContent: "center", alignItems: "center",
+  },
+  avatarInitials: { fontSize: 28, fontWeight: "800" },
+
   name:     { fontSize: 20, fontWeight: "800", color: "#1E293B" },
   username: { fontSize: 14, color: "#64748B", marginTop: 2 },
   bio: {
     fontSize: 13, color: "#64748B", textAlign: "center",
-    marginTop: 8, marginHorizontal: 32, lineHeight: 18,
+    marginTop: 6, marginHorizontal: 32, lineHeight: 18,
   },
+
+  followBtn: {
+    flexDirection: "row", alignItems: "center", gap: 6,
+    backgroundColor: "#2F54EB", borderRadius: 24,
+    paddingHorizontal: 24, paddingVertical: 9,
+    marginTop: 14, borderWidth: 1.5, borderColor: "#2F54EB",
+  },
+  followBtnActive:     { backgroundColor: "#fff" },
+  followBtnText:       { color: "#fff", fontSize: 14, fontWeight: "600" },
+  followBtnTextActive: { color: "#2F54EB" },
 
   statsRow: {
     flexDirection: "row", alignItems: "center",
@@ -272,9 +353,9 @@ const styles = StyleSheet.create({
     justifyContent: "center", gap: 6,
     paddingVertical: 12, borderBottomWidth: 2, borderBottomColor: "transparent",
   },
-  tabBtnActive:  { borderBottomColor: "#2F54EB" },
-  tabLabel:      { fontSize: 13, fontWeight: "600", color: "#888" },
-  tabLabelActive:{ color: "#2F54EB" },
+  tabBtnActive:   { borderBottomColor: "#2F54EB" },
+  tabLabel:       { fontSize: 13, fontWeight: "600", color: "#888" },
+  tabLabelActive: { color: "#2F54EB" },
 
   tabContent: { marginHorizontal: 16, marginTop: 14 },
 
@@ -318,4 +399,13 @@ const styles = StyleSheet.create({
 
   empty:     { alignItems: "center", marginTop: 40, gap: 10, paddingBottom: 20 },
   emptyText: { color: "#94A3B8", fontSize: 14 },
+
+  bookBtn: {
+    flexDirection: "row", alignItems: "center",
+    justifyContent: "center", gap: 8,
+    backgroundColor: "#2F54EB", borderRadius: 14,
+    paddingVertical: 14, marginHorizontal: 16,
+    marginTop: 24, marginBottom: 8,
+  },
+  bookBtnText: { color: "#fff", fontSize: 15, fontWeight: "700" },
 });
