@@ -1,4 +1,5 @@
 import * as React from "react";
+import { ActivityIndicator, View } from "react-native";
 
 import { NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
@@ -169,10 +170,10 @@ export default function App() {
         }
       } catch (e) {}
 
+      setAuthToken(userToken);
       dispatch({ type: "RESTORE_TOKEN", token: userToken });
       dispatch({ type: "SET_QUIZ_COMPLETED", value: quizCompleted });
       dispatch({ type: "SET_PENDING_VERIFY_EMAIL", value: pendingVerificationEmail || null });
-      setAuthToken(userToken);
       if (userToken) {
         await refreshProfile();
         api.post("/learning-profile/award-xp", { action: "DAILY_LOGIN" }).catch(() => {});
@@ -255,6 +256,14 @@ export default function App() {
       }
     }
   }, [state.userToken, state.isVerified, state.quizCompleted]);
+
+  if (state.isLoading) {
+    return (
+      <View style={{ flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: "#FFFFFF" }}>
+        <ActivityIndicator size="large" color="#3B82F6" />
+      </View>
+    );
+  }
 
   return (
     <AuthContext.Provider value={authContext}>

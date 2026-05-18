@@ -22,6 +22,7 @@ import { VideoView, useVideoPlayer } from "expo-video";
 import { Ionicons } from "@expo/vector-icons";
 import api from "../services/api";
 import MockBannerAd from './ads/MockBannerAd';
+import { getCurrentSubscription } from "../services/subscriptionApi";
 
 const { height, width } = Dimensions.get("window");
 
@@ -419,7 +420,7 @@ export default function Reels({ navigation }) {
           const [feedRes, meRes, subRes] = await Promise.allSettled([
             api.get("/videos/feed?limit=50"),
             api.get("/users/me/profile/editable"),
-            api.get("/subscriptions/current"),
+            getCurrentSubscription(),
           ]);
           if (feedRes.status !== "fulfilled" || meRes.status !== "fulfilled") {
             throw (feedRes.status === "rejected" ? feedRes.reason : meRes.reason);

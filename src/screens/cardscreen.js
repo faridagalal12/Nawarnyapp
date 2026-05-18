@@ -8,6 +8,7 @@ import * as SecureStore from 'expo-secure-store';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import api from '../services/api';
 import { TOKEN_KEY } from '../constants/authKeys';
+import { subscribeToPlan } from '../services/subscriptionApi';
 
 const BLUE = '#0066FF';
 
@@ -136,7 +137,7 @@ export default function CardScreen({ navigation, route }) {
       } else {
         // ── Subscription payment ──
         const normalizedPlanId = planId ?? (plan.toLowerCase() === 'free' ? 'basic' : plan.toLowerCase());
-        await api.post('/subscriptions/subscribe', { plan: normalizedPlanId });
+        await subscribeToPlan(normalizedPlanId);
         Alert.alert('Payment Successful 🎉', `You are now subscribed to the ${normalizedPlanId === 'pro' ? 'Pro' : 'Free'} plan!`, [
           { text: 'Done', onPress: () => navigation.popToTop() },
         ]);
@@ -151,6 +152,15 @@ export default function CardScreen({ navigation, route }) {
         Alert.alert(
           'Subscription Unavailable',
           'The backend you are connected to does not have subscription payment routes yet. Please restart or deploy the backend with the latest subscription changes.',
+          [{ text: 'OK', onPress: () => navigation.goBack() }]
+        );
+        return;
+      }
+
+      if (!isSession && !isCourse && status === 401) {
+        Alert.alert(
+          'Login Required',
+          'Your session expired while updating the subscription. Please log in again and retry.',
           [{ text: 'OK', onPress: () => navigation.goBack() }]
         );
         return;

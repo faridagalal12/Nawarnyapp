@@ -7,6 +7,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import api from '../services/api';
+import { getCurrentSubscription } from '../services/subscriptionApi';
 
 const SESSION_TYPES = [
   { id: 'review',   label: 'Code Review',      duration: '30 min', price: 400, icon: 'code-slash-outline' },
@@ -41,7 +42,7 @@ export default function AvailableSlotsScreen({ route, navigation }) {
   useEffect(() => {
     (async () => {
       try {
-        const res = await api.get('/subscriptions/current');
+        const res = await getCurrentSubscription();
         setSessionDiscountPct(res?.data?.benefits?.sessionDiscountPct ?? 0);
       } catch {
         setSessionDiscountPct(0);

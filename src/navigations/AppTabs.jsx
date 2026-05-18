@@ -72,6 +72,12 @@ export default function MyTabs({ signOut }) {
       />
       <Tab.Screen
         name="Profile"
+        listeners={({ navigation }) => ({
+          tabPress: (e) => {
+            e.preventDefault();
+            navigation.navigate("Profile", { screen: "ProfileMain" });
+          },
+        })}
         options={{
           headerShown: false,
           tabBarIcon: ({ color, size }) => (

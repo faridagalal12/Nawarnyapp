@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import React, { useCallback, useState } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
 import {
   View, Text, StyleSheet, TouchableOpacity,
   ScrollView, SafeAreaView, StatusBar,
 } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import api from '../services/api';
+import { getCurrentSubscription, subscribeToPlan } from '../services/subscriptionApi';
 
 const BLUE = '#0066FF';
 
@@ -42,17 +43,24 @@ export default function SubscriptionScreen({ navigation }) {
   const [currentPlan, setCurrentPlan] = useState(null);
   const [submitting, setSubmitting] = useState(false);
 
-  React.useEffect(() => {
-    api.get('/subscriptions/current').then(res => {
+  const loadCurrentSubscription = useCallback(async () => {
+    try {
+      const res = await getCurrentSubscription();
       const rawPlan = res?.data?.plan ?? 'basic';
       const plan = rawPlan === 'starter' ? 'pro' : rawPlan;
       setCurrentPlan(plan);
       setSelected(plan);
-    }).catch(() => {
+    } catch {
       setCurrentPlan('basic');
       setSelected('basic');
-    });
+    }
   }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      loadCurrentSubscription();
+    }, [loadCurrentSubscription])
+  );
 
   const handleChoose = async (plan) => {
     if (!plan || submitting) return;
@@ -60,7 +68,7 @@ export default function SubscriptionScreen({ navigation }) {
     if (plan.isFree) {
       try {
         setSubmitting(true);
-        await api.post('/subscriptions/subscribe', { plan: 'basic' });
+        await subscribeToPlan('basic');
         setCurrentPlan('basic');
         setSelected('basic');
         navigation.goBack();
