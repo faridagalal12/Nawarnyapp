@@ -52,7 +52,7 @@ export default function CourseDetailScreen({ route, navigation }) {
 
   const handleEnroll = async () => {
     const price = data.price ?? 0;
-    if (price === 0) {
+    if (price === 0 || data.canUseProFreeCourse) {
       try {
         await api.post('/courses/enroll', { courseId });
         setIsEnrolled(true);
@@ -354,6 +354,11 @@ export default function CourseDetailScreen({ route, navigation }) {
           <View style={{ flex: 1 }}>
             {(data.price ?? 0) === 0 ? (
               <Text style={styles.priceFree}>Free</Text>
+            ) : data.canUseProFreeCourse ? (
+              <>
+                <Text style={styles.priceStrike}>EGP {data.originalPrice ?? data.price}</Text>
+                <Text style={styles.priceAmount}>Free with Pro</Text>
+              </>
             ) : (
               <>
                 <Text style={styles.priceStrike}>EGP {data.originalPrice ?? data.price}</Text>
@@ -363,7 +368,11 @@ export default function CourseDetailScreen({ route, navigation }) {
           </View>
           <Pressable style={styles.enrollBtn} onPress={handleEnroll}>
             <Text style={styles.enrollText}>
-              {(data.price ?? 0) === 0 ? 'Enroll Free →' : 'Buy Now →'}
+              {(data.price ?? 0) === 0
+                ? 'Enroll Free →'
+                : data.canUseProFreeCourse
+                  ? 'Use Pro Free Course →'
+                  : 'Buy Now →'}
             </Text>
           </Pressable>
         </View>

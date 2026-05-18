@@ -4,6 +4,7 @@ import ProfileScreen from "../screens/ProfileScreen";
 import EditProfileScreen from "../screens/EditProfileScreen";
 import LearningProfileScreen from "../screens/learningProfileScreen";
 import SubscriptionScreen from "../screens/SubscriptionScreen";
+import PaymentScreen from "../screens/paymentscreen";
 import cardscreen from "../screens/cardscreen";
 import ContactSupportScreen from "../screens/ContactSupportScreen";
 import AboutAppScreen from "../screens/AboutAppScreen";
@@ -44,6 +45,11 @@ export default function ProfileStack({ signOut }) {
       <Stack.Screen
         name="Subscription"
         component={SubscriptionScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="Payment"
+        component={PaymentScreen}
         options={{ headerShown: false }}
       />
     

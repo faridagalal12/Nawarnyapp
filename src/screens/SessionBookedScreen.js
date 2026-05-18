@@ -19,7 +19,7 @@ function ConfirmRow({ icon, text }) {
 }
 
 export default function SessionBookedScreen({ route, navigation }) {
-  const { creator, sessionType, day, slot } = route.params;
+  const { creator, sessionType, day, slot, finalPrice } = route.params;
 
   const scaleAnim   = useRef(new Animated.Value(0)).current;
   const opacityAnim = useRef(new Animated.Value(0)).current;
@@ -70,7 +70,7 @@ export default function SessionBookedScreen({ route, navigation }) {
           <ConfirmRow icon="calendar-outline"          text={day} />
           <ConfirmRow icon="time-outline"              text={`${slot.time} (Cairo)`} />
           <ConfirmRow icon="videocam-outline"          text="Link sent 10 min before session" />
-          <ConfirmRow icon="shield-checkmark-outline"  text={`EGP ${sessionType.price}.00 charged securely`} />
+          <ConfirmRow icon="shield-checkmark-outline"  text={`EGP ${finalPrice ?? sessionType.price}.00 charged securely`} />
         </Animated.View>
 
         {/* Buttons */}

@@ -21,6 +21,7 @@ import {
 import { VideoView, useVideoPlayer } from "expo-video";
 import { Ionicons } from "@expo/vector-icons";
 import api from "../services/api";
+import MockBannerAd from './ads/MockBannerAd';
 
 const { height, width } = Dimensions.get("window");
 
@@ -406,6 +407,7 @@ export default function Reels({ navigation }) {
   const [screenFocused,  setScreenFocused]  = useState(true);
   const [unreadCount,    setUnreadCount]    = useState(0);
   const [currentUserId,  setCurrentUserId]  = useState(null);
+  const [adsEnabled,     setAdsEnabled]     = useState(true);
 
   // ── fetch unread notification count + screen focus ──
   useFocusEffect(
@@ -414,16 +416,24 @@ export default function Reels({ navigation }) {
       setLoading(true);
       (async () => {
         try {
-          const [feedRes, meRes] = await Promise.all([
+          const [feedRes, meRes, subRes] = await Promise.allSettled([
             api.get("/videos/feed?limit=50"),
             api.get("/users/me/profile/editable"),
+            api.get("/subscriptions/current"),
           ]);
-          const res = feedRes;
-          const fetched = res?.data?.videos ?? [];
-          setCurrentUserId(meRes?.data?._id ?? null);
+          if (feedRes.status !== "fulfilled" || meRes.status !== "fulfilled") {
+            throw (feedRes.status === "rejected" ? feedRes.reason : meRes.reason);
+          }
+
+          const fetched = feedRes.value?.data?.videos ?? [];
+          const me = meRes.value?.data ?? null;
+          const benefits = subRes.status === "fulfilled" ? subRes.value?.data?.benefits : null;
+
+          setAdsEnabled(!(benefits?.adsFree));
+          setCurrentUserId(me?._id ?? null);
           const fixed = fetched.map(v => ({
             ...v,
-            currentUserId: meRes?.data?._id ?? null,
+            currentUserId: me?._id ?? null,
             videoUrl: v.videoUrl?.includes(".MOV") || v.videoUrl?.includes(".mov")
               ? v.videoUrl + "?t=" + Date.now()
               : v.videoUrl,
@@ -473,10 +483,14 @@ export default function Reels({ navigation }) {
     }
   };
 
-  const handleEndReached = () => {
+ const handleEndReached = () => {
     if (originalVideos.length === 0) return;
     setVideos(prev => [...prev, ...shuffle(originalVideos)]);
   };
+
+  const openSubscription = useCallback(() => {
+    navigation.navigate("Profile", { screen: "Subscription" });
+  }, [navigation]);
 
   if (loading) {
     return (
@@ -510,8 +524,12 @@ return (
       )}
       <View style={{flex:1}}>
     <FlatList
-      data={videos}
-      keyExtractor={(item, index) => `${item.id}-${index}`}
+      data={videos.reduce((acc, video, i) => {
+        acc.push(video);
+        if (adsEnabled && (i + 1) % 3 === 0) acc.push({ id: `ad-${i}`, isAd: true });
+        return acc;
+      }, [])}
+      keyExtractor={(item, index) => item.isAd ? `ad-${index}` : `${item.id}-${index}`}
       pagingEnabled
       snapToInterval={height}
       snapToAlignment="start"
@@ -532,7 +550,9 @@ return (
         />
       }
       renderItem={({ item, index }) => (
-        <VideoItem item={item} isActive={index === activeIndex && screenFocused} navigation={navigation} />
+        item.isAd
+          ? <MockBannerAd onStartFree={openSubscription} />
+          : <VideoItem item={item} isActive={index === activeIndex && screenFocused} navigation={navigation} />
       )}
    />
     {/* ── floating bell button ── */}

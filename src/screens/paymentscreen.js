@@ -13,7 +13,7 @@ const methods = [
 
 export default function PaymentScreen({ navigation, route }) {
   // ── destructure session too ──
-  const { course, plan, price, session } = route.params;
+  const { course, plan, planId, price, session } = route.params;
 
   const isSession = !!session;
 
@@ -22,7 +22,7 @@ export default function PaymentScreen({ navigation, route }) {
     : course?.title ?? `${plan ?? ''} Plan`;
 
   const displayPrice = isSession
-    ? `EGP ${session.sessionType?.price ?? 0}.00`
+    ? `EGP ${session.finalPrice ?? session.sessionType?.price ?? 0}.00`
     : course?.price
       ? `EGP ${course.price}`
       : (price ?? '');
@@ -32,7 +32,7 @@ export default function PaymentScreen({ navigation, route }) {
   const handleConfirm = () => {
     if (selected === 'card') {
       // pass all params including session through to card screen
-      navigation.navigate('Card', { course, plan, price, session });
+      navigation.navigate('Card', { course, plan, planId, price, session });
     } else {
       if (isSession) {
         Alert.alert('Session Booked! 🎉', `Your session is confirmed!`, [

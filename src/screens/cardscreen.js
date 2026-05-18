@@ -22,7 +22,7 @@ function formatExpiry(val) {
 }
 
 export default function CardScreen({ navigation, route }) {
-  const { course, plan, price, session } = route?.params ?? {};
+  const { course, plan, planId, price, session } = route?.params ?? {};
 
   const getLearnerId = async () => {
     try {
@@ -72,7 +72,7 @@ export default function CardScreen({ navigation, route }) {
       : `${plan ?? ''} Plan`;
 
   const displayPrice = isSession
-    ? `EGP ${session.sessionType?.price ?? 0}.00`
+    ? `EGP ${session.finalPrice ?? session.sessionType?.price ?? 0}.00`
     : isCourse
       ? `EGP ${course.price}`
       : (price ?? '');
@@ -104,15 +104,16 @@ export default function CardScreen({ navigation, route }) {
           return;
         }
 
-        await api.post('/sessions/book', {
+        const bookingRes = await api.post('/sessions/book', {
           learner:       learnerId,
           creatorId:     session.creator?.id ?? session.creator?._id,
           sessionType:   session.sessionType?.id,
           date:          session.day,
           time:          session.slot?.time,
-          price:         session.sessionType?.price,
+          price:         session.basePrice ?? session.sessionType?.price,
           paymentMethod: 'card',
         });
+        const finalPrice = bookingRes?.data?.pricing?.finalPrice ?? session.finalPrice ?? session.sessionType?.price;
         Alert.alert('Session Booked! 🎉', `Your session with ${session.creator?.name ?? 'the instructor'} is confirmed!`, [
           {
             text: 'Done',
@@ -121,28 +122,41 @@ export default function CardScreen({ navigation, route }) {
               sessionType: session.sessionType,
               day:         session.day,
               slot:        session.slot,
+              finalPrice,
             }),
           },
         ]);
         return;
       } else if (isCourse) {
         // ── Course enrollment payment ──
-        await api.post('/courses/enroll', { courseId: course._id ?? course.id });
+        await api.post('/courses/enroll', { courseId: course._id ?? course.id, paymentConfirmed: true });
         Alert.alert('Payment Successful 🎉', `You enrolled in ${course.title}!`, [
           { text: 'Done', onPress: goToCourseAfterPayment },
         ]);
       } else {
         // ── Subscription payment ──
-        const planId = plan.toLowerCase();
-        await api.post('/subscriptions/subscribe', { plan: planId });
-        Alert.alert('Payment Successful 🎉', `You are now subscribed to the ${plan} plan!`, [
+        const normalizedPlanId = planId ?? (plan.toLowerCase() === 'free' ? 'basic' : plan.toLowerCase());
+        await api.post('/subscriptions/subscribe', { plan: normalizedPlanId });
+        Alert.alert('Payment Successful 🎉', `You are now subscribed to the ${normalizedPlanId === 'pro' ? 'Pro' : 'Free'} plan!`, [
           { text: 'Done', onPress: () => navigation.popToTop() },
         ]);
       }
     } catch (err) {
-      console.log('Payment error status:', err?.response?.status);
-      console.log('Payment error detail:', JSON.stringify(err?.response?.data));
-      Alert.alert('Error', err?.response?.data?.error ?? err?.message ?? 'Payment failed.');
+      const status = err?.response?.status;
+      const detail = err?.response?.data;
+      console.log('Payment error status:', status);
+      console.log('Payment error detail:', JSON.stringify(detail));
+
+      if (!isSession && !isCourse && status === 404) {
+        Alert.alert(
+          'Subscription Unavailable',
+          'The backend you are connected to does not have subscription payment routes yet. Please restart or deploy the backend with the latest subscription changes.',
+          [{ text: 'OK', onPress: () => navigation.goBack() }]
+        );
+        return;
+      }
+
+      Alert.alert('Error', detail?.error ?? err?.message ?? 'Payment failed.');
     }
   };
 

@@ -59,6 +59,17 @@ export default function App() {
     },
   );
 
+  const clearStoredSession = React.useCallback(async () => {
+    await SecureStore.deleteItemAsync(TOKEN_KEY);
+    await SecureStore.deleteItemAsync(USER_EMAIL_KEY);
+    await SecureStore.deleteItemAsync(PENDING_VERIFY_EMAIL_KEY);
+    setAuthToken(null);
+    dispatch({ type: "SIGN_OUT" });
+    dispatch({ type: "SET_QUIZ_COMPLETED", value: false });
+    dispatch({ type: "SET_VERIFIED", value: false });
+    dispatch({ type: "SET_PENDING_VERIFY_EMAIL", value: null });
+  }, []);
+
   const extractQuizCompleted = profile => {
     if (!profile || typeof profile !== "object") return null;
     if (typeof profile.quizCompleted === "boolean") return profile.quizCompleted;
@@ -134,8 +145,11 @@ export default function App() {
       }
     } catch (error) {
       console.error("Failed to load profile:", error);
+      if (error?.response?.status === 401) {
+        await clearStoredSession();
+      }
     }
-  }, []);
+  }, [clearStoredSession]);
 
   React.useEffect(() => {
     const bootstrapAsync = async () => {
@@ -145,9 +159,6 @@ export default function App() {
 
       try {
         userToken = await SecureStore.getItemAsync(TOKEN_KEY);
-        console.log("====================================");
-        console.log(userToken);
-        console.log("====================================");
         const userEmail = await SecureStore.getItemAsync(USER_EMAIL_KEY);
         pendingVerificationEmail = await SecureStore.getItemAsync(PENDING_VERIFY_EMAIL_KEY);
         if (userEmail) {

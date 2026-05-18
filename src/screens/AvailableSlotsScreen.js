@@ -9,9 +9,9 @@ import { Ionicons } from '@expo/vector-icons';
 import api from '../services/api';
 
 const SESSION_TYPES = [
-  { id: 'review',   label: 'Code Review',      duration: '30 min', price: 15, icon: 'code-slash-outline' },
-  { id: 'concept',  label: 'Concept Deep-dive', duration: '45 min', price: 22, icon: 'book-outline' },
-  { id: 'exam',     label: 'Exam Prep',         duration: '60 min', price: 30, icon: 'school-outline' },
+  { id: 'review',   label: 'Code Review',      duration: '30 min', price: 400, icon: 'code-slash-outline' },
+  { id: 'concept',  label: 'Concept Deep-dive', duration: '45 min', price: 600, icon: 'book-outline' },
+  { id: 'exam',     label: 'Exam Prep',         duration: '60 min', price: 800, icon: 'school-outline' },
 ];
 
 const DAYS_OF_WEEK = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
@@ -35,7 +35,24 @@ export default function AvailableSlotsScreen({ route, navigation }) {
   const [selectedSlot, setSelectedSlot] = useState(null);
   const [slots,        setSlots]        = useState([]);
   const [loadingSlots, setLoadingSlots] = useState(false);
+  const [sessionDiscountPct, setSessionDiscountPct] = useState(0);
   const days = buildCalendar();
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await api.get('/subscriptions/current');
+        setSessionDiscountPct(res?.data?.benefits?.sessionDiscountPct ?? 0);
+      } catch {
+        setSessionDiscountPct(0);
+      }
+    })();
+  }, []);
+
+  const getSessionPrice = (basePrice) =>
+    sessionDiscountPct > 0
+      ? Number((basePrice * (1 - sessionDiscountPct / 100)).toFixed(2))
+      : basePrice;
 
   useEffect(() => {
     if (!selectedDay) return;
@@ -68,14 +85,18 @@ export default function AvailableSlotsScreen({ route, navigation }) {
 
   const canContinue = selectedDay && selectedSlot;
 const handleContinue = () => {
+  const finalPrice = getSessionPrice(sessionType.price);
   navigation.navigate('Payment', {
     plan:  `${sessionType.label} with ${creator.name}`,
-    price: `EGP ${sessionType.price}`,
+    price: `EGP ${finalPrice}`,
     session: {
       creator,
       sessionType,
       day:  selectedDay.toDateString(),
       slot: selectedSlot,
+      basePrice: sessionType.price,
+      finalPrice,
+      discountPct: sessionDiscountPct,
     },
   });
 };
@@ -132,7 +153,7 @@ const handleContinue = () => {
                 <Text style={styles.typeDur}>{t.duration}</Text>
               </View>
               <Text style={[styles.typePrice, sessionType.id === t.id && styles.typePriceActive]}>
-                EGP {t.price}
+                EGP {getSessionPrice(t.price)}
               </Text>
             </Pressable>
           ))}
@@ -232,7 +253,7 @@ const handleContinue = () => {
           <View style={styles.selectionSummary}>
             <Ionicons name="time-outline" size={15} color="#2F54EB" />
             <Text style={styles.selectionText}>
-              {sessionType.label} · {selectedSlot.time} · EGP {sessionType.price}
+              {sessionType.label} · {selectedSlot.time} · EGP {getSessionPrice(sessionType.price)}
             </Text>
           </View>
         )}

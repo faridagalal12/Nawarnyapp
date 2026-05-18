@@ -11,60 +11,66 @@ const BLUE = '#0066FF';
 const plans = [
   {
     id: 'basic',
-    title: 'Basic',
+    title: 'Free',
     price: 'Free',
-    subtitle: 'Good for beginners',
-    features: ['1 free course', 'Basic AI chatbot', 'Priority learner support'],
-    isFree: true,
-  },
-  {
-    id: 'starter',
-    title: 'Starter',
-    price: 'EGP 44.99',
-    period: '/ month',
-    subtitle: 'Best for active learners',
-    popular: true,
+    subtitle: 'Essential access for everyday learning',
     features: [
-      '50 credits',
-      '2 free courses',
-      'Unlimited AI learning chatbot access',
-      'Priority learner support',
-      'Discount on additional credits',
+      'You will see ads',
+      'Access gamification',
+      'Watch video ads',
+      'Use the basic features of the application',
     ],
+    isFree: true,
   },
   {
     id: 'pro',
     title: 'Pro',
     price: 'EGP 99.99',
     period: '/ month',
-    subtitle: 'Best for full access',
+    subtitle: 'Best for premium learning',
+    popular: true,
     features: [
-      'Unlimited course access',
-      'Unlimited 1-to-1 learning sessions',
-      'Unlimited AI chatbot access',
-      'Priority learner support',
-      'Advanced gamification access',
+      'Ad-free experience',
+      '1 free course each month',
+      '50% off 1-to-1 sessions',
     ],
   },
 ];
 
 export default function SubscriptionScreen({ navigation }) {
-  const [selected, setSelected] = useState('starter');
+  const [selected, setSelected] = useState('basic');
   const [currentPlan, setCurrentPlan] = useState(null);
+  const [submitting, setSubmitting] = useState(false);
 
   React.useEffect(() => {
     api.get('/subscriptions/current').then(res => {
-      const plan = res?.data?.plan ?? 'basic';
+      const rawPlan = res?.data?.plan ?? 'basic';
+      const plan = rawPlan === 'starter' ? 'pro' : rawPlan;
       setCurrentPlan(plan);
       setSelected(plan);
-    }).catch(() => {});
+    }).catch(() => {
+      setCurrentPlan('basic');
+      setSelected('basic');
+    });
   }, []);
 
-  const handleChoose = (plan) => {
+  const handleChoose = async (plan) => {
+    if (!plan || submitting) return;
+
     if (plan.isFree) {
-      navigation.goBack();
+      try {
+        setSubmitting(true);
+        await api.post('/subscriptions/subscribe', { plan: 'basic' });
+        setCurrentPlan('basic');
+        setSelected('basic');
+        navigation.goBack();
+      } catch (err) {
+        console.log('Free plan update error:', err?.response?.data ?? err?.message);
+      } finally {
+        setSubmitting(false);
+      }
     } else {
-      navigation.navigate('Payment', { plan: plan.title, price: plan.price });
+      navigation.navigate('Payment', { plan: plan.title, planId: plan.id, price: plan.price });
     }
   };
 
@@ -95,6 +101,7 @@ export default function SubscriptionScreen({ navigation }) {
               style={[styles.card, isSelected && styles.cardSelected]}
               onPress={() => setSelected(plan.id)}
               activeOpacity={0.85}
+              disabled={submitting}
             >
               {plan.popular && (
                 <View style={styles.badge}>
@@ -148,9 +155,14 @@ export default function SubscriptionScreen({ navigation }) {
           style={styles.ctaButton}
           onPress={() => handleChoose(plans.find(p => p.id === selected))}
           activeOpacity={0.85}
+          disabled={submitting}
         >
           <Text style={styles.ctaText}>
-            {selected === 'basic' ? 'Continue with Basic' : 'Continue to Payment'}
+            {submitting
+              ? 'Updating...'
+              : selected === 'basic'
+                ? 'Continue with Free'
+                : 'Continue to Payment'}
           </Text>
           <Ionicons name="arrow-forward" size={20} color="#fff" />
         </TouchableOpacity>
