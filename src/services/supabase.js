@@ -85,3 +85,44 @@ export async function uploadCourseToSupabase(fileUri, fileName) {
     throw err;
   }
 }
+
+export async function uploadAvatarToSupabase(fileUri, fileName, mimeType = "image/jpeg") {
+  try {
+    console.log("Starting avatar upload for:", fileUri);
+
+    const safeFileName = (fileName || "avatar.jpg").replace(/[^\w.-]/g, "_");
+    const filePath = `avatars/${Date.now()}_${safeFileName}`;
+
+    const formData = new FormData();
+    formData.append("file", {
+      uri: fileUri,
+      name: safeFileName,
+      type: mimeType,
+    });
+
+    const response = await fetch(
+      `${SUPABASE_URL}/storage/v1/object/videos/${filePath}`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+          apikey: SUPABASE_ANON_KEY,
+        },
+        body: formData,
+      }
+    );
+
+    const result = await response.json();
+    if (!response.ok) {
+      console.log("Avatar upload error:", result);
+      throw new Error(result.message || "Avatar upload failed");
+    }
+
+    const publicUrl = `${SUPABASE_URL}/storage/v1/object/public/videos/${filePath}`;
+    console.log("Avatar upload success:", publicUrl);
+    return publicUrl;
+  } catch (err) {
+    console.log("uploadAvatarToSupabase error:", err?.message);
+    throw err;
+  }
+}

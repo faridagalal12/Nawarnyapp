@@ -17,6 +17,7 @@ import { useFocusEffect } from "@react-navigation/native";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import * as ImagePicker from "expo-image-picker";
 import api from "../services/api";
+import { uploadAvatarToSupabase } from "../services/supabase";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function EditProfileScreen({ navigation }) {
@@ -44,79 +45,12 @@ export default function EditProfileScreen({ navigation }) {
     return "image/jpeg";
   };
 
-  const createAvatarFormData = (uri, extraFields) => {
-    const type = getAvatarMimeType(uri);
-    const ext = type.split("/")[1] || "jpg";
-    const name = `avatar.${ext}`;
-
-    const formData = new FormData();
-    const file = { uri, name, type };
-
-    // Try common field names to maximize backend compatibility.
-    formData.append("avatar", file);
-    formData.append("file", file);
-    formData.append("image", file);
-
-    if (extraFields && typeof extraFields === "object") {
-      Object.entries(extraFields).forEach(([key, value]) => {
-        if (value === undefined || value === null) return;
-        formData.append(key, String(value));
-      });
-    }
-    return formData;
-  };
-
-  const extractAvatarUrl = (payload) => {
-    const direct =
-      payload?.avatarUrl ??
-      payload?.url ??
-      payload?.data?.avatarUrl ??
-      payload?.data?.url ??
-      payload?.user?.avatarUrl ??
-      payload?.data?.user?.avatarUrl;
-
-    return typeof direct === "string" && direct.length ? direct : "";
-  };
-
   const uploadAvatarIfNeeded = async () => {
     if (!avatarLocalUri) return avatarUrl;
-
-    const headers = { "Content-Type": "multipart/form-data" };
-    const endpoints = [
-      { method: "post", url: "/users/profile/avatar" },
-      { method: "patch", url: "/users/profile/avatar" },
-      { method: "put", url: "/users/profile/avatar" },
-      { method: "patch", url: "/users/profile" },
-      { method: "put", url: "/users/profile" },
-    ];
-
-    let lastErr;
-    for (const ep of endpoints) {
-      try {
-        const isProfileEndpoint = ep.url === "/users/profile";
-        const res = await api.request({
-          method: ep.method,
-          url: ep.url,
-          data: createAvatarFormData(
-            avatarLocalUri,
-            isProfileEndpoint ? { name, username, email, bio } : undefined
-          ),
-          headers,
-        });
-        const maybeUrl = extractAvatarUrl(res?.data);
-        if (maybeUrl) return maybeUrl;
-
-        // Some APIs just return the full profile.
-        if (res?.data?.profile?.avatarUrl) return res.data.profile.avatarUrl;
-      } catch (err) {
-        lastErr = err;
-        const status = err?.response?.status;
-        // If it's not an endpoint/content-type mismatch, don't keep trying.
-        if (status && ![404, 405, 415].includes(status)) break;
-      }
-    }
-
-    throw lastErr ?? new Error("Avatar upload failed");
+    const mimeType = getAvatarMimeType(avatarLocalUri);
+    const ext = mimeType.split("/")[1] || "jpg";
+    const remoteFileName = `avatar.${ext}`;
+    return uploadAvatarToSupabase(avatarLocalUri, remoteFileName, mimeType);
   };
 
   const handlePickAvatar = async () => {
@@ -188,19 +122,30 @@ export default function EditProfileScreen({ navigation }) {
         );
       }
 
-      const response = await api.put("/users/profile", {
-        name,
-        username,
-        email,
-        bio,
-        avatarUrl: nextAvatarUrl,
-      });
+      const payload = {
+        name: name.trim(),
+        avatarUrl: nextAvatarUrl || null,
+      };
+
+      const trimmedUsername = username.trim();
+      if (trimmedUsername) payload.username = trimmedUsername;
+
+      const trimmedBio = bio.trim();
+      payload.bio = trimmedBio || null;
+
+      const response = await api.put("/users/profile", payload);
       console.log("Save response:", JSON.stringify(response?.data));
       Alert.alert("Success", "Profile updated successfully", [
         { text: "OK", onPress: () => navigation.goBack() }
       ]);
     } catch (err) {
-      Alert.alert("Error", err?.response?.data?.error?.message ?? "Failed to update profile");
+      const serverError =
+        err?.response?.data?.error?.message ??
+        err?.response?.data?.error ??
+        err?.response?.data?.message ??
+        err?.message;
+      console.log("Profile update error:", err?.response?.data ?? err?.message);
+      Alert.alert("Error", serverError || "Failed to update profile");
     } finally {
       setSaving(false);
     }
