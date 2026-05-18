@@ -3,18 +3,30 @@
 // Receives the course object. Learner name is hard-coded here — swap it for
 // the authenticated user from your AuthContext.
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View, Text, StyleSheet, Pressable, StatusBar, Share, Alert, Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, spacing, radius, shadow } from '../constants/theme';
-
-const LEARNER_NAME = 'Jana Osama'; // TODO: pull from AuthContext
+import api from '../services/api';
 
 export default function CertificateScreen({ route, navigation }) {
   const course = route?.params?.course ?? { title: 'Intro to UI/UX Design' };
+  const [learnerName, setLearnerName] = useState('Nawarny Learner');
+
+  useEffect(() => {
+    const loadLearner = async () => {
+      try {
+        const res = await api.get('/auth/profile');
+        const profile = res?.data?.data ?? res?.data ?? {};
+        const name = profile?.name ?? profile?.username;
+        if (name) setLearnerName(name);
+      } catch {}
+    };
+    loadLearner();
+  }, []);
 
   const today = new Date().toLocaleDateString('en-GB', {
     day: '2-digit', month: 'long', year: 'numeric',
@@ -61,13 +73,13 @@ export default function CertificateScreen({ route, navigation }) {
           <Text style={styles.brand}>Nawarny</Text>
 
           <Text style={styles.awarded}>This certifies that</Text>
-          <Text style={styles.name}>{LEARNER_NAME}</Text>
+          <Text style={styles.name}>{learnerName}</Text>
 
           <Text style={styles.desc}>
             has successfully completed{'\n'}
             <Text style={styles.descBold}>{course.title}</Text>{'\n'}
             — {course.lessons ?? 12} lessons · {course.duration ?? '6h 20m'} — with an overall score of{' '}
-            <Text style={styles.descBold}>94%</Text>.
+            <Text style={styles.descBold}>{course.progressPercent ?? 100}%</Text>.
           </Text>
 
           <View style={styles.certFooter}>

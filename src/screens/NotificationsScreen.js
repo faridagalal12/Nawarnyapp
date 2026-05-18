@@ -17,29 +17,33 @@ const TYPE_CONFIG = {
   like: {
     icon: "heart",
     color: "#ff4d58",
-    label: (n) => `${n.actorName} liked your video`,
+    label: (n) => `${getActorName(n)} liked your video`,
   },
   comment: {
     icon: "chatbubble",
     color: "#a78bfa",
-    label: (n) => `${n.actorName} commented on your video`,
+    label: (n) => `${getActorName(n)} commented on your video`,
   },
   follow: {
     icon: "person-add",
     color: "#4ade80",
-    label: (n) => `${n.actorName} started following you`,
+    label: (n) => `${getActorName(n)} started following you`,
   },
   reply: {
     icon: "return-down-forward",
     color: "#f472b6",
-    label: (n) => `${n.actorName} replied to your comment`,
+    label: (n) => `${getActorName(n)} replied to your comment`,
   },
   general: {
     icon: "notifications",
     color: "#5ba8ff",
-    label: (n) => `${n.actorName} ${n.message}`,
+    label: (n) => `${getActorName(n)} ${n.message}`,
   },
 };
+
+function getActorName(notification) {
+  return notification?.actorName || "Someone";
+}
 
 function timeAgo(dateStr) {
   const diff = (Date.now() - new Date(dateStr)) / 1000;

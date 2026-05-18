@@ -1,10 +1,11 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, Pressable, StatusBar,
   ActivityIndicator, Linking, Modal, TouchableOpacity, Dimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { useFocusEffect } from '@react-navigation/native';
 import { Video, ResizeMode } from 'expo-av';
 import api from '../services/api';
 
@@ -26,27 +27,56 @@ export default function CourseDetailScreen({ route, navigation }) {
   const [progress, setProgress] = useState({ watched: 0, total: 0, percent: 0, watchedVideoIds: [] });
   const videoRef = useRef(null);
 
-  useEffect(() => {
-    const fetchDetail = async () => {
-      try {
-        const res = await api.get(`/courses/${courseId}`);
-        setDetail(res.data);
-        const enrolled = res.data.isEnrolled ?? false;
-        setIsEnrolled(enrolled);
-        setIsSaved(res.data.isSaved ?? false);
-        if (enrolled) {
-          const prog = await api.get(`/courses/${courseId}/progress`);
-          setProgress(prog.data);
-        }
-      } catch (err) {
-        console.log('Failed to load course detail:', err?.message);
-      } finally {
-        setLoading(false);
+  const buildCourseSummary = (courseData, progressData = progress) => ({
+    ...courseData,
+    lessons: progressData?.total ?? courseData?.videos?.length ?? 0,
+    duration: courseData?.duration ?? `${progressData?.total ?? courseData?.videos?.length ?? 0} lessons`,
+    progressPercent: progressData?.percent ?? 0,
+  });
+
+  const fetchDetail = useCallback(async () => {
+    try {
+      const res = await api.get(`/courses/${courseId}`);
+      setDetail(res.data);
+      const enrolled = res.data.isEnrolled ?? false;
+      setIsEnrolled(enrolled);
+      setIsSaved(res.data.isSaved ?? false);
+      if (enrolled) {
+        const prog = await api.get(`/courses/${courseId}/progress`);
+        setProgress(prog.data);
       }
-    };
+    } catch (err) {
+      console.log('Failed to load course detail:', err?.message);
+    } finally {
+      setLoading(false);
+    }
+  }, [courseId]);
+
+  useEffect(() => {
     if (courseId) fetchDetail();
     else setLoading(false);
-  }, [courseId]);
+  }, [courseId, fetchDetail]);
+
+  useFocusEffect(
+    useCallback(() => {
+      if (courseId && isEnrolled) {
+        fetchDetail();
+      }
+    }, [courseId, isEnrolled, fetchDetail])
+  );
+
+  useEffect(() => {
+    const completedCourse = route?.params?.completedCourse;
+    if (!completedCourse || completedCourse.id !== courseId) return;
+
+    navigation.setParams({ completedCourse: null });
+    navigation.navigate('CourseCompletion', {
+      course: buildCourseSummary(detail ?? data, {
+        ...progress,
+        percent: completedCourse.progressPercent ?? progress.percent ?? 100,
+      }),
+    });
+  }, [route?.params?.completedCourse, courseId, navigation, detail, data, progress]);
 
   const data = detail ?? course;
 
@@ -68,22 +98,6 @@ export default function CourseDetailScreen({ route, navigation }) {
     navigation.navigate('VideoPlayer', {
       video,
       courseId,
-      onComplete: async () => {
-        try {
-          const res = await api.post(`/courses/${courseId}/progress`, { videoId: video._id });
-          const total = detail?.videos?.length ?? 0;
-          const watched = res.data.watched ?? 0;
-          setProgress(prev => ({
-            ...prev,
-            watched,
-            total,
-            percent: total > 0 ? Math.round((watched / total) * 100) : 0,
-            watchedVideoIds: Array.from(new Set([...(prev.watchedVideoIds ?? []), video._id?.toString()])),
-          }));
-        } catch (err) {
-          // Silent to avoid blocking playback flow.
-        }
-      }
     });
   };
 
@@ -346,6 +360,16 @@ export default function CourseDetailScreen({ route, navigation }) {
         <View style={styles.enrolledBar}>
           <Ionicons name="checkmark-circle" size={22} color="#10B981" />
           <Text style={styles.enrolledText}>You are enrolled · {progress.percent}% complete</Text>
+          {progress.percent >= 100 && (
+            <Pressable
+              style={styles.certificateBtn}
+              onPress={() => navigation.navigate('Certificate', {
+                course: buildCourseSummary(detail ?? data),
+              })}
+            >
+              <Text style={styles.certificateBtnText}>Get Certificate</Text>
+            </Pressable>
+          )}
         </View>
       )}
 
@@ -441,5 +465,7 @@ const styles = StyleSheet.create({
   modalBody: { padding: 20 },
   modalVideoTitle: { fontSize: 16, fontWeight: '700', color: '#fff' },
   enrolledBar: { position: 'absolute', left: 0, right: 0, bottom: 0, flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 20, paddingVertical: 16, paddingBottom: 28, backgroundColor: '#F0FDF4', borderTopWidth: 1, borderTopColor: '#BBF7D0' },
-  enrolledText: { fontSize: 15, fontWeight: '700', color: '#10B981' },
+  enrolledText: { flex: 1, fontSize: 15, fontWeight: '700', color: '#10B981' },
+  certificateBtn: { backgroundColor: '#2F54EB', paddingHorizontal: 14, paddingVertical: 10, borderRadius: 12 },
+  certificateBtnText: { color: '#fff', fontSize: 13, fontWeight: '700' },
 });

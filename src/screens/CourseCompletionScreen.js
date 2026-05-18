@@ -3,13 +3,14 @@
 // Displays celebration + summary stats. Uses the built-in Animated API to drop
 // a few confetti pieces — no extra dependency required.
 
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   View, Text, StyleSheet, Pressable, Animated, Easing, StatusBar, Share,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, spacing, radius, typography, shadow } from '../constants/theme';
+import api from '../services/api';
 
 // Small confetti system — each piece has its own Animated.Value and loops.
 function ConfettiPiece({ left, color, delay }) {
@@ -48,6 +49,19 @@ function ConfettiPiece({ left, color, delay }) {
 
 export default function CourseCompletionScreen({ route, navigation }) {
   const course = route?.params?.course ?? { title: 'Intro to UI/UX Design' };
+  const [learnerName, setLearnerName] = useState('Learner');
+
+  useEffect(() => {
+    const loadLearner = async () => {
+      try {
+        const res = await api.get('/auth/profile');
+        const profile = res?.data?.data ?? res?.data ?? {};
+        const name = profile?.name ?? profile?.username;
+        if (name) setLearnerName(name);
+      } catch {}
+    };
+    loadLearner();
+  }, []);
 
   const handleShare = async () => {
     try {
@@ -79,7 +93,7 @@ export default function CourseCompletionScreen({ route, navigation }) {
           <Ionicons name="checkmark" size={58} color="#FFFFFF" />
         </View>
 
-        <Text style={styles.title}>Congratulations, Jana! 🎉</Text>
+        <Text style={styles.title}>Congratulations, {learnerName}! 🎉</Text>
         <Text style={styles.subtitle}>
           You've completed the course.{'\n'}Your hard work paid off.
         </Text>
@@ -88,9 +102,9 @@ export default function CourseCompletionScreen({ route, navigation }) {
 
         {/* Stat grid */}
         <View style={styles.stats}>
-          <StatCard value="12/12" label="Lessons" />
-          <StatCard value="94%"   label="Quiz avg" />
-          <StatCard value="6h 42m" label="Time" />
+          <StatCard value={`${course.lessons ?? 0}/${course.lessons ?? 0}`} label="Lessons" />
+          <StatCard value={`${course.progressPercent ?? 100}%`}   label="Progress" />
+          <StatCard value={course.duration ?? 'Completed'} label="Time" />
         </View>
 
         {/* Actions */}

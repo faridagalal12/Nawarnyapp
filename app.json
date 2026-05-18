@@ -28,6 +28,7 @@
     },
     "plugins": [
       "expo-secure-store",
+      "expo-notifications",
       "react-native-video",
       "expo-video",
       "react-native-google-mobile-ads"

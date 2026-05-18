@@ -20,6 +20,10 @@ import * as SecureStore from "expo-secure-store";
 import MyTabs from "./src/navigations/AppTabs";
 import api, { setAuthToken } from "./src/services/api";
 import {
+  startForegroundNotificationPolling,
+  stopForegroundNotificationPolling,
+} from "./src/services/foregroundNotifications";
+import {
   TOKEN_KEY,
   USER_EMAIL_KEY,
   PENDING_VERIFY_EMAIL_KEY,
@@ -64,6 +68,7 @@ export default function App() {
     await SecureStore.deleteItemAsync(TOKEN_KEY);
     await SecureStore.deleteItemAsync(USER_EMAIL_KEY);
     await SecureStore.deleteItemAsync(PENDING_VERIFY_EMAIL_KEY);
+    stopForegroundNotificationPolling();
     setAuthToken(null);
     dispatch({ type: "SIGN_OUT" });
     dispatch({ type: "SET_QUIZ_COMPLETED", value: false });
@@ -212,10 +217,12 @@ export default function App() {
         setAuthToken(token);
         dispatch({ type: "SIGN_IN", token });
         await refreshProfile();
+        await startForegroundNotificationPolling();
       },
       signOut: async () => {
         await SecureStore.deleteItemAsync(TOKEN_KEY);
         await SecureStore.deleteItemAsync(USER_EMAIL_KEY);
+        stopForegroundNotificationPolling();
         setAuthToken(null);
         dispatch({ type: "SIGN_OUT" });
         dispatch({ type: "SET_QUIZ_COMPLETED", value: false });
@@ -277,6 +284,19 @@ export default function App() {
       }
     }
   }, [state.userToken, state.isVerified, state.quizCompleted]);
+
+  React.useEffect(() => {
+    if (!state.userToken) {
+      stopForegroundNotificationPolling();
+      return;
+    }
+
+    startForegroundNotificationPolling();
+
+    return () => {
+      stopForegroundNotificationPolling();
+    };
+  }, [state.userToken]);
 
   if (state.isLoading) {
     return (

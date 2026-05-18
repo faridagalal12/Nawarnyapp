@@ -2,9 +2,10 @@ import React, { useEffect, useState } from "react";
 import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView } from "react-native";
 import { VideoView, useVideoPlayer } from "expo-video";
 import { Ionicons } from "@expo/vector-icons";
+import api from "../services/api";
 
 export default function VideoPlayerScreen({ route, navigation }) {
-  const { video, courseId, onComplete } = route.params;
+  const { video, courseId } = route.params;
   const [videoEnded,  setVideoEnded]  = useState(false);
   const [completed,   setCompleted]   = useState(false);
 
@@ -28,15 +29,30 @@ export default function VideoPlayerScreen({ route, navigation }) {
     };
   }, []);
 
- const handleComplete = async () => {
-  try {
-    if (onComplete) await onComplete();
-  } catch (e) {
-    console.log('Complete error:', e?.message);
-  }
-  setCompleted(true);
-  setTimeout(() => navigation.goBack(), 800);
-};
+  const handleComplete = async () => {
+    try {
+      const res = await api.post(`/courses/${courseId}/progress`, { videoId: video._id });
+      setCompleted(true);
+      setTimeout(() => {
+        navigation.navigate({
+          name: "CourseDetail",
+          params: {
+            refreshProgressAt: Date.now(),
+            completedCourse: res?.data?.justCompleted
+              ? {
+                  id: courseId,
+                  progressPercent: res?.data?.percent ?? 100,
+                }
+              : null,
+          },
+          merge: true,
+        });
+        navigation.goBack();
+      }, 800);
+    } catch (e) {
+      console.log("Complete error:", e?.message);
+    }
+  };
 
   return (
     <View style={styles.container}>
