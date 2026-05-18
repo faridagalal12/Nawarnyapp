@@ -70,18 +70,12 @@ export default function SessionBookedScreen({ route, navigation }) {
           <ConfirmRow icon="calendar-outline"          text={day} />
           <ConfirmRow icon="time-outline"              text={`${slot.time} (Cairo)`} />
           <ConfirmRow icon="videocam-outline"          text="Link sent 10 min before session" />
-          <ConfirmRow icon="shield-checkmark-outline"  text={`$${sessionType.price}.00 charged securely`} />
+          <ConfirmRow icon="shield-checkmark-outline"  text={`EGP ${sessionType.price}.00 charged securely`} />
         </Animated.View>
 
         {/* Buttons */}
         <Animated.View style={[styles.btnsCol, { opacity: opacityAnim }]}>
-          <Pressable
-            style={styles.primaryBtn}
-            onPress={() => navigation.navigate('MySessions')}
-          >
-            <Ionicons name="calendar" size={18} color="#fff" />
-            <Text style={styles.primaryBtnText}>View My Sessions</Text>
-          </Pressable>
+          
 
           <Pressable
             style={styles.secondaryBtn}

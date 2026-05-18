@@ -20,7 +20,7 @@ const plans = [
   {
     id: 'starter',
     title: 'Starter',
-    price: '$44.99',
+    price: 'EGP 44.99',
     period: '/ month',
     subtitle: 'Best for active learners',
     popular: true,
@@ -35,7 +35,7 @@ const plans = [
   {
     id: 'pro',
     title: 'Pro',
-    price: '$99.99',
+    price: 'EGP 99.99',
     period: '/ month',
     subtitle: 'Best for full access',
     features: [

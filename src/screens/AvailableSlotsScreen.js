@@ -70,7 +70,7 @@ export default function AvailableSlotsScreen({ route, navigation }) {
 const handleContinue = () => {
   navigation.navigate('Payment', {
     plan:  `${sessionType.label} with ${creator.name}`,
-    price: `$${sessionType.price}`,
+    price: `EGP ${sessionType.price}`,
     session: {
       creator,
       sessionType,
@@ -132,7 +132,7 @@ const handleContinue = () => {
                 <Text style={styles.typeDur}>{t.duration}</Text>
               </View>
               <Text style={[styles.typePrice, sessionType.id === t.id && styles.typePriceActive]}>
-                ${t.price}
+                EGP {t.price}
               </Text>
             </Pressable>
           ))}
@@ -232,7 +232,7 @@ const handleContinue = () => {
           <View style={styles.selectionSummary}>
             <Ionicons name="time-outline" size={15} color="#2F54EB" />
             <Text style={styles.selectionText}>
-              {sessionType.label} · {selectedSlot.time} · ${sessionType.price}
+              {sessionType.label} · {selectedSlot.time} · EGP {sessionType.price}
             </Text>
           </View>
         )}

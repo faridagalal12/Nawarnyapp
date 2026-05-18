@@ -1,12 +1,12 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   View, Text, StyleSheet, SafeAreaView, StatusBar,
   TouchableOpacity, TextInput, ActivityIndicator,
-  Alert, ScrollView,
+  Alert, ScrollView, KeyboardAvoidingView, Platform,
 } from "react-native";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import * as ImagePicker from "expo-image-picker";
-import { useNavigation } from "@react-navigation/native";
+import { useNavigation, useRoute } from "@react-navigation/native";
 import { uploadVideoToSupabase } from "../../services/supabase";
 import api from "../../services/api";
 
@@ -14,6 +14,7 @@ const CATEGORIES = ["Science", "Technology", "Business", "Mathematics", "History
 
 export default function UploadVideoScreen() {
   const navigation = useNavigation();
+  const route = useRoute();
   const [videoUri,    setVideoUri]    = useState(null);
   const [videoName,   setVideoName]   = useState(null);
   const [title,       setTitle]       = useState("");
@@ -21,6 +22,15 @@ export default function UploadVideoScreen() {
   const [category,    setCategory]    = useState("");
   const [uploading,   setUploading]   = useState(false);
   const [progress,    setProgress]    = useState("");
+
+  useEffect(() => {
+    const recordedVideo = route?.params?.recordedVideo;
+    if (!recordedVideo?.uri) return;
+
+    setVideoUri(recordedVideo.uri);
+    setVideoName(recordedVideo.fileName ?? `video_${Date.now()}.mp4`);
+    setTitle((current) => current || recordedVideo.fileName?.replace(/\.[^/.]+$/, "") || "");
+  }, [route?.params?.recordedVideo]);
 
   const pickVideo = async () => {
     try {
@@ -87,7 +97,15 @@ export default function UploadVideoScreen() {
         <Text style={styles.navTitle}>Upload Video</Text>
         <View style={{ width: 40 }} />
       </View>
-      <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+      >
+      <ScrollView
+        contentContainerStyle={styles.scroll}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+      >
         <TouchableOpacity style={styles.videoPicker} onPress={pickVideo}>
           {videoUri ? (
             <View style={styles.videoSelected}>
@@ -126,6 +144,7 @@ export default function UploadVideoScreen() {
           )}
         </TouchableOpacity>
       </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }

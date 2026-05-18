@@ -22,7 +22,7 @@ export default function PaymentScreen({ navigation, route }) {
     : course?.title ?? `${plan ?? ''} Plan`;
 
   const displayPrice = isSession
-    ? `$${session.sessionType?.price ?? 0}.00`
+    ? `EGP ${session.sessionType?.price ?? 0}.00`
     : course?.price
       ? `EGP ${course.price}`
       : (price ?? '');

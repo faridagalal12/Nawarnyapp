@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import {
   View, Text, StyleSheet, SafeAreaView, StatusBar,
   TouchableOpacity, TextInput, ActivityIndicator,
-  Alert, ScrollView,
+  Alert, ScrollView, KeyboardAvoidingView, Platform,
 } from "react-native";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import * as ImagePicker from "expo-image-picker";
@@ -98,7 +98,15 @@ export default function UploadCourseScreen() {
         <Text style={styles.navTitle}>Create Course</Text>
         <View style={{ width: 40 }} />
       </View>
-      <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+      >
+      <ScrollView
+        contentContainerStyle={styles.scroll}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+      >
         <Text style={styles.label}>Course Title <Text style={styles.required}>*</Text></Text>
         <TextInput style={styles.input} placeholder="e.g. Introduction to Physics" value={title} onChangeText={setTitle} maxLength={100} />
         <Text style={styles.label}>Description</Text>
@@ -150,6 +158,7 @@ export default function UploadCourseScreen() {
           {uploading ? <ActivityIndicator color="#fff" /> : <Text style={styles.submitBtnText}>Publish Course</Text>}
         </TouchableOpacity>
       </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }

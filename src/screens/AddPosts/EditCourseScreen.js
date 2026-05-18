@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import {
   View, Text, StyleSheet, SafeAreaView, StatusBar,
   TouchableOpacity, TextInput, ActivityIndicator,
-  Alert, ScrollView,
+  Alert, ScrollView, KeyboardAvoidingView, Platform,
 } from "react-native";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import * as ImagePicker from "expo-image-picker";
@@ -134,7 +134,15 @@ export default function EditCourseScreen({ route, navigation }) {
         </TouchableOpacity>
       </View>
 
-      <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+      >
+      <ScrollView
+        contentContainerStyle={styles.scroll}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+      >
 
         <Text style={styles.label}>Course Title <Text style={styles.required}>*</Text></Text>
         <TextInput style={styles.input} value={title} onChangeText={setTitle} placeholder="Course title" />
@@ -162,7 +170,7 @@ export default function EditCourseScreen({ route, navigation }) {
           ))}
         </View>
 
-        <Text style={styles.label}>Price (USD)</Text>
+        <Text style={styles.label}>Price (EGP)</Text>
         <TextInput style={styles.input} value={price} onChangeText={setPrice} placeholder="0 for free" keyboardType="decimal-pad" />
 
         <View style={styles.sectionHeader}>
@@ -221,6 +229,7 @@ export default function EditCourseScreen({ route, navigation }) {
 
         <View style={{ height: 40 }} />
       </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }

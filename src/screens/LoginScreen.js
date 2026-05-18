@@ -10,6 +10,8 @@ import {
   StatusBar,
   Keyboard,
   TouchableWithoutFeedback,
+  KeyboardAvoidingView,
+  Platform,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
@@ -55,9 +57,13 @@ export default function LoginScreen({ signIn }) {
   return (
     <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
       <View style={styles.container}>
-        <SafeAreaView style={styles.safeArea}>
-          <StatusBar barStyle="dark-content" />
-          <Image source={require("../assets/logo.png")} style={styles.logo} />
+        <KeyboardAvoidingView
+          style={{ flex: 1 }}
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+        >
+          <SafeAreaView style={styles.safeArea}>
+            <StatusBar barStyle="dark-content" />
+            <Image source={require("../assets/logo.png")} style={styles.logo} />
 
           {/* Title */}
           <Text style={styles.title}>Welcome Back</Text>
@@ -101,18 +107,19 @@ export default function LoginScreen({ signIn }) {
           </TouchableOpacity>
 
           {/* Login Button */}
-          <Button
-            style={styles.loginButton}
-            onPress={handleLogin}
-            textStyle={styles.loginText}
-            loading={loading}
-          >
-            Login
-          </Button>
+            <Button
+              style={styles.loginButton}
+              onPress={handleLogin}
+              textStyle={styles.loginText}
+              loading={loading}
+            >
+              Login
+            </Button>
           {/* <TouchableOpacity style={styles.loginButton} onPress={handleLogin}>
             <Text style={styles.loginText}>Login</Text>
           </TouchableOpacity> */}
-        </SafeAreaView>
+          </SafeAreaView>
+        </KeyboardAvoidingView>
       </View>
     </TouchableWithoutFeedback>
   );

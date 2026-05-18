@@ -42,23 +42,26 @@ function CategoryIcon({ item, active }) {
 
 export default function GWelcomeScreen({ navigation, route }) {
   const { height } = useWindowDimensions();
-  const [selectedCourse, setSelectedCourse] = useState(courseCategories[0].label);
-  const [selectedSkill,  setSelectedSkill]  = useState(softSkills[0].label);
+  const [selectedCourse, setSelectedCourse] = useState(null);
+  const [selectedSkill,  setSelectedSkill]  = useState(null);
   const [refreshing,     setRefreshing]     = useState(false);
   const [loading,        setLoading]        = useState(true);
   const [stats,          setStats]          = useState(null);
   const [quests,         setQuests]         = useState([]);
   const [questsClaimed,  setQuestsClaimed]  = useState(false);
+  const [learningGoals,  setLearningGoals]  = useState([]);
 
   const fetchData = useCallback(async () => {
     try {
-      const [statsRes, questsRes] = await Promise.all([
+      const [statsRes, questsRes, goalsRes] = await Promise.all([
         api.get('/gamification/stats'),
         api.get('/gamification/daily-quests'),
+        api.get('/learning-profile/goals'),
       ]);
       setStats(statsRes?.data ?? null);
       setQuests(questsRes?.data?.quests ?? []);
       setQuestsClaimed(questsRes?.data?.allClaimed ?? false);
+      setLearningGoals(Array.isArray(goalsRes?.data) ? goalsRes.data : goalsRes?.data?.goals ?? []);
     } catch (err) {
       console.log('Failed to fetch gamification data:', err?.message);
     } finally {
@@ -78,18 +81,6 @@ export default function GWelcomeScreen({ navigation, route }) {
   }, [route?.params?.refresh]);
 
   const handleRefresh = () => { setRefreshing(true); fetchData(); };
-
-  const handleClaimDailyQuests = async () => {
-    if (questsClaimed) return;
-    Vibration.vibrate([0, 80, 45, 120]);
-    try {
-      await api.post('/gamification/daily-quests/claim');
-      setQuestsClaimed(true);
-      fetchData();
-    } catch (err) {
-      console.log('Claim error:', err?.message);
-    }
-  };
 
   const handleCoursePress = (item) => {
     setSelectedCourse(item.label);
@@ -130,7 +121,52 @@ export default function GWelcomeScreen({ navigation, route }) {
   const pointsIntoLevel  = xp % pointsPerLevel;
   const pointsToNextLevel= pointsPerLevel - pointsIntoLevel;
   const levelProgressWidth = `${Math.max(3, (pointsIntoLevel / pointsPerLevel) * 100)}%`;
-  const claimablePoints  = quests.reduce((sum, q) => sum + (q.xpReward ?? 0), 0);
+  const activeGoals      = learningGoals.filter(goal => Number(goal?.target) > 0);
+  const primaryGoal      = activeGoals[0] ?? null;
+  const completedGoals   = activeGoals.filter(goal => Number(goal?.current) >= Number(goal?.target)).length;
+  const fallbackQuestPanels = [
+    {
+      key: 'missions-left',
+      family: 'MaterialCommunityIcons',
+      icon: 'map-marker-path',
+      color: BLUE,
+      value: `${quests.filter(q => !q.completed).length} missions`,
+      label: 'left today',
+    },
+    {
+      key: 'level-rank',
+      family: 'MaterialCommunityIcons',
+      icon: 'trophy-award',
+      color: '#F59E0B',
+      value: `Level ${level}`,
+      label: 'your rank',
+    },
+    {
+      key: 'badges',
+      family: 'MaterialCommunityIcons',
+      icon: 'medal',
+      color: '#F59E0B',
+      value: `${earnedBadges} badges`,
+      label: 'collected',
+    },
+    {
+      key: 'streak',
+      family: 'Ionicons',
+      icon: 'flame-outline',
+      color: '#EF4444',
+      value: `${streak} days`,
+      label: 'current streak',
+    },
+  ];
+  const goalQuestPanels = activeGoals.slice(0, 4).map(goal => ({
+    key: goal.id ?? goal.label,
+    family: 'Ionicons',
+    icon: goal?.icon || 'flag-outline',
+    color: Number(goal?.current) >= Number(goal?.target) ? '#10B981' : BLUE,
+    value: `${goal.current}/${goal.target}`,
+    label: goal.label,
+  }));
+  const questBoardPanels = [...goalQuestPanels, ...fallbackQuestPanels].slice(0, 4);
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -211,35 +247,31 @@ export default function GWelcomeScreen({ navigation, route }) {
                 <View style={styles.questBoardTop}>
                   <View>
                     <Text style={styles.questEyebrow}>Nawarny Quest Board</Text>
-                    <Text style={styles.questTitle}>Today's Power Run</Text>
+                    <Text style={styles.questTitle}>
+                      {primaryGoal ? `Focus on ${primaryGoal.label}` : 'Set your learning goals'}
+                    </Text>
                   </View>
                   <View style={styles.questLevelBadge}>
-                    <Ionicons name="flash" size={15} color="#FFFFFF" />
-                    <Text style={styles.questLevelText}>Combo x2</Text>
+                    <Ionicons name="locate" size={15} color="#FFFFFF" />
+                    <Text style={styles.questLevelText}>
+                      {activeGoals.length > 0 ? `${completedGoals}/${activeGoals.length} on track` : 'Add goals'}
+                    </Text>
                   </View>
                 </View>
                 <View style={styles.questBoardStats}>
-                  <View style={styles.questMiniPanel}>
-                    <MaterialCommunityIcons name="map-marker-path" size={23} color={BLUE} />
-                    <View>
-                      <Text style={styles.questMiniValue}>{quests.filter(q => !q.completed).length} missions</Text>
-                      <Text style={styles.questMiniLabel}>left today</Text>
+                  {questBoardPanels.map(panel => (
+                    <View key={panel.key} style={styles.questMiniPanel}>
+                      {panel.family === 'MaterialCommunityIcons' ? (
+                        <MaterialCommunityIcons name={panel.icon} size={23} color={panel.color} />
+                      ) : (
+                        <Ionicons name={panel.icon} size={22} color={panel.color} />
+                      )}
+                      <View style={styles.questMiniCopy}>
+                        <Text style={styles.questMiniValue}>{panel.value}</Text>
+                        <Text style={styles.questMiniLabel} numberOfLines={2}>{panel.label}</Text>
+                      </View>
                     </View>
-                  </View>
-                  <View style={styles.questMiniPanel}>
-                    <MaterialCommunityIcons name="trophy-award" size={24} color="#F59E0B" />
-                    <View>
-                      <Text style={styles.questMiniValue}>Level {level}</Text>
-                      <Text style={styles.questMiniLabel}>your rank</Text>
-                    </View>
-                  </View>
-                  <View style={styles.questMiniPanel}>
-                    <MaterialCommunityIcons name="medal" size={24} color="#F59E0B" />
-                    <View>
-                      <Text style={styles.questMiniValue}>{earnedBadges} badges</Text>
-                      <Text style={styles.questMiniLabel}>collected</Text>
-                    </View>
-                  </View>
+                  ))}
                 </View>
               </View>
 
@@ -250,23 +282,25 @@ export default function GWelcomeScreen({ navigation, route }) {
                 {courseCategories.map(item => {
                   const active = selectedCourse === item.label;
                   return (
-                    <TouchableOpacity key={item.label} style={[styles.categoryTile, active && styles.categoryTileActive]} activeOpacity={0.82} onPress={() => handleCoursePress(item)}>
+                    <View key={item.label} style={[styles.categoryTile, active && styles.categoryTileActive]}>
                       <View style={[styles.categoryIconWrap, active && styles.categoryIconWrapActive]}>
                         <CategoryIcon item={item} active={active} />
                       </View>
                       <Text style={[styles.categoryText, active && styles.categoryTextActive]}>{item.label}</Text>
-                    </TouchableOpacity>
+                      <TouchableOpacity
+                        style={[styles.categoryPlayBtn, active && styles.categoryPlayBtnActive]}
+                        activeOpacity={0.85}
+                        onPress={() => handleCoursePress(item)}
+                      >
+                        <Text style={[styles.categoryPlayBtnText, active && styles.categoryPlayBtnTextActive]}>Play</Text>
+                      </TouchableOpacity>
+                    </View>
                   );
                 })}
               </ScrollView>
 
               <View style={styles.sectionHeader}>
                 <Text style={styles.sectionTitle}>Daily Quests</Text>
-                <TouchableOpacity style={[styles.seeAllBtn, questsClaimed && styles.claimedBtn]} activeOpacity={0.75} onPress={handleClaimDailyQuests}>
-                  <Text style={[styles.seeAllText, questsClaimed && styles.claimedBtnText]}>
-                    {questsClaimed ? 'Claimed' : `Claim +${claimablePoints} XP`}
-                  </Text>
-                </TouchableOpacity>
               </View>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.questScrollContent}>
                 {quests.length === 0 ? (
@@ -408,8 +442,9 @@ const styles = StyleSheet.create({
   questTitle: { color: '#FFFFFF', fontSize: 18, fontWeight: '900', marginTop: 3 },
   questLevelBadge: { flexDirection: 'row', alignItems: 'center', backgroundColor: BLUE, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 7, gap: 5 },
   questLevelText: { color: '#FFFFFF', fontSize: 11, fontWeight: '900' },
-  questBoardStats: { flexDirection: 'row', gap: 10 },
-  questMiniPanel: { flex: 1, minHeight: 56, backgroundColor: '#FFFFFF', borderRadius: 13, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 10, gap: 8 },
+  questBoardStats: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
+  questMiniPanel: { width: '48%', minHeight: 56, backgroundColor: '#FFFFFF', borderRadius: 13, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 10, gap: 8 },
+  questMiniCopy: { flex: 1 },
   questMiniValue: { color: DARK, fontSize: 12, fontWeight: '900' },
   questMiniLabel: { color: MUTED, fontSize: 9, fontWeight: '700', marginTop: 1 },
   sectionHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 4, marginBottom: 11 },
@@ -419,12 +454,16 @@ const styles = StyleSheet.create({
   claimedBtn: { backgroundColor: '#ECFDF5', borderColor: '#A7F3D0' },
   claimedBtnText: { color: '#047857' },
   categoryScrollContent: { paddingRight: 22, paddingBottom: 20, gap: 10 },
-  categoryTile: { width: 78, height: 74, borderRadius: 15, backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#E6EAF2', alignItems: 'center', justifyContent: 'center', shadowColor: '#111827', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.07, shadowRadius: 10, elevation: 3 },
+  categoryTile: { width: 126, minHeight: 132, borderRadius: 18, backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#E6EAF2', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 12, paddingVertical: 14, shadowColor: '#111827', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.07, shadowRadius: 10, elevation: 3 },
   categoryTileActive: { backgroundColor: BLUE, borderColor: BLUE, shadowColor: BLUE, shadowOpacity: 0.24 },
   categoryIconWrap: { height: 30, alignItems: 'center', justifyContent: 'center', marginBottom: 7 },
   categoryIconWrapActive: { transform: [{ scale: 1.08 }] },
-  categoryText: { color: DARK, fontSize: 10, fontWeight: '800', textAlign: 'center' },
+  categoryText: { color: DARK, fontSize: 12, fontWeight: '800', textAlign: 'center', minHeight: 32 },
   categoryTextActive: { color: '#FFFFFF' },
+  categoryPlayBtn: { marginTop: 12, minWidth: 76, borderRadius: 999, backgroundColor: BLUE, paddingHorizontal: 16, paddingVertical: 9, alignItems: 'center', justifyContent: 'center' },
+  categoryPlayBtnActive: { backgroundColor: '#FFFFFF' },
+  categoryPlayBtnText: { color: '#FFFFFF', fontSize: 12, fontWeight: '900', textTransform: 'uppercase' },
+  categoryPlayBtnTextActive: { color: BLUE },
   questScrollContent: { paddingRight: 22, paddingBottom: 20, gap: 10 },
   dailyQuestCard: { width: 130, minHeight: 150, borderRadius: 16, backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#E6EAF2', padding: 11, shadowColor: '#111827', shadowOffset: { width: 0, height: 5 }, shadowOpacity: 0.08, shadowRadius: 12, elevation: 4 },
   dailyQuestClaimed: { backgroundColor: '#F0FDF4', borderColor: '#BBF7D0' },

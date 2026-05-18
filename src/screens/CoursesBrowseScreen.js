@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TextInput,
-  Pressable, StatusBar, Image, ActivityIndicator,
+  Pressable, StatusBar, Image, ActivityIndicator, Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons, Feather } from '@expo/vector-icons';
@@ -23,8 +23,9 @@ export default function CoursesBrowseScreen({ navigation }) {
     try {
       setLoading(true);
       const params = {};
+      const trimmedQuery = query.trim();
       if (activeCat !== 'All') params.category = activeCat;
-      if (query.trim()) params.search = query.trim();
+      if (trimmedQuery.length >= 3) params.search = trimmedQuery;
       const res = await api.get('/courses', { params });
       setCourses(res.data ?? []);
     } catch (err) {
@@ -40,7 +41,15 @@ export default function CoursesBrowseScreen({ navigation }) {
       try {
         setCreatorsLoading(true);
         const res = await api.get('/creator/trending');
-        setCreators(res.data ?? []);
+        const creatorList = res.data ?? [];
+        setCreators(creatorList);
+        setFollowed(
+          creatorList.reduce((acc, creator) => {
+            const id = creator.id ?? creator._id;
+            if (id) acc[id] = !!(creator.isFollowed ?? creator.followed);
+            return acc;
+          }, {})
+        );
       } catch (err) {
         console.log('Failed to fetch creators:', err?.message);
         setCreators([]);
@@ -56,8 +65,10 @@ export default function CoursesBrowseScreen({ navigation }) {
     try {
       if (isFollowed) await api.delete(`/creators/${creatorId}/follow`);
       else            await api.post(`/creators/${creatorId}/follow`);
-    } catch {
+    } catch (err) {
+      console.log('Follow toggle failed:', err?.response?.data ?? err?.message);
       setFollowed(prev => ({ ...prev, [creatorId]: isFollowed }));
+      Alert.alert('Follow failed', 'Please try again.');
     }
   };
 
@@ -129,7 +140,11 @@ export default function CoursesBrowseScreen({ navigation }) {
         ) : courses.length === 0 ? (
           <View style={styles.empty}>
             <Ionicons name="book-outline" size={48} color="#ccc" />
-            <Text style={styles.emptyText}>No courses found</Text>
+            <Text style={styles.emptyText}>
+              {query.trim().length > 0 && query.trim().length < 3
+                ? 'Type at least 3 characters to search'
+                : 'No courses found'}
+            </Text>
           </View>
         ) : (
           <>
@@ -176,7 +191,7 @@ export default function CoursesBrowseScreen({ navigation }) {
                     )}
                   </View>
                   <Text style={styles.cardPrice}>
-                    {course.price === 0 ? 'Free' : `$${course.price}`}
+                    {course.price === 0 ? 'Free' : `EGP ${course.price}`}
                   </Text>
                 </View>
               </Pressable>
@@ -252,7 +267,10 @@ export default function CoursesBrowseScreen({ navigation }) {
 
                   <Pressable
                     style={[styles.followBtn, isFollowed && styles.followBtnActive]}
-                    onPress={() => handleFollow(id)}
+                    onPress={(e) => {
+                      e.stopPropagation?.();
+                      handleFollow(id);
+                    }}
                   >
                     <Ionicons
                       name={isFollowed ? 'checkmark' : 'add'}

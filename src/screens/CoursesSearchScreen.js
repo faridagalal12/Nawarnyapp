@@ -13,13 +13,14 @@ export default function CoursesSearchScreen({ route, navigation }) {
   const [results, setResults] = useState({ courses: [], users: [] });
 
   useEffect(() => {
-    if (query.trim()) search(query);
+    if (query.trim().length >= 3) search(query);
   }, []);
 
   const search = async (text) => {
     setQuery(text);
-    if (!text.trim()) {
+    if (text.trim().length < 3) {
       setResults({ courses: [], users: [] });
+      setLoading(false);
       return;
     }
     setLoading(true);
@@ -125,7 +126,7 @@ export default function CoursesSearchScreen({ route, navigation }) {
           contentContainerStyle={styles.list}
           ListEmptyComponent={
             <Text style={styles.emptyText}>
-              {query.length > 0 ? `No results for "${query}"` : "Start typing to search..."}
+              {query.trim().length >= 3 ? `No results for "${query}"` : "Type at least 3 characters to search..."}
             </Text>
           }
         />

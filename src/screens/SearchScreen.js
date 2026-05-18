@@ -26,8 +26,9 @@ export default function SearchScreen({ navigation }) {
 
   const search = async (text) => {
     setQuery(text);
-    if (!text.trim()) {
+    if (text.trim().length < 3) {
       setResults({ videos: [], topics: [], users: [], courses: [] });
+      setLoading(false);
       return;
     }
     setLoading(true);
@@ -174,10 +175,10 @@ onPress={() => navigation.navigate("PublicProfile", { creatorId: item.objectID }
           renderItem={renderItem}
           contentContainerStyle={styles.list}
           ListEmptyComponent={
-            query.length > 0 ? (
+            query.trim().length >= 3 ? (
               <Text style={styles.emptyText}>No results for "{query}"</Text>
             ) : (
-              <Text style={styles.emptyText}>Start typing to search...</Text>
+              <Text style={styles.emptyText}>Type at least 3 characters to search...</Text>
             )
           }
         />

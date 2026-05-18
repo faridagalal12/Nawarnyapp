@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import {
   View, Text, StyleSheet, FlatList, Pressable,
-  Image, ActivityIndicator, StatusBar, TextInput,
+  Image, ActivityIndicator, StatusBar, TextInput, Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons, Feather } from '@expo/vector-icons';
@@ -19,8 +19,16 @@ export default function AllCreatorsScreen({ navigation }) {
     (async () => {
       try {
         const res = await api.get('/creator/all');
-        setCreators(res.data ?? []);
-        setFiltered(res.data ?? []);
+        const creatorList = res.data ?? [];
+        setCreators(creatorList);
+        setFiltered(creatorList);
+        setFollowed(
+          creatorList.reduce((acc, creator) => {
+            const id = creator.id ?? creator._id;
+            if (id) acc[id] = !!(creator.isFollowed ?? creator.followed);
+            return acc;
+          }, {})
+        );
       } catch (err) {
         console.log('Failed to fetch creators:', err?.message);
       } finally {
@@ -47,8 +55,10 @@ export default function AllCreatorsScreen({ navigation }) {
     try {
       if (isFollowed) await api.delete(`/creators/${creatorId}/follow`);
       else            await api.post(`/creators/${creatorId}/follow`);
-    } catch {
+    } catch (err) {
+      console.log('Follow toggle failed:', err?.response?.data ?? err?.message);
       setFollowed(prev => ({ ...prev, [creatorId]: isFollowed }));
+      Alert.alert('Follow failed', 'Please try again.');
     }
   };
 
@@ -111,7 +121,10 @@ export default function AllCreatorsScreen({ navigation }) {
         {/* Follow button */}
         <Pressable
           style={[styles.followBtn, isFollowed && styles.followBtnActive]}
-          onPress={() => handleFollow(id)}
+          onPress={(e) => {
+            e.stopPropagation?.();
+            handleFollow(id);
+          }}
         >
           <Text style={[styles.followBtnText, isFollowed && styles.followBtnTextActive]}>
             {isFollowed ? 'Following' : 'Follow'}

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
   SafeAreaView, StatusBar, ScrollView, Alert, ActivityIndicator,
+  KeyboardAvoidingView, Platform,
 } from "react-native";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import api from "../services/api";
@@ -67,7 +68,15 @@ export default function CreatorApplicationScreen({ navigation }) {
         <View style={{ width: 40 }} />
       </View>
 
-      <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+      >
+      <ScrollView
+        contentContainerStyle={styles.scroll}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+      >
 
         {/* Already a creator */}
         {isCreator && (
@@ -174,6 +183,7 @@ export default function CreatorApplicationScreen({ navigation }) {
           </View>
         )}
       </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }

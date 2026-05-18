@@ -439,7 +439,7 @@ const res = await api.get(`/creator/dashboard?period=${p}`);
             <StatCard
               icon="cash-outline"
               label="Revenue"
-              value={`$${fmt(data.revenue)}`}
+              value={`EGP ${fmt(data.revenue)}`}
               sub={period === "all" ? "total earned" : `${periodLabel(period)}`}
               subColor="#185FA5"
               accent="#185FA5"

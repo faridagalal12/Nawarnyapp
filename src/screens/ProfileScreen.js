@@ -14,7 +14,6 @@ import CreatorCourseCard from "../components/profile/CreatorCourseCard";
 import { pickAndUploadVideo, pickAndUploadCourse } from "../components/profile/uploadHelpers";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
-const TAB_WIDTH = (SCREEN_WIDTH - 32) / 2;
 
 function VideoModal({ visible, video, onClose }) {
   const player = useVideoPlayer(video?.videoUrl ?? null, (p) => {
@@ -91,7 +90,8 @@ export default function ProfileScreen({ signOut, navigation }) {
   const [savedCourses, setSavedCourses]         = useState([]);
   const [creatorCourses, setCreatorCourses]     = useState([]);
 
-  const TAB_LABELS = isCreator ? ["Videos", "Courses"] : ["Downloaded", "Saved"];
+  const TAB_LABELS = isCreator ? ["Videos", "Courses", "Saved"] : ["Downloaded", "Saved"];
+  const TAB_WIDTH = (SCREEN_WIDTH - 32) / TAB_LABELS.length;
 
   const showToast = (msg) => {
     setToastMsg(msg);
@@ -205,92 +205,8 @@ export default function ProfileScreen({ signOut, navigation }) {
     setVideoModalVisible(true);
   };
 
-  const renderTabContent = () => {
-    // ── CREATOR view ──
-    if (isCreator) {
-      if (activeTab === 0) {
-        return downloadedVideos.length === 0 ? (
-          <View style={styles.emptyState}>
-            <View style={styles.emptyIconBox}>
-              <Ionicons name="videocam-outline" size={26} color="#2F54EB" />
-            </View>
-            <Text style={styles.emptyTitle}>No videos uploaded yet</Text>
-            <Text style={styles.emptySubtitle}>Upload your first short educational video.</Text>
-          </View>
-        ) : (
-          <View>
-            {downloadedVideos.map((v, i) => (
-              <TouchableOpacity key={i} style={styles.videoCard} onPress={() => openVideo(v)}>
-                <View style={styles.videoIconBox}>
-                  <Ionicons name="videocam-outline" size={22} color="#2F54EB" />
-                </View>
-                <View style={styles.courseInfo}>
-                  <Text style={styles.courseTitle} numberOfLines={1}>{v.title}</Text>
-                  <Text style={styles.courseMeta}>
-                    {v.createdAt ? new Date(v.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : ""}
-                  </Text>
-                </View>
-                <Ionicons name="play-circle-outline" size={24} color="#2F54EB" />
-              </TouchableOpacity>
-            ))}
-          </View>
-        );
-      }
-
-      // Courses tab for creator
-      return (
-        <View>
-          <View style={styles.publicBanner}>
-            <Ionicons name="earth-outline" size={13} color="#0C5A8C" />
-            <Text style={styles.publicBannerText}>Your uploaded courses — visible to everyone</Text>
-          </View>
-          {creatorCourses.length === 0 ? (
-            <View style={styles.emptyState}>
-              <View style={styles.emptyIconBox}>
-                <Ionicons name="book-outline" size={26} color="#2F54EB" />
-              </View>
-              <Text style={styles.emptyTitle}>No courses yet</Text>
-              <Text style={styles.emptySubtitle}>Upload your first course from the menu.</Text>
-            </View>
-          ) : (
-            creatorCourses.map(item => <CreatorCourseCard key={item.id} item={item} navigation={navigation} />)
-          )}
-        </View>
-      );
-    }
-
-    // ── REGULAR USER view ──
-    if (activeTab === 0) {
-      return downloadedVideos.length === 0 ? (
-        <View style={styles.emptyState}>
-          <View style={styles.emptyIconBox}>
-            <Ionicons name="download-outline" size={26} color="#2F54EB" />
-          </View>
-          <Text style={styles.emptyTitle}>No downloaded videos yet</Text>
-          <Text style={styles.emptySubtitle}>Videos you download from the feed will appear here.</Text>
-        </View>
-      ) : (
-        <View>
-          {downloadedVideos.map((v, i) => (
-            <TouchableOpacity key={i} style={styles.videoCard} onPress={() => openVideo(v)}>
-              <View style={styles.videoIconBox}>
-                <Ionicons name="videocam-outline" size={22} color="#2F54EB" />
-              </View>
-              <View style={styles.courseInfo}>
-                <Text style={styles.courseTitle} numberOfLines={1}>{v.title}</Text>
-                <Text style={styles.courseMeta}>
-                  {v.downloadedAt ? new Date(v.downloadedAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : ""}
-                </Text>
-              </View>
-              <Ionicons name="play-circle-outline" size={24} color="#2F54EB" />
-            </TouchableOpacity>
-          ))}
-        </View>
-      );
-    }
-
-    // Saved courses tab for regular user
-    return savedCourses.length === 0 ? (
+  const renderSavedCourses = () => (
+    savedCourses.length === 0 ? (
       <View style={styles.emptyState}>
         <View style={styles.emptyIconBox}>
           <Ionicons name="bookmark-outline" size={26} color="#2F54EB" />
@@ -330,7 +246,98 @@ export default function ProfileScreen({ signOut, navigation }) {
           </TouchableOpacity>
         ))}
       </View>
-    );
+    )
+  );
+
+  const renderTabContent = () => {
+    // ── CREATOR view ──
+    if (isCreator) {
+      if (activeTab === 0) {
+        return downloadedVideos.length === 0 ? (
+          <View style={styles.emptyState}>
+            <View style={styles.emptyIconBox}>
+              <Ionicons name="videocam-outline" size={26} color="#2F54EB" />
+            </View>
+            <Text style={styles.emptyTitle}>No videos uploaded yet</Text>
+            <Text style={styles.emptySubtitle}>Upload your first short educational video.</Text>
+          </View>
+        ) : (
+          <View>
+            {downloadedVideos.map((v, i) => (
+              <TouchableOpacity key={i} style={styles.videoCard} onPress={() => openVideo(v)}>
+                <View style={styles.videoIconBox}>
+                  <Ionicons name="videocam-outline" size={22} color="#2F54EB" />
+                </View>
+                <View style={styles.courseInfo}>
+                  <Text style={styles.courseTitle} numberOfLines={1}>{v.title}</Text>
+                  <Text style={styles.courseMeta}>
+                    {v.createdAt ? new Date(v.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : ""}
+                  </Text>
+                </View>
+                <Ionicons name="play-circle-outline" size={24} color="#2F54EB" />
+              </TouchableOpacity>
+            ))}
+          </View>
+        );
+      }
+
+      if (activeTab === 1) {
+        return (
+        <View>
+          <View style={styles.publicBanner}>
+            <Ionicons name="earth-outline" size={13} color="#0C5A8C" />
+            <Text style={styles.publicBannerText}>Your uploaded courses — visible to everyone</Text>
+          </View>
+          {creatorCourses.length === 0 ? (
+            <View style={styles.emptyState}>
+              <View style={styles.emptyIconBox}>
+                <Ionicons name="book-outline" size={26} color="#2F54EB" />
+              </View>
+              <Text style={styles.emptyTitle}>No courses yet</Text>
+              <Text style={styles.emptySubtitle}>Upload your first course from the menu.</Text>
+            </View>
+          ) : (
+            creatorCourses.map(item => <CreatorCourseCard key={item.id} item={item} navigation={navigation} />)
+          )}
+        </View>
+        );
+      }
+
+      return renderSavedCourses();
+    }
+
+    // ── REGULAR USER view ──
+    if (activeTab === 0) {
+      return downloadedVideos.length === 0 ? (
+        <View style={styles.emptyState}>
+          <View style={styles.emptyIconBox}>
+            <Ionicons name="download-outline" size={26} color="#2F54EB" />
+          </View>
+          <Text style={styles.emptyTitle}>No downloaded videos yet</Text>
+          <Text style={styles.emptySubtitle}>Videos you download from the feed will appear here.</Text>
+        </View>
+      ) : (
+        <View>
+          {downloadedVideos.map((v, i) => (
+            <TouchableOpacity key={i} style={styles.videoCard} onPress={() => openVideo(v)}>
+              <View style={styles.videoIconBox}>
+                <Ionicons name="videocam-outline" size={22} color="#2F54EB" />
+              </View>
+              <View style={styles.courseInfo}>
+                <Text style={styles.courseTitle} numberOfLines={1}>{v.title}</Text>
+                <Text style={styles.courseMeta}>
+                  {v.downloadedAt ? new Date(v.downloadedAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : ""}
+                </Text>
+              </View>
+              <Ionicons name="play-circle-outline" size={24} color="#2F54EB" />
+            </TouchableOpacity>
+          ))}
+        </View>
+      );
+    }
+
+    // Saved courses tab for regular user
+    return renderSavedCourses();
   };
 
   return (

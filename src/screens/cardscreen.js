@@ -2,9 +2,12 @@ import React, { useState } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity,
   SafeAreaView, StatusBar, TextInput, Alert, ScrollView,
+  KeyboardAvoidingView, Platform,
 } from 'react-native';
+import * as SecureStore from 'expo-secure-store';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import api from '../services/api';
+import { TOKEN_KEY } from '../constants/authKeys';
 
 const BLUE = '#0066FF';
 
@@ -21,6 +24,43 @@ function formatExpiry(val) {
 export default function CardScreen({ navigation, route }) {
   const { course, plan, price, session } = route?.params ?? {};
 
+  const getLearnerId = async () => {
+    try {
+      const token = await SecureStore.getItemAsync(TOKEN_KEY);
+      if (token) {
+        const payload = token.split('.')[1];
+        if (payload) {
+          const normalized = payload.replace(/-/g, '+').replace(/_/g, '/');
+          const padded = normalized.padEnd(Math.ceil(normalized.length / 4) * 4, '=');
+          const decoded = JSON.parse(atob(padded));
+          if (decoded?.sub) return decoded.sub;
+          if (decoded?.id) return decoded.id;
+          if (decoded?._id) return decoded._id;
+        }
+      }
+    } catch (err) {
+      console.log('Failed to decode learner token:', err?.message);
+    }
+
+    try {
+      const meRes = await api.get('/users/me/profile/editable');
+      return meRes?.data?._id ?? meRes?.data?.id ?? null;
+    } catch (err) {
+      console.log('Failed to fetch learner profile:', err?.message);
+      return null;
+    }
+  };
+
+  const goToCourseAfterPayment = () => {
+    navigation.reset({
+      index: 1,
+      routes: [
+        { name: 'CoursesBrowse' },
+        { name: 'CourseDetail', params: { course } },
+      ],
+    });
+  };
+
   // ── Determine which flow we're in ──
   const isSession = !!session;
   const isCourse  = !!course;
@@ -32,7 +72,7 @@ export default function CardScreen({ navigation, route }) {
       : `${plan ?? ''} Plan`;
 
   const displayPrice = isSession
-    ? `$${session.sessionType?.price ?? 0}.00`
+    ? `EGP ${session.sessionType?.price ?? 0}.00`
     : isCourse
       ? `EGP ${course.price}`
       : (price ?? '');
@@ -57,31 +97,39 @@ export default function CardScreen({ navigation, route }) {
 
     try {
       if (isSession) {
-  await api.post('/sessions/book', {
-    creatorId:     session.creator?.id ?? session.creator?._id,
-    sessionType:   session.sessionType?.id,
-    date:          session.day,
-    time:          session.slot?.time,
-    price:         session.sessionType?.price,
-    paymentMethod: 'card',
-  });
-  Alert.alert('Session Booked! 🎉', `Your session with ${session.creator?.name ?? 'the instructor'} is confirmed!`, [
-    {
-      text: 'Done',
-      onPress: () => navigation.navigate('SessionBooked', {
-        creator:     session.creator,
-        sessionType: session.sessionType,
-        day:         session.day,
-        slot:        session.slot,
-      }),
-    },
-  ]);
-  return;
-} else if (isCourse) {
+        const learnerId = await getLearnerId();
+
+        if (!learnerId) {
+          Alert.alert('Login Required', 'Please sign in again before booking a private session.');
+          return;
+        }
+
+        await api.post('/sessions/book', {
+          learner:       learnerId,
+          creatorId:     session.creator?.id ?? session.creator?._id,
+          sessionType:   session.sessionType?.id,
+          date:          session.day,
+          time:          session.slot?.time,
+          price:         session.sessionType?.price,
+          paymentMethod: 'card',
+        });
+        Alert.alert('Session Booked! 🎉', `Your session with ${session.creator?.name ?? 'the instructor'} is confirmed!`, [
+          {
+            text: 'Done',
+            onPress: () => navigation.navigate('SessionBooked', {
+              creator:     session.creator,
+              sessionType: session.sessionType,
+              day:         session.day,
+              slot:        session.slot,
+            }),
+          },
+        ]);
+        return;
+      } else if (isCourse) {
         // ── Course enrollment payment ──
         await api.post('/courses/enroll', { courseId: course._id ?? course.id });
         Alert.alert('Payment Successful 🎉', `You enrolled in ${course.title}!`, [
-          { text: 'Done', onPress: () => navigation.navigate('CourseDetail', { course }) },
+          { text: 'Done', onPress: goToCourseAfterPayment },
         ]);
       } else {
         // ── Subscription payment ──
@@ -118,6 +166,10 @@ export default function CardScreen({ navigation, route }) {
         <View style={{ width: 32 }} />
       </View>
 
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      >
       <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
 
         {/* Card preview */}
@@ -252,6 +304,7 @@ export default function CardScreen({ navigation, route }) {
         </Text>
 
       </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }

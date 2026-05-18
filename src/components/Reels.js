@@ -47,11 +47,22 @@ const S = {
   textShadowRadius: 12,
 };
 
-// ── Notes Modal ───────────────────────────────────────────────────────────────
-function NotesModal({ visible, onClose, videoTitle, videoId }) {
+// ── Comments Modal ────────────────────────────────────────────────────────────
+function NotesModal({ visible, onClose, videoTitle, videoId, canDeleteComments }) {
   const [notes,   setNotes]   = useState([]);
   const [input,   setInput]   = useState("");
   const [loading, setLoading] = useState(false);
+
+  const normalizeComments = useCallback((comments = []) => (
+    comments.map(comment => ({
+      id: comment.id ?? comment._id,
+      text: comment.text ?? "",
+      createdAt: comment.createdAt,
+      authorName: comment.userId?.name ?? comment.user?.name ?? "User",
+      authorUsername: comment.userId?.username ?? comment.user?.username ?? null,
+      authorAvatar: comment.userId?.avatarUrl ?? comment.user?.avatarUrl ?? null,
+    }))
+  ), []);
 
   useEffect(() => {
     if (!visible) return;
@@ -59,34 +70,39 @@ function NotesModal({ visible, onClose, videoTitle, videoId }) {
     (async () => {
       setLoading(true);
       try {
-        const res = await api.get(`/videos/${videoId}/notes`);
-        console.log("Notes response:", JSON.stringify(res?.data));
-        setNotes(res?.data?.notes ?? []);
+        const res = await api.get(`/videos/${videoId}/comments`);
+        console.log("Comments response:", JSON.stringify(res?.data));
+        setNotes(normalizeComments(Array.isArray(res?.data) ? res.data : res?.data?.comments ?? []));
       } catch {
         setNotes([]);
       } finally {
         setLoading(false);
       }
     })();
-  }, [visible, videoId]);
+  }, [visible, videoId, normalizeComments]);
 
   const addNote = async () => {
     const text = input.trim();
     if (!text) return;
     setInput("");
     try {
-      await api.post(`/videos/${videoId}/notes`, { text });
+      await api.post(`/videos/${videoId}/comment`, { text });
       api.post("/learning-profile/award-xp", { action: "ADD_NOTE" }).catch(() => {});
-      const res = await api.get(`/videos/${videoId}/notes`);
-      setNotes(res?.data?.notes ?? []);
+      const res = await api.get(`/videos/${videoId}/comments`);
+      setNotes(normalizeComments(Array.isArray(res?.data) ? res.data : res?.data?.comments ?? []));
     } catch (err) {
-      console.log("Add note error:", err?.response?.data ?? err?.message);
+      console.log("Add comment error:", err?.response?.data ?? err?.message);
     }
   };
 
   const deleteNote = async (id) => {
     setNotes(prev => prev.filter(n => n.id !== id));
-    try { await api.delete(`/videos/${videoId}/notes/${id}`); } catch {}
+    try {
+      await api.delete(`/videos/${videoId}/comments/${id}`);
+    } catch {
+      const res = await api.get(`/videos/${videoId}/comments`).catch(() => null);
+      setNotes(normalizeComments(Array.isArray(res?.data) ? res.data : res?.data?.comments ?? []));
+    }
   };
 
   return (
@@ -102,14 +118,14 @@ function NotesModal({ visible, onClose, videoTitle, videoId }) {
         <View style={styles.modalSheet}>
           <View style={styles.modalHeader}>
             <View style={styles.modalHandle} />
-            <Text style={styles.modalTitle}>My Notes</Text>
+            <Text style={styles.modalTitle}>Comments</Text>
             <Text style={styles.modalSub} numberOfLines={1}>{videoTitle}</Text>
           </View>
 
           <View style={styles.inputRow}>
             <TextInput
               style={styles.noteInput}
-              placeholder="Write a note..."
+              placeholder="Write a comment..."
               placeholderTextColor="rgba(255,255,255,0.3)"
               value={input}
               onChangeText={setInput}
@@ -130,16 +146,33 @@ function NotesModal({ visible, onClose, videoTitle, videoId }) {
           ) : notes.length === 0 ? (
             <View style={styles.emptyNotes}>
               <Ionicons name="document-text-outline" size={40} color="rgba(255,255,255,0.15)" />
-              <Text style={styles.emptyText}>No notes yet. Add your first one!</Text>
+              <Text style={styles.emptyText}>No comments yet. Add your first one!</Text>
             </View>
           ) : (
             <ScrollView style={styles.notesList} showsVerticalScrollIndicator={false}>
               {notes.map(n => (
                 <View key={n.id} style={styles.noteCard}>
-                  <Text style={styles.noteText}>{n.text}</Text>
-                  <TouchableOpacity onPress={() => deleteNote(n.id)}>
-                    <Ionicons name="trash-outline" size={16} color="rgba(255,80,90,0.7)" />
-                  </TouchableOpacity>
+                  <View style={styles.commentAvatarWrap}>
+                    {n.authorAvatar ? (
+                      <Image source={{ uri: n.authorAvatar }} style={styles.commentAvatar} />
+                    ) : (
+                      <View style={styles.commentAvatarFallback}>
+                        <Ionicons name="person" size={16} color="#fff" />
+                      </View>
+                    )}
+                  </View>
+                  <View style={styles.commentBody}>
+                    <Text style={styles.commentAuthor} numberOfLines={1}>
+                      {n.authorName}
+                      {n.authorUsername ? <Text style={styles.commentUsername}> @{n.authorUsername}</Text> : null}
+                    </Text>
+                    <Text style={styles.noteText}>{n.text}</Text>
+                  </View>
+                  {canDeleteComments ? (
+                    <TouchableOpacity onPress={() => deleteNote(n.id)} style={styles.commentDeleteBtn}>
+                      <Ionicons name="trash-outline" size={16} color="rgba(255,80,90,0.7)" />
+                    </TouchableOpacity>
+                  ) : null}
                 </View>
               ))}
             </ScrollView>
@@ -165,6 +198,8 @@ function VideoItem({ item, isActive, navigation }) {
 
   const cat  = getCat(item.subject ?? item.category);
   const creatorAvatar = item.creator?.avatarUrl ?? item.educatorAvatar ?? null;
+  const creatorId = item.creator?.id ?? item.creator?._id ?? item.creatorId;
+  const canDeleteComments = !!(item.currentUserId && creatorId && String(item.currentUserId) === String(creatorId));
 
   const player = useVideoPlayer(
     item.videoUrl ? { uri: item.videoUrl } : null,
@@ -236,6 +271,18 @@ function VideoItem({ item, isActive, navigation }) {
     }
   };
 
+  const openCreatorProfile = () => {
+    const myUserId = item.currentUserId;
+    if (!creatorId) return;
+
+    if (myUserId && String(creatorId) === String(myUserId)) {
+      navigation.navigate("Profile", { screen: "ProfileMain" });
+      return;
+    }
+
+    navigation.navigate("PublicProfile", { creatorId });
+  };
+
   return (
     <View style={styles.videoContainer}>
 
@@ -275,7 +322,7 @@ function VideoItem({ item, isActive, navigation }) {
 
         <TouchableOpacity onPress={() => setShowNotes(true)} style={styles.actionBtn}>
           <Ionicons name="create-outline" size={30} color="#fff" />
-          <Text style={[styles.actionLabel, S]}>Notes</Text>
+          <Text style={[styles.actionLabel, S]}>Comments</Text>
         </TouchableOpacity>
       </View>
 
@@ -284,10 +331,7 @@ function VideoItem({ item, isActive, navigation }) {
         <View style={styles.instructorRow}>
           <TouchableOpacity
             style={styles.avatarWrap}
-            onPress={() => {
-              const creatorId = item.creator?.id ?? item.creator?._id;
-              if (creatorId) navigation.navigate("PublicProfile", { creatorId });
-            }}
+            onPress={openCreatorProfile}
           >
             {creatorAvatar ? (
               <Image source={{ uri: creatorAvatar }} style={styles.avatarImg} />
@@ -308,10 +352,7 @@ function VideoItem({ item, isActive, navigation }) {
 
           <TouchableOpacity
             style={{ flex: 1 }}
-            onPress={() => {
-              const creatorId = item.creator?.id ?? item.creator?._id;
-              if (creatorId) navigation.navigate("PublicProfile", { creatorId });
-            }}
+            onPress={openCreatorProfile}
           >
             {!!(item.educatorName ?? item.creator?.name) && (
               <Text style={[styles.instructorName, S]}>
@@ -340,6 +381,7 @@ function VideoItem({ item, isActive, navigation }) {
         onClose={() => setShowNotes(false)}
         videoTitle={item.title}
         videoId={item.id}
+        canDeleteComments={canDeleteComments}
       />
     </View>
   );
@@ -363,6 +405,7 @@ export default function Reels({ navigation }) {
   const [activeIndex,    setActiveIndex]    = useState(0);
   const [screenFocused,  setScreenFocused]  = useState(true);
   const [unreadCount,    setUnreadCount]    = useState(0);
+  const [currentUserId,  setCurrentUserId]  = useState(null);
 
   // ── fetch unread notification count + screen focus ──
   useFocusEffect(
@@ -371,10 +414,16 @@ export default function Reels({ navigation }) {
       setLoading(true);
       (async () => {
         try {
-          const res = await api.get("/videos/feed?limit=50");
+          const [feedRes, meRes] = await Promise.all([
+            api.get("/videos/feed?limit=50"),
+            api.get("/users/me/profile/editable"),
+          ]);
+          const res = feedRes;
           const fetched = res?.data?.videos ?? [];
+          setCurrentUserId(meRes?.data?._id ?? null);
           const fixed = fetched.map(v => ({
             ...v,
+            currentUserId: meRes?.data?._id ?? null,
             videoUrl: v.videoUrl?.includes(".MOV") || v.videoUrl?.includes(".mov")
               ? v.videoUrl + "?t=" + Date.now()
               : v.videoUrl,
@@ -410,8 +459,12 @@ export default function Reels({ navigation }) {
     try {
       const res = await api.get("/videos/feed?limit=50");
       const fetched = res?.data?.videos ?? [];
-      setOriginalVideos(fetched);
-      setVideos(shuffle(fetched));
+      const withCurrentUser = fetched.map(v => ({
+        ...v,
+        currentUserId,
+      }));
+      setOriginalVideos(withCurrentUser);
+      setVideos(shuffle(withCurrentUser));
       setActiveIndex(0);
     } catch (err) {
       console.log("Failed to refresh videos:", err?.message);
@@ -671,6 +724,40 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(255,255,255,0.05)",
     borderWidth: 0.5, borderColor: "rgba(26,95,245,0.2)",
     borderRadius: 12, padding: 12, marginBottom: 10, gap: 10,
+  },
+  commentAvatarWrap: {
+    width: 34,
+    height: 34,
+  },
+  commentAvatar: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+  },
+  commentAvatarFallback: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: "rgba(255,255,255,0.18)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  commentBody: {
+    flex: 1,
+  },
+  commentAuthor: {
+    color: "#fff",
+    fontSize: 13,
+    fontWeight: "800",
+    marginBottom: 4,
+  },
+  commentUsername: {
+    color: "rgba(255,255,255,0.5)",
+    fontSize: 12,
+    fontWeight: "600",
+  },
+  commentDeleteBtn: {
+    paddingTop: 2,
   },
   noteText: { flex: 1, color: "rgba(255,255,255,0.85)", fontSize: 14, lineHeight: 20 },
 });

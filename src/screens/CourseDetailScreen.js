@@ -142,12 +142,19 @@ export default function CourseDetailScreen({ route, navigation }) {
       </Modal>
 
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
-        <View style={styles.hero}>
-          <Pressable style={styles.heroBtn} onPress={() => navigation.goBack()}>
+        <View style={styles.topBar}>
+          <Pressable style={styles.topBarBtn} onPress={() => navigation.goBack()}>
             <Ionicons name="chevron-back" size={20} color="#000" />
           </Pressable>
+          <View style={styles.topBarMeta}>
+            {!!data.category && (
+              <View style={styles.inlineBadge}>
+                <Text style={styles.inlineBadgeText}>{data.category}</Text>
+              </View>
+            )}
+          </View>
           <Pressable
-            style={[styles.heroBtn, styles.heroBtnRight]}
+            style={styles.topBarBtn}
             onPress={handleToggleSave}
             disabled={savingCourse}
           >
@@ -157,13 +164,6 @@ export default function CourseDetailScreen({ route, navigation }) {
               color={isSaved ? '#2F54EB' : '#000'}
             />
           </Pressable>
-          <View style={styles.heroBadge}>
-            <Text style={styles.heroBadgeText}>{data.category ?? ''}</Text>
-          </View>
-          <View style={styles.playCircle}>
-            <Ionicons name="play" size={28} color="#fff" />
-          </View>
-          <View style={styles.heroOverlay} />
         </View>
 
         <View style={styles.body}>
@@ -375,14 +375,12 @@ export default function CourseDetailScreen({ route, navigation }) {
 const styles = StyleSheet.create({
   safe:   { flex: 1, backgroundColor: '#F8FAFF' },
   scroll: { paddingBottom: 120 },
-  hero: { height: 240, backgroundColor: '#BE185D', justifyContent: 'center', alignItems: 'center', position: 'relative' },
-  heroOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.15)' },
-  heroBtn: { position: 'absolute', top: 16, left: 16, zIndex: 10, width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(255,255,255,0.95)', alignItems: 'center', justifyContent: 'center', shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 4, elevation: 3 },
-  heroBtnRight: { left: undefined, right: 16 },
-  heroBadge: { position: 'absolute', top: 16, alignSelf: 'center', zIndex: 10, backgroundColor: 'rgba(255,255,255,0.2)', paddingHorizontal: 12, paddingVertical: 4, borderRadius: 20, borderWidth: 1, borderColor: 'rgba(255,255,255,0.4)' },
-  heroBadgeText: { color: '#fff', fontSize: 12, fontWeight: '600' },
-  playCircle: { width: 64, height: 64, borderRadius: 32, backgroundColor: 'rgba(255,255,255,0.25)', justifyContent: 'center', alignItems: 'center', borderWidth: 2, borderColor: 'rgba(255,255,255,0.6)', zIndex: 10 },
-  body: { padding: 20 },
+  topBar: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, paddingTop: 12, paddingBottom: 4, gap: 12 },
+  topBarBtn: { width: 38, height: 38, borderRadius: 19, backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center', shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 6, elevation: 2 },
+  topBarMeta: { flex: 1, alignItems: 'center' },
+  inlineBadge: { backgroundColor: '#EEF2FF', paddingHorizontal: 12, paddingVertical: 5, borderRadius: 999 },
+  inlineBadgeText: { color: '#2F54EB', fontSize: 12, fontWeight: '700' },
+  body: { paddingHorizontal: 20, paddingTop: 10, paddingBottom: 20 },
   title: { fontSize: 20, fontWeight: '800', color: '#0F172A', lineHeight: 28, marginBottom: 10 },
   instructorRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 16 },
   avatarCircle: { width: 28, height: 28, borderRadius: 14, backgroundColor: '#2F54EB', justifyContent: 'center', alignItems: 'center' },

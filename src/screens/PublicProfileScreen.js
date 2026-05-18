@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import {
   View, Text, StyleSheet, SafeAreaView, StatusBar,
-  TouchableOpacity, ScrollView, Image, ActivityIndicator, Dimensions,
+  TouchableOpacity, ScrollView, Image, ActivityIndicator, Dimensions, Alert,
 } from "react-native";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import api from "../services/api";
@@ -56,7 +56,7 @@ function CourseCard({ item }) {
       <View style={styles.lockBadge}>
         <Ionicons name="lock-closed" size={14} color="#fff" />
         <Text style={styles.lockText}>
-          {item.price === 0 ? "Free" : `$${item.price}`}
+          {item.price === 0 ? "Free" : `EGP ${item.price}`}
         </Text>
       </View>
     </View>
@@ -113,8 +113,10 @@ export default function PublicProfileScreen({ route, navigation }) {
     try {
       if (next) await api.post(`/creators/${creatorId}/follow`);
       else      await api.delete(`/creators/${creatorId}/follow`);
-    } catch {
+    } catch (err) {
+      console.log('Follow toggle failed:', err?.response?.data ?? err?.message);
       setFollowed(!next);
+      Alert.alert('Follow failed', 'Please try again.');
     }
   };
 

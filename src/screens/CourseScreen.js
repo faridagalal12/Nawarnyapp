@@ -77,8 +77,9 @@ export default function CoursesStack({ navigation }) {
   );
 
   const handleSearchSubmit = () => {
-    if (search.trim()) {
-      navigation.navigate("CoursesSearch", { query: search });
+    const trimmedSearch = search.trim();
+    if (trimmedSearch.length >= 3) {
+      navigation.navigate("CoursesSearch", { query: trimmedSearch });
     }
   };
 
@@ -153,7 +154,11 @@ export default function CoursesStack({ navigation }) {
         {filtered.length === 0 && (
           <View style={styles.noResults}>
             <Ionicons name="search-outline" size={40} color="#ccc" />
-            <Text style={styles.noResultsText}>No courses found</Text>
+            <Text style={styles.noResultsText}>
+              {search.trim().length > 0 && search.trim().length < 3
+                ? "Type at least 3 characters to search"
+                : "No courses found"}
+            </Text>
           </View>
         )}
 
