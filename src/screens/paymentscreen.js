@@ -9,8 +9,6 @@ const BLUE = '#0066FF';
 
 const methods = [
   { id: 'card',   icon: 'card-outline',  label: 'Credit / Debit Card' },
-  { id: 'apple',  icon: 'logo-apple',    label: 'Apple Pay' },
-  { id: 'paypal', icon: 'logo-paypal',   label: 'PayPal' },
 ];
 
 export default function PaymentScreen({ navigation, route }) {
