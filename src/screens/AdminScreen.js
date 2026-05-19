@@ -127,13 +127,20 @@ export default function AdminScreen({ navigation }) {
   const [applications, setApplications] = useState([]);
   const [loading, setLoading]           = useState(true);
   const [rejectTarget, setRejectTarget] = useState(null);
+  const [accessDenied, setAccessDenied] = useState(false);
 
   const fetchApplications = async () => {
     setLoading(true);
     try {
       const res = await api.get("/admin/creators/creator-applications");
       setApplications(res?.data ?? []);
+      setAccessDenied(false);
     } catch (err) {
+      if (err?.response?.status === 403) {
+        setAccessDenied(true);
+        setApplications([]);
+        return;
+      }
       console.log("Failed to load applications:", err?.message);
     } finally {
       setLoading(false);
@@ -196,6 +203,12 @@ export default function AdminScreen({ navigation }) {
 
       {loading ? (
         <ActivityIndicator size="large" color="#2F54EB" style={{ marginTop: 60 }} />
+      ) : accessDenied ? (
+        <View style={styles.empty}>
+          <Ionicons name="shield-outline" size={56} color="#CBD5E1" />
+          <Text style={styles.emptyTitle}>Admin Access Required</Text>
+          <Text style={styles.emptySub}>This page is only available for admin accounts.</Text>
+        </View>
       ) : applications.length === 0 ? (
         <View style={styles.empty}>
           <Ionicons name="checkmark-done-circle-outline" size={56} color="#CBD5E1" />

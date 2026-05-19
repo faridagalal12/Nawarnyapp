@@ -1,6 +1,8 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Notifications from "expo-notifications";
+import * as SecureStore from "expo-secure-store";
 import { Platform } from "react-native";
+import { TOKEN_KEY } from "../constants/authKeys";
 import api from "./api";
 
 const ANNOUNCED_NOTIFICATION_IDS_KEY = "announcedNotificationIds";
@@ -18,6 +20,7 @@ Notifications.setNotificationHandler({
 
 let pollingInterval = null;
 let initialized = false;
+let hasLoggedPollingFailure = false;
 
 async function ensurePermissions() {
   const settings = await Notifications.getPermissionsAsync();
@@ -76,6 +79,9 @@ function buildNotificationText(notification) {
 
 async function announceUnreadNotifications() {
   try {
+    const token = await SecureStore.getItemAsync(TOKEN_KEY);
+    if (!token) return;
+
     const res = await api.get("/notifications");
     const notifications = res?.data?.notifications ?? [];
     const unread = notifications.filter((n) => !n.read);
@@ -105,8 +111,21 @@ async function announceUnreadNotifications() {
     if (freshUnread.length > 0) {
       await saveAnnouncedIds(announcedIds);
     }
+    hasLoggedPollingFailure = false;
   } catch (error) {
-    console.log("Foreground notification polling failed:", error?.message);
+    const status = error?.response?.status;
+    const isExpectedTemporaryFailure =
+      error?.message === "Network Error" ||
+      status === 401 ||
+      status === 403 ||
+      status === 404;
+
+    if (isExpectedTemporaryFailure) return;
+
+    if (!hasLoggedPollingFailure) {
+      console.log("Foreground notification polling failed:", error?.message);
+      hasLoggedPollingFailure = true;
+    }
   }
 }
 

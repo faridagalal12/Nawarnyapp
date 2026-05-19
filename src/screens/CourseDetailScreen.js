@@ -10,13 +10,13 @@ import { Video, ResizeMode } from 'expo-av';
 import api from '../services/api';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
-const TABS = ['Curriculum', 'Files', 'About'];
+const TABS = ['About', 'Curriculum', 'Files'];
 
 export default function CourseDetailScreen({ route, navigation }) {
   const course = route?.params?.course ?? {};
   const courseId = course._id ?? course.id;
 
-  const [tab, setTab] = useState('Curriculum');
+  const [tab, setTab] = useState('About');
   const [detail, setDetail] = useState(null);
   const [loading, setLoading] = useState(true);
   const [videoModal, setVideoModal] = useState(false);
