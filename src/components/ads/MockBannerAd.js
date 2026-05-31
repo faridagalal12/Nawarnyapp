@@ -16,7 +16,7 @@ export default function MockBannerAd({ onStartFree }) {
       <Text style={styles.title}>Learn faster with Nawarny Pro</Text>
       <Text style={styles.subtitle}>Unlock all courses, go ad-free and earn more XP</Text>
       <TouchableOpacity style={styles.ctaBtn} onPress={onStartFree}>
-        <Text style={styles.ctaText}>Try Free →</Text>
+        <Text style={styles.ctaText}>Try Pro →</Text>
       </TouchableOpacity>
       <Text style={styles.skip}>Scroll to skip</Text>
     </View>
